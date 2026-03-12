@@ -12,7 +12,7 @@ app/LICENSE.md
 app/Vagrantfile
 app/README.md
 app/.bowerrc
-
+app/frontend/runtime/*
 .gitignore
 README.md
 
