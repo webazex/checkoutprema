@@ -38,7 +38,6 @@ return [
             'errorAction' => 'site/error',
         ],
         'urlManager' => [
-            'baseUrl' => '',
             'enablePrettyUrl' => true,
             'showScriptName' => false,
             'rules' => $rules,

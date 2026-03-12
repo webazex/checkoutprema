@@ -8,5 +8,5 @@ return [
     'customer/orders/<id:\d+>' => 'customer/orders',
     '<controller:\w+>'                        => '<controller>/index',
     '<controller:\w+>/<action:\w+>'  => '<controller>/<action>',
-    'catchAll' => ['site/offline'],
+    'catchAll' => 'site/offline',
 ];
