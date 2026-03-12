@@ -1,0 +1,279 @@
+2026-03-12 08:47:33 [195.138.67.124][-][-][error][yii\web\Session::open] session_start(): Failed to read session data: files (path: /home/dev/tmp)
+2026-03-12 08:47:33 [195.138.67.124][-][-][info][application] $_GET = []
+
+$_POST = []
+
+$_FILES = []
+
+$_COOKIE = [
+    'HESTIASID' => 'cov0r0sshd5nd2dufavpqr9o1m'
+]
+
+$_SESSION = [
+    '__flash' => []
+]
+
+$_SERVER = [
+    'TEMP' => '/home/dev/tmp'
+    'TMPDIR' => '/home/dev/tmp'
+    'TMP' => '/home/dev/tmp'
+    'PATH' => '/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin'
+    'HOSTNAME' => ''
+    'USER' => 'dev'
+    'HOME' => '/home/dev'
+    'SCRIPT_NAME' => '/index.php'
+    'REQUEST_URI' => '/'
+    'QUERY_STRING' => ''
+    'REQUEST_METHOD' => 'GET'
+    'SERVER_PROTOCOL' => 'HTTP/1.0'
+    'GATEWAY_INTERFACE' => 'CGI/1.1'
+    'REMOTE_PORT' => '60258'
+    'SCRIPT_FILENAME' => '/home/dev/web/checkoutprema.biz.ua/public_html/app/frontend/web/index.php'
+    'SERVER_ADMIN' => 'info@checkoutprema.biz.ua'
+    'CONTEXT_DOCUMENT_ROOT' => '/home/dev/web/checkoutprema.biz.ua/public_html/app/frontend/web'
+    'CONTEXT_PREFIX' => ''
+    'REQUEST_SCHEME' => 'https'
+    'DOCUMENT_ROOT' => '/home/dev/web/checkoutprema.biz.ua/public_html/app/frontend/web'
+    'REMOTE_ADDR' => '195.138.67.124'
+    'SERVER_PORT' => '443'
+    'SERVER_ADDR' => '195.3.207.184'
+    'SERVER_NAME' => 'checkoutprema.biz.ua'
+    'SERVER_SOFTWARE' => 'Apache/2.4.66 (Debian) mod_fcgid/2.3.9 OpenSSL/3.0.18'
+    'SERVER_SIGNATURE' => ''
+    'HTTP_COOKIE' => 'HESTIASID=cov0r0sshd5nd2dufavpqr9o1m'
+    'HTTP_PRIORITY' => 'u=0, i'
+    'HTTP_ACCEPT_LANGUAGE' => 'ru-RU,ru;q=0.9,uk-UA;q=0.8,uk;q=0.7,en-US;q=0.6,en;q=0.5'
+    'HTTP_ACCEPT_ENCODING' => 'gzip, deflate, br, zstd'
+    'HTTP_SEC_FETCH_DEST' => 'document'
+    'HTTP_SEC_FETCH_USER' => '?1'
+    'HTTP_SEC_FETCH_MODE' => 'navigate'
+    'HTTP_SEC_FETCH_SITE' => 'none'
+    'HTTP_ACCEPT' => 'text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.7'
+    'HTTP_USER_AGENT' => 'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/143.0.0.0 Safari/537.36'
+    'HTTP_UPGRADE_INSECURE_REQUESTS' => '1'
+    'HTTP_DNT' => '1'
+    'HTTP_SEC_CH_UA_PLATFORM' => '\"Linux\"'
+    'HTTP_SEC_CH_UA_MOBILE' => '?0'
+    'HTTP_SEC_CH_UA' => '\"Google Chrome\";v=\"143\", \"Chromium\";v=\"143\", \"Not A(Brand\";v=\"24\"'
+    'HTTP_CACHE_CONTROL' => 'max-age=0'
+    'HTTP_CONNECTION' => 'close'
+    'HTTP_X_FORWARDED_FOR' => '195.138.67.124'
+    'HTTP_HOST' => 'checkoutprema.biz.ua'
+    'proxy-nokeepalive' => '1'
+    'SSL_TLS_SNI' => 'checkoutprema.biz.ua'
+    'HTTPS' => 'on'
+    'FCGI_ROLE' => 'RESPONDER'
+    'PHP_SELF' => '/index.php'
+    'REQUEST_TIME_FLOAT' => 1773305253.2349
+    'REQUEST_TIME' => 1773305253
+]
+2026-03-12 08:49:19 [195.138.67.124][-][-][error][yii\web\Session::open] session_start(): Failed to read session data: files (path: /home/dev/tmp)
+2026-03-12 08:49:19 [195.138.67.124][-][-][error][yii\web\Session::open] session_start(): Failed to read session data: files (path: /home/dev/tmp)
+2026-03-12 08:49:19 [195.138.67.124][-][-][info][application] $_GET = [
+    'r' => 'site/about'
+]
+
+$_POST = []
+
+$_FILES = []
+
+$_COOKIE = [
+    'HESTIASID' => 'cov0r0sshd5nd2dufavpqr9o1m'
+    'advanced-frontend' => 'bd51969e745bd47ffa674a212e01085d'
+    '_csrf-frontend' => 'dfd21d1cdda43419076eb0743a4bd616fce40291fa762036ebceda925cd53001a:2:{i:0;s:14:\"_csrf-frontend\";i:1;s:32:\"835sajsBBvzaJ1IDI3KyPihyu9rCktl_\";}'
+]
+
+$_SESSION = [
+    '__flash' => []
+]
+
+$_SERVER = [
+    'TEMP' => '/home/dev/tmp'
+    'TMPDIR' => '/home/dev/tmp'
+    'TMP' => '/home/dev/tmp'
+    'PATH' => '/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin'
+    'HOSTNAME' => ''
+    'USER' => 'dev'
+    'HOME' => '/home/dev'
+    'SCRIPT_NAME' => '/index.php'
+    'REQUEST_URI' => '/index.php?r=site%2Fabout'
+    'QUERY_STRING' => 'r=site%2Fabout'
+    'REQUEST_METHOD' => 'GET'
+    'SERVER_PROTOCOL' => 'HTTP/1.0'
+    'GATEWAY_INTERFACE' => 'CGI/1.1'
+    'REMOTE_PORT' => '60394'
+    'SCRIPT_FILENAME' => '/home/dev/web/checkoutprema.biz.ua/public_html/app/frontend/web/index.php'
+    'SERVER_ADMIN' => 'info@checkoutprema.biz.ua'
+    'CONTEXT_DOCUMENT_ROOT' => '/home/dev/web/checkoutprema.biz.ua/public_html/app/frontend/web'
+    'CONTEXT_PREFIX' => ''
+    'REQUEST_SCHEME' => 'https'
+    'DOCUMENT_ROOT' => '/home/dev/web/checkoutprema.biz.ua/public_html/app/frontend/web'
+    'REMOTE_ADDR' => '195.138.67.124'
+    'SERVER_PORT' => '443'
+    'SERVER_ADDR' => '195.3.207.184'
+    'SERVER_NAME' => 'checkoutprema.biz.ua'
+    'SERVER_SOFTWARE' => 'Apache/2.4.66 (Debian) mod_fcgid/2.3.9 OpenSSL/3.0.18'
+    'SERVER_SIGNATURE' => ''
+    'HTTP_COOKIE' => 'HESTIASID=cov0r0sshd5nd2dufavpqr9o1m; advanced-frontend=bd51969e745bd47ffa674a212e01085d; _csrf-frontend=dfd21d1cdda43419076eb0743a4bd616fce40291fa762036ebceda925cd53001a%3A2%3A%7Bi%3A0%3Bs%3A14%3A%22_csrf-frontend%22%3Bi%3A1%3Bs%3A32%3A%22835sajsBBvzaJ1IDI3KyPihyu9rCktl_%22%3B%7D'
+    'HTTP_PRIORITY' => 'u=0, i'
+    'HTTP_ACCEPT_LANGUAGE' => 'ru-RU,ru;q=0.9,uk-UA;q=0.8,uk;q=0.7,en-US;q=0.6,en;q=0.5'
+    'HTTP_ACCEPT_ENCODING' => 'gzip, deflate, br, zstd'
+    'HTTP_REFERER' => 'https://checkoutprema.biz.ua/'
+    'HTTP_SEC_FETCH_DEST' => 'document'
+    'HTTP_SEC_FETCH_USER' => '?1'
+    'HTTP_SEC_FETCH_MODE' => 'navigate'
+    'HTTP_SEC_FETCH_SITE' => 'same-origin'
+    'HTTP_ACCEPT' => 'text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.7'
+    'HTTP_USER_AGENT' => 'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/143.0.0.0 Safari/537.36'
+    'HTTP_UPGRADE_INSECURE_REQUESTS' => '1'
+    'HTTP_DNT' => '1'
+    'HTTP_SEC_CH_UA_PLATFORM' => '\"Linux\"'
+    'HTTP_SEC_CH_UA_MOBILE' => '?0'
+    'HTTP_SEC_CH_UA' => '\"Google Chrome\";v=\"143\", \"Chromium\";v=\"143\", \"Not A(Brand\";v=\"24\"'
+    'HTTP_CONNECTION' => 'close'
+    'HTTP_X_FORWARDED_FOR' => '195.138.67.124'
+    'HTTP_HOST' => 'checkoutprema.biz.ua'
+    'proxy-nokeepalive' => '1'
+    'SSL_TLS_SNI' => 'checkoutprema.biz.ua'
+    'HTTPS' => 'on'
+    'FCGI_ROLE' => 'RESPONDER'
+    'PHP_SELF' => '/index.php'
+    'REQUEST_TIME_FLOAT' => 1773305359.9449
+    'REQUEST_TIME' => 1773305359
+]
+2026-03-12 08:49:24 [195.138.67.124][-][-][error][yii\web\Session::open] session_start(): Failed to read session data: files (path: /home/dev/tmp)
+2026-03-12 08:49:24 [195.138.67.124][-][-][error][yii\web\Session::open] session_start(): Failed to read session data: files (path: /home/dev/tmp)
+2026-03-12 08:49:24 [195.138.67.124][-][-][info][application] $_GET = [
+    'r' => 'site/index'
+]
+
+$_POST = []
+
+$_FILES = []
+
+$_COOKIE = [
+    'HESTIASID' => 'cov0r0sshd5nd2dufavpqr9o1m'
+    'advanced-frontend' => 'bd51969e745bd47ffa674a212e01085d'
+    '_csrf-frontend' => 'dfd21d1cdda43419076eb0743a4bd616fce40291fa762036ebceda925cd53001a:2:{i:0;s:14:\"_csrf-frontend\";i:1;s:32:\"835sajsBBvzaJ1IDI3KyPihyu9rCktl_\";}'
+]
+
+$_SESSION = [
+    '__flash' => []
+]
+
+$_SERVER = [
+    'TEMP' => '/home/dev/tmp'
+    'TMPDIR' => '/home/dev/tmp'
+    'TMP' => '/home/dev/tmp'
+    'PATH' => '/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin'
+    'HOSTNAME' => ''
+    'USER' => 'dev'
+    'HOME' => '/home/dev'
+    'SCRIPT_NAME' => '/index.php'
+    'REQUEST_URI' => '/index.php?r=site%2Findex'
+    'QUERY_STRING' => 'r=site%2Findex'
+    'REQUEST_METHOD' => 'GET'
+    'SERVER_PROTOCOL' => 'HTTP/1.0'
+    'GATEWAY_INTERFACE' => 'CGI/1.1'
+    'REMOTE_PORT' => '33472'
+    'SCRIPT_FILENAME' => '/home/dev/web/checkoutprema.biz.ua/public_html/app/frontend/web/index.php'
+    'SERVER_ADMIN' => 'info@checkoutprema.biz.ua'
+    'CONTEXT_DOCUMENT_ROOT' => '/home/dev/web/checkoutprema.biz.ua/public_html/app/frontend/web'
+    'CONTEXT_PREFIX' => ''
+    'REQUEST_SCHEME' => 'https'
+    'DOCUMENT_ROOT' => '/home/dev/web/checkoutprema.biz.ua/public_html/app/frontend/web'
+    'REMOTE_ADDR' => '195.138.67.124'
+    'SERVER_PORT' => '443'
+    'SERVER_ADDR' => '195.3.207.184'
+    'SERVER_NAME' => 'checkoutprema.biz.ua'
+    'SERVER_SOFTWARE' => 'Apache/2.4.66 (Debian) mod_fcgid/2.3.9 OpenSSL/3.0.18'
+    'SERVER_SIGNATURE' => ''
+    'HTTP_COOKIE' => 'HESTIASID=cov0r0sshd5nd2dufavpqr9o1m; advanced-frontend=bd51969e745bd47ffa674a212e01085d; _csrf-frontend=dfd21d1cdda43419076eb0743a4bd616fce40291fa762036ebceda925cd53001a%3A2%3A%7Bi%3A0%3Bs%3A14%3A%22_csrf-frontend%22%3Bi%3A1%3Bs%3A32%3A%22835sajsBBvzaJ1IDI3KyPihyu9rCktl_%22%3B%7D'
+    'HTTP_PRIORITY' => 'u=0, i'
+    'HTTP_ACCEPT_LANGUAGE' => 'ru-RU,ru;q=0.9,uk-UA;q=0.8,uk;q=0.7,en-US;q=0.6,en;q=0.5'
+    'HTTP_ACCEPT_ENCODING' => 'gzip, deflate, br, zstd'
+    'HTTP_REFERER' => 'https://checkoutprema.biz.ua/index.php?r=site%2Fabout'
+    'HTTP_SEC_FETCH_DEST' => 'document'
+    'HTTP_SEC_FETCH_USER' => '?1'
+    'HTTP_SEC_FETCH_MODE' => 'navigate'
+    'HTTP_SEC_FETCH_SITE' => 'same-origin'
+    'HTTP_ACCEPT' => 'text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.7'
+    'HTTP_USER_AGENT' => 'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/143.0.0.0 Safari/537.36'
+    'HTTP_UPGRADE_INSECURE_REQUESTS' => '1'
+    'HTTP_DNT' => '1'
+    'HTTP_SEC_CH_UA_PLATFORM' => '\"Linux\"'
+    'HTTP_SEC_CH_UA_MOBILE' => '?0'
+    'HTTP_SEC_CH_UA' => '\"Google Chrome\";v=\"143\", \"Chromium\";v=\"143\", \"Not A(Brand\";v=\"24\"'
+    'HTTP_CONNECTION' => 'close'
+    'HTTP_X_FORWARDED_FOR' => '195.138.67.124'
+    'HTTP_HOST' => 'checkoutprema.biz.ua'
+    'proxy-nokeepalive' => '1'
+    'SSL_TLS_SNI' => 'checkoutprema.biz.ua'
+    'HTTPS' => 'on'
+    'FCGI_ROLE' => 'RESPONDER'
+    'PHP_SELF' => '/index.php'
+    'REQUEST_TIME_FLOAT' => 1773305364.0967
+    'REQUEST_TIME' => 1773305364
+]
+2026-03-12 09:21:50 [92.50.32.81][-][-][error][yii\web\Session::open] session_start(): Failed to read session data: files (path: /home/dev/tmp)
+2026-03-12 09:21:50 [92.50.32.81][-][-][info][application] $_GET = []
+
+$_POST = []
+
+$_FILES = []
+
+$_COOKIE = []
+
+$_SESSION = [
+    '__flash' => []
+]
+
+$_SERVER = [
+    'TEMP' => '/home/dev/tmp'
+    'TMPDIR' => '/home/dev/tmp'
+    'TMP' => '/home/dev/tmp'
+    'PATH' => '/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin'
+    'HOSTNAME' => ''
+    'USER' => 'dev'
+    'HOME' => '/home/dev'
+    'SCRIPT_NAME' => '/index.php'
+    'REQUEST_URI' => '/'
+    'QUERY_STRING' => ''
+    'REQUEST_METHOD' => 'GET'
+    'SERVER_PROTOCOL' => 'HTTP/1.0'
+    'GATEWAY_INTERFACE' => 'CGI/1.1'
+    'REMOTE_PORT' => '59272'
+    'SCRIPT_FILENAME' => '/home/dev/web/checkoutprema.biz.ua/public_html/app/frontend/web/index.php'
+    'SERVER_ADMIN' => 'info@checkoutprema.biz.ua'
+    'CONTEXT_DOCUMENT_ROOT' => '/home/dev/web/checkoutprema.biz.ua/public_html/app/frontend/web'
+    'CONTEXT_PREFIX' => ''
+    'REQUEST_SCHEME' => 'https'
+    'DOCUMENT_ROOT' => '/home/dev/web/checkoutprema.biz.ua/public_html/app/frontend/web'
+    'REMOTE_ADDR' => '92.50.32.81'
+    'SERVER_PORT' => '443'
+    'SERVER_ADDR' => '195.3.207.184'
+    'SERVER_NAME' => 'checkoutprema.biz.ua'
+    'SERVER_SOFTWARE' => 'Apache/2.4.66 (Debian) mod_fcgid/2.3.9 OpenSSL/3.0.18'
+    'SERVER_SIGNATURE' => ''
+    'HTTP_ACCEPT_ENCODING' => 'zstd,gzip,deflate,br'
+    'HTTP_PRIORITY' => 'u=0, i'
+    'HTTP_ACCEPT_LANGUAGE' => 'en-US,en;q=0.9'
+    'HTTP_ACCEPT' => 'text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.9'
+    'HTTP_SEC_FETCH_SITE' => 'none'
+    'HTTP_SEC_FETCH_MODE' => 'navigate'
+    'HTTP_SEC_FETCH_DEST' => 'document'
+    'HTTP_USER_AGENT' => 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/142.0.0.0 Safari/537.36'
+    'HTTP_SEC_CH_UA_PLATFORM' => '\"macOS\"'
+    'HTTP_SEC_CH_UA_MOBILE' => '?0'
+    'HTTP_SEC_CH_UA' => '\"Chromium\";v=\"142\", \"Google Chrome\";v=\"142\", \"Not_A Brand\";v=\"99\"'
+    'HTTP_CONNECTION' => 'close'
+    'HTTP_X_FORWARDED_FOR' => '92.50.32.81'
+    'HTTP_HOST' => 'checkoutprema.biz.ua'
+    'proxy-nokeepalive' => '1'
+    'SSL_TLS_SNI' => 'checkoutprema.biz.ua'
+    'HTTPS' => 'on'
+    'FCGI_ROLE' => 'RESPONDER'
+    'PHP_SELF' => '/index.php'
+    'REQUEST_TIME_FLOAT' => 1773307310.6977
+    'REQUEST_TIME' => 1773307310
+]
