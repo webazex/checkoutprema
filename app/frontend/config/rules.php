@@ -1,6 +1,5 @@
 <?php
 return [
-    'baseUrl' => '',
     '' => 'site/index',
     'customer' => 'customer/index',
     'customer/<id:\d+>' => 'customer/view',
