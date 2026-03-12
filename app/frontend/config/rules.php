@@ -1,5 +1,6 @@
 <?php
 return [
+    'baseUrl' => '',
     '' => 'site/index',
     'customer' => 'customer/index',
     'customer/<id:\d+>' => 'customer/view',
@@ -7,8 +8,6 @@ return [
     'customer/orders' => 'customer/orders',
     'customer/orders/<id:\d+>' => 'customer/orders',
     '<controller:\w+>'                        => '<controller>/index',
-    '<controller:\w+>/<action:\w+>'           => '<controller>/<action>',
-    '<controller:\w+>/<action:\w+>/<id:\d+>'  => '<controller>/<action>',
-    '<controller:\w+>/<id:\d+>'               => '<controller>/view',
+    '<controller:\w+>/<action:\w+>'  => '<controller>/<action>',
     'catchAll' => ['site/offline'],
 ];

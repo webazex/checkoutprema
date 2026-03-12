@@ -6,7 +6,7 @@ $params = array_merge(
     require __DIR__ . '/params.php',
     require __DIR__ . '/params-local.php'
 );
-
+$rules = (file_exists(__DIR__ . '/rules.php')) ? require __DIR__ . '/rules.php' : [];
 return [
     'id' => 'app-frontend',
     'basePath' => dirname(__DIR__),
@@ -38,10 +38,10 @@ return [
             'errorAction' => 'site/error',
         ],
         'urlManager' => [
+            'baseUrl' => '',
             'enablePrettyUrl' => true,
             'showScriptName' => false,
-            'rules' => [
-            ],
+            'rules' => $rules,
         ],
     ],
     'params' => $params,
