@@ -1,0 +1,76 @@
+<?php
+return [
+    'ID' => 'ID',
+    'Email' => 'Email',
+    'Phone' => 'Телефон',
+    'First name' => 'Імʼя',
+    'Last name' => 'Прізвище',
+    'Status' => 'Статус',
+    'Created at' => 'Створено',
+    'Updated at' => 'Оновлено',
+    'Hash' => 'Хеш',
+    'Auth key' => 'Auth key',
+    'Password hash' => 'Хеш пароля',
+    'KeyCRM Customer ID' => 'ID покупця в KeyCRM',
+
+    'Customer' => 'Покупець',
+    'Token hash' => 'Хеш токена',
+    'Expires at' => 'Дійсний до',
+    'Used at' => 'Використано',
+
+    'New password' => 'Новий пароль',
+    'Repeat password' => 'Повторіть пароль',
+    'Customer account is inactive.' => 'Обліковий запис покупця неактивний.',
+
+    'Password' => 'Пароль',
+    'Remember me' => 'Запам’ятати мене',
+    'Incorrect email or password.' => 'Неправильний email або пароль.',
+
+    'Password reset' => 'Відновлення пароля',
+    'Set your password' => 'Встановіть пароль',
+
+    'Hello!' => 'Вітаємо!',
+    'To set a new password, follow this link:' => 'Щоб встановити новий пароль, перейдіть за цим посиланням:',
+    'If you did not request password recovery, simply ignore this email.' => 'Якщо ви не запитували відновлення доступу, просто проігноруйте цей лист.',
+
+    'Your account has been deactivated. Please check your email or contact us.' =>
+        'Ваш акаунт деактивовано. Перевірте вашу пошту або звʼяжіться з нами.',
+
+    'Store' => 'Магазин',
+    'Home' => 'Головна',
+    'Cart' => 'Кошик',
+    'Account' => 'Кабінет',
+
+    'Checkout' => 'Оформлення замовлення',
+    'Recipient details' => 'Дані отримувача',
+    'Full name' => 'ПІБ',
+    'Phone number' => 'Номер телефону',
+
+    'Delivery' => 'Доставка',
+    'Select region' => 'Оберіть область',
+    'Select city' => 'Оберіть місто',
+    'Select branch' => 'Оберіть відділення',
+    'Sample region' => 'Приклад області',
+    'Sample city' => 'Приклад міста',
+    'Sample branch' => 'Приклад відділення',
+
+    'Payment' => 'Оплата',
+    'Full prepayment' => 'Повна передплата',
+    'Place order' => 'Оформити замовлення',
+
+    'In cart' => 'В кошику',
+    'Product' => 'Товар',
+    'Quantity' => 'Кількість',
+    'SKU' => 'Артикул',
+    'Total' => 'Разом',
+    'UAH' => 'грн.',
+    'Remove item' => 'Видалити товар',
+
+    'Your cart is empty :(' => 'Кошик поки що пустий :(',
+    'Go to catalog' => 'Перейти в каталог',
+    'PREMA' => 'PREMA',
+
+    'Please check the entered data.' => 'Будь ласка, перевірте введені дані.',
+    'An error occurred while processing the customer.' => 'Під час обробки покупця сталася помилка.',
+    'Customer data processed successfully.' => 'Дані покупця успішно оброблено.',
+];
