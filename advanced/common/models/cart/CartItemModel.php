@@ -1,7 +1,8 @@
 <?php
 
 namespace common\models\cart;
-
+use common\models\BaseModel;
+use common\models\product\ProductModel;
 /**
  * @property int $id
  * @property int $cart_id

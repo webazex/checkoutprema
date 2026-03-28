@@ -1,7 +1,8 @@
 <?php
 
 namespace common\models\payment;
-use common\models\payment\PaymentLogQuery;
+use common\models\BaseModel;
+use common\models\order\OrderModel;
 /**
  * @property int $id
  * @property int $order_id
