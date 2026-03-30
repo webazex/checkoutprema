@@ -1,0 +1,27 @@
+name: Deploy advanced to production
+
+on:
+  push:
+    branches:
+      - advanced-main
+    paths:
+      - 'advanced/**'
+      - '.github/workflows/deploy-advanced.yml'
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Prepare SSH key
+        run: |
+          mkdir -p ~/.ssh
+          echo "${{ secrets.DEPLOY_SSH_KEY }}" > ~/.ssh/id_ed25519
+          chmod 600 ~/.ssh/id_ed25519
+          ssh-keyscan -H "${{ secrets.DEPLOY_HOST }}" >> ~/.ssh/known_hosts
+
+      - name: Run deploy script on server
+        run: |
+          ssh -p "${{ secrets.DEPLOY_PORT }}" \
+            "${{ secrets.DEPLOY_USER }}@${{ secrets.DEPLOY_HOST }}" \
+            "/home/webazex/bin/deploy-checkoutprema-advanced.sh"
