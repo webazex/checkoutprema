@@ -96,7 +96,7 @@ class PaymentModel extends BaseModel
             [['external_id', 'external_order_id', 'idempotency_key'], 'string', 'max' => 100],
             [['redirect_url'], 'string', 'max' => 1024],
 
-            [['provider'], 'in', 'range' => self::PROVIDERS],
+            [['provider'], 'string', 'max' => 32],
             [['status'], 'in', 'range' => self::STATUSES],
 
             [['idempotency_key'], 'unique'],
@@ -184,10 +184,5 @@ class PaymentModel extends BaseModel
     public function getIsRefunded(): bool
     {
         return $this->status === self::STATUS_REFUNDED;
-    }
-
-    public function getIsWayForPay(): bool
-    {
-        return $this->provider === self::PROVIDER_WAYFORPAY;
     }
 }

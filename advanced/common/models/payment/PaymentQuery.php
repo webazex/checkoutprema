@@ -30,12 +30,6 @@ class PaymentQuery extends ActiveQuery
     {
         return $this->andWhere(['provider' => $provider]);
     }
-
-    public function wayForPay(): self
-    {
-        return $this->provider(PaymentModel::PROVIDER_WAYFORPAY);
-    }
-
     public function byExternalId(string $externalId): self
     {
         return $this->andWhere(['external_id' => $externalId]);
