@@ -7,6 +7,7 @@ on:
       - advanced-main
     paths:
       - 'advanced/**'
+      - '.github/workflows/deploy-advanced.yml'
 
 concurrency:
   group: deploy-advanced-production
