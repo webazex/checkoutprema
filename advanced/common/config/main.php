@@ -34,4 +34,5 @@ return [
             },
         ],
     ],
+    'timeZone' => 'Europe/Kyiv',
 ];

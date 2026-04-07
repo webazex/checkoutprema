@@ -11,6 +11,7 @@ return [
     'id' => 'app-api',
     'basePath' => dirname(__DIR__),
     'bootstrap' => ['log'],
+    'timeZone' => 'Europe/Simferopol',
     'controllerNamespace' => 'api\controllers',
     'aliases' => [
         '@api' => '@app',
@@ -47,16 +48,15 @@ return [
             ],
         ],
         'errorHandler' => [
-            'errorAction' => 'test/error',
+            'errorAction' => 'default/error',
         ],
         'urlManager' => [
             'enablePrettyUrl' => true,
             'showScriptName' => false,
             'enableStrictParsing' => true,
             'rules' => [
-                '' => 'test/index',
-                'GET test' => 'test/index',
-                'GET test/info' => 'test/info',
+                '' => 'default/index',
+                'GET info' => 'default/info',
 
                 'GET v1' => 'v1/default/index',
                 'GET v1/ping' => 'v1/default/ping',

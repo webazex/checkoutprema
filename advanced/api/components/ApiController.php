@@ -35,9 +35,6 @@ abstract class ApiController extends Controller
         return $behaviors;
     }
 
-    /**
-     * ['action-id' => ['GET', 'POST']]
-     */
     protected function verbs(): array
     {
         return [];
