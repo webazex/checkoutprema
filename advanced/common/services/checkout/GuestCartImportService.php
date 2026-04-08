@@ -15,11 +15,6 @@ use yii\db\Exception as DbException;
 
 final class GuestCartImportService
 {
-    public function __construct(
-        private readonly ?Connection $db = null,
-    ) {
-    }
-
     /**
      * @throws InvalidArgumentException
      * @throws DomainException
@@ -30,7 +25,7 @@ final class GuestCartImportService
         $normalized = $this->normalizePayload($payload);
 
         /** @var Connection $db */
-        $db = $this->db ?? Yii::$app->db;
+        $db = Yii::$app->db;
         $transaction = $db->beginTransaction();
 
         try {
@@ -86,7 +81,9 @@ final class GuestCartImportService
                 $item->currency = $lineCurrency;
 
                 if (!$item->save()) {
-                    throw new DomainException('Failed to save cart item: ' . json_encode($item->getFirstErrors(), JSON_UNESCAPED_UNICODE));
+                    throw new DomainException(
+                        'Failed to save cart item: ' . json_encode($item->getFirstErrors(), JSON_UNESCAPED_UNICODE)
+                    );
                 }
 
                 $itemsCount += $quantity;
@@ -113,7 +110,9 @@ final class GuestCartImportService
             $cart->last_activity_at = time();
 
             if (!$cart->save()) {
-                throw new DomainException('Failed to save cart: ' . json_encode($cart->getFirstErrors(), JSON_UNESCAPED_UNICODE));
+                throw new DomainException(
+                    'Failed to save cart: ' . json_encode($cart->getFirstErrors(), JSON_UNESCAPED_UNICODE)
+                );
             }
 
             $transaction->commit();
@@ -136,9 +135,6 @@ final class GuestCartImportService
         }
     }
 
-    /**
-     * @throws InvalidArgumentException
-     */
     private function normalizePayload(array $payload): array
     {
         $sessionKey = trim((string)($payload['sessionKey'] ?? ''));
@@ -203,9 +199,6 @@ final class GuestCartImportService
         ];
     }
 
-    /**
-     * @throws DomainException
-     */
     private function findOrCreateCart(string $sessionKey, string $sourceType, string $currency): CartModel
     {
         $cart = CartModel::find()
@@ -232,7 +225,9 @@ final class GuestCartImportService
         $cart->last_activity_at = time();
 
         if (!$cart->save()) {
-            throw new DomainException('Failed to create cart: ' . json_encode($cart->getFirstErrors(), JSON_UNESCAPED_UNICODE));
+            throw new DomainException(
+                'Failed to create cart: ' . json_encode($cart->getFirstErrors(), JSON_UNESCAPED_UNICODE)
+            );
         }
 
         return $cart;
