@@ -1,10 +1,12 @@
 <?php
 
+declare(strict_types=1);
+
 namespace common\models\product;
 
 use yii\db\ActiveQuery;
 
-class ProductExternalMapQuery extends ActiveQuery
+final class ProductExternalMapQuery extends ActiveQuery
 {
     public function byId(int $id): self
     {
@@ -36,6 +38,11 @@ class ProductExternalMapQuery extends ActiveQuery
         return $this->source(ProductExternalMapModel::SOURCE_PROM);
     }
 
+    public function keycrm(): self
+    {
+        return $this->source(ProductExternalMapModel::SOURCE_KEYCRM);
+    }
+
     public function byExternalId(string $externalId): self
     {
         return $this->andWhere(['external_id' => $externalId]);
@@ -56,9 +63,7 @@ class ProductExternalMapQuery extends ActiveQuery
 
     public function newestFirst(): self
     {
-        return $this->orderBy([
-            'id' => SORT_DESC,
-        ]);
+        return $this->orderBy(['id' => SORT_DESC]);
     }
 
     public function createdDesc(): self

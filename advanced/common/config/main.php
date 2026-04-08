@@ -35,6 +35,20 @@ return [
         ],
         'definitions' => [
             \common\services\checkout\GuestCartImportService::class => \common\services\checkout\GuestCartImportService::class,
+            \common\integrations\keycrm\KeyCrmApiClient::class => static function () {
+                return new \common\integrations\keycrm\KeyCrmApiClient(
+                    baseUrl: \Yii::$app->params['keycrm.baseUrl'],
+                    token: \Yii::$app->params['keycrm.token'],
+                    timeout: (int)(\Yii::$app->params['keycrm.timeout'] ?? 30),
+                );
+            },
+            \common\integrations\keycrm\mappers\KeyCrmProductMapper::class => \common\integrations\keycrm\mappers\KeyCrmProductMapper::class,
+            \common\services\keycrm\KeyCrmProductImportService::class => static function ($container) {
+                return new \common\services\keycrm\KeyCrmProductImportService(
+                    $container->get(\common\integrations\keycrm\KeyCrmApiClient::class),
+                    $container->get(\common\integrations\keycrm\mappers\KeyCrmProductMapper::class),
+                );
+            },
         ]
     ],
     'timeZone' => 'Europe/Kyiv',
