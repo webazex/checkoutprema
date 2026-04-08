@@ -22,7 +22,7 @@ final class PublicCatalogService
         $perPage = max(1, min(100, $perPage));
 
         $query = ProductModel::find()
-            ->active()
+            ->notArchived()
             ->ordered();
 
         if ($onlyAvailable) {
@@ -60,7 +60,7 @@ final class PublicCatalogService
     public function getItemById(int $id): array
     {
         $product = ProductModel::find()
-            ->active()
+            ->notArchived()
             ->byId($id)
             ->one();
 
