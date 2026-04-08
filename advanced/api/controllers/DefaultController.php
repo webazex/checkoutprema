@@ -30,11 +30,34 @@ final class DefaultController extends ApiController
 
     public function actionInfo(): array
     {
+//        return [
+//            'app_id' => Yii::$app->id,
+//            'env' => YII_ENV,
+//            'php' => PHP_VERSION,
+//            'timeZone' => Yii::$app->timeZone,
+//            'time' => date('c'),
+//        ];
+        $dbComponent = null;
+        $dbDsn = null;
+        $dbClass = null;
+        $dbError = null;
+
+        try {
+            $db = \Yii::$app->db;
+            $dbClass = get_class($db);
+            $dbDsn = $db->dsn ?? null;
+        } catch (\Throwable $e) {
+            $dbError = $e->getMessage();
+        }
+
         return [
-            'app_id' => Yii::$app->id,
+            'app_id' => \Yii::$app->id,
             'env' => YII_ENV,
             'php' => PHP_VERSION,
-            'timeZone' => Yii::$app->timeZone,
+            'timeZone' => \Yii::$app->timeZone,
+            'dbClass' => $dbClass,
+            'dbDsn' => $dbDsn,
+            'dbError' => $dbError,
             'time' => date('c'),
         ];
     }
