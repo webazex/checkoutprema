@@ -21,6 +21,7 @@ final class CheckoutController extends ApiController
     public function actionImportCart(): array
     {
         $payload = Yii::$app->request->bodyParams;
+
         if ($payload === []) {
             throw new BadRequestHttpException('Empty import cart payload.');
         }
@@ -35,6 +36,7 @@ final class CheckoutController extends ApiController
     public function actionSubmit(): array
     {
         $payload = Yii::$app->request->bodyParams;
+
         if ($payload === []) {
             throw new BadRequestHttpException('Empty checkout payload.');
         }

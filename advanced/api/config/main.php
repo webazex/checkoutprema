@@ -68,6 +68,8 @@ return [
 
                 'POST v1/public/checkout/cart/import' => 'v1/public/checkout/import-cart',
                 'POST v1/public/checkout/submit' => 'v1/public/checkout/submit',
+
+                'GET v1/integrations' => 'v1/integrations/default/index',
             ],
         ],
     ],

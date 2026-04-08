@@ -35,6 +35,7 @@ final class DefaultController extends ApiController
             'env' => YII_ENV,
             'php' => PHP_VERSION,
             'timeZone' => Yii::$app->timeZone,
+            'time' => date('c'),
         ];
     }
 
