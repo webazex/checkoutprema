@@ -49,6 +49,12 @@ return [
                     $container->get(\common\integrations\keycrm\mappers\KeyCrmProductMapper::class),
                 );
             },
+            \common\mappers\catalog\PublicProductMapper::class => \common\mappers\catalog\PublicProductMapper::class,
+            \common\services\catalog\PublicCatalogService::class => static function ($container) {
+                return new \common\services\catalog\PublicCatalogService(
+                    $container->get(\common\mappers\catalog\PublicProductMapper::class),
+                );
+            },
         ]
     ],
     'timeZone' => 'Europe/Kyiv',
