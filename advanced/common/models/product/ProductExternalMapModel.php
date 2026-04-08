@@ -44,36 +44,13 @@ final class ProductExternalMapModel extends BaseModel
         ]);
     }
 
-    public function attributeLabels(): array
-    {
-        return [
-            'id' => 'ID',
-            'product_id' => 'Товар',
-            'external_source' => 'Внешний источник',
-            'external_id' => 'Внешний ID',
-            'sku_snapshot' => 'SKU snapshot',
-            'created_at' => 'Создано',
-            'updated_at' => 'Обновлено',
-        ];
-    }
-
     public function getProduct()
     {
         return $this->hasOne(ProductModel::class, ['id' => 'product_id']);
     }
 
-    public function getIsWix(): bool
+    public static function find(): ProductExternalMapQuery
     {
-        return $this->external_source === self::SOURCE_WIX;
-    }
-
-    public function getIsProm(): bool
-    {
-        return $this->external_source === self::SOURCE_PROM;
-    }
-
-    public function getIsKeycrm(): bool
-    {
-        return $this->external_source === self::SOURCE_KEYCRM;
+        return new ProductExternalMapQuery(static::class);
     }
 }
