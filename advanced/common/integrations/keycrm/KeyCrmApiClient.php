@@ -42,8 +42,7 @@ final class KeyCrmApiClient
 
         $body = curl_exec($ch);
         $curlError = curl_error($ch);
-        $httpCode = (int)curl_getinfo($ch, CURLINFO_RESPONSE_CODE);
-        curl_close($ch);
+        $httpCode = (int) curl_getinfo($ch, CURLINFO_RESPONSE_CODE);
 
         if ($body === false) {
             throw new RuntimeException('KeyCRM request failed: ' . $curlError);
