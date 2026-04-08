@@ -33,6 +33,9 @@ return [
                 );
             },
         ],
+        'definitions' => [
+            \common\services\checkout\GuestCartImportService::class => \common\services\checkout\GuestCartImportService::class,
+        ]
     ],
     'timeZone' => 'Europe/Kyiv',
 ];
