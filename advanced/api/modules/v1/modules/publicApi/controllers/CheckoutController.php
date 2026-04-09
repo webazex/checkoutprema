@@ -38,6 +38,9 @@ final class CheckoutController extends ApiController
             $service = Yii::$container->get(GuestCartImportService::class);
             $result = $service->import($payload);
 
+            $checkoutUrl = Yii::$app->request->hostInfo . '/checkout/' . $result['hash'];
+            $result['checkoutUrl'] = $checkoutUrl;
+
             return [
                 'status' => 'ok',
                 'message' => 'Cart imported successfully.',

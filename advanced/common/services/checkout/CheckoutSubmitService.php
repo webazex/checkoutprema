@@ -27,27 +27,20 @@ final class CheckoutSubmitService
 
     public function submit(array $payload, string $callbackUrl, string $defaultReturnUrl): array
     {
-        $form = new CheckoutSubmitInput();
-        $form->load($payload, '');
+        $input = new CheckoutSubmitInput();
+        $input->load($payload, '');
 
-        if (!$form->validate()) {
+        if (!$input->validate()) {
             throw new DomainException(
-                'Checkout payload validation failed: ' . Json::encode($form->getFirstErrors(), JSON_UNESCAPED_UNICODE)
+                'Checkout payload validation failed: ' .
+                Json::encode($input->getFirstErrors(), JSON_UNESCAPED_UNICODE)
             );
         }
 
-        $returnUrl = $form->returnUrl ?: $defaultReturnUrl;
+        $returnUrl = $input->returnUrl ?: $defaultReturnUrl;
         $now = time();
-
-        $result = Yii::$app->db->transaction(function () use ($form, $now): array {
-            $cart = CartModel::find()
-                ->where([
-                    'session_key' => $form->sessionKey,
-                    'source_type' => $form->sourceType,
-                    'status' => CartModel::STATUS_ACTIVE,
-                ])
-                ->with('items.product')
-                ->one();
+        $result = Yii::$app->db->transaction(function () use ($input, $now): array {
+            $cart = $this->resolveCart($input);
 
             if (!$cart instanceof CartModel) {
                 throw new DomainException('Active cart was not found for the provided sessionKey/sourceType.');
@@ -68,7 +61,7 @@ final class CheckoutSubmitService
                 ));
             }
 
-            $customer = $this->customerResolver->resolve($form->getCustomerPayload());
+            $customer = $this->customerResolver->resolve($input->getCustomerPayload());
 
             $order = new OrderModel();
             $order->hash = Yii::$app->security->generateRandomString(32);
@@ -81,7 +74,7 @@ final class CheckoutSubmitService
             $order->shipping_amount = 0.0;
             $order->status = OrderModel::STATUS_NEW;
             $order->payment_status = PaymentModel::STATUS_NEW;
-            $order->payment_method = $form->payment_method ?: PaymentModel::PROVIDER_WAYFORPAY;
+            $order->payment_method = $input->payment_method ?: PaymentModel::PROVIDER_WAYFORPAY;
             $order->customer_email = (string)$customer->email;
             $order->customer_phone = $customer->phone;
             $order->customer_first_name = $customer->first_name;
@@ -129,7 +122,7 @@ final class CheckoutSubmitService
                 }
             }
 
-            $delivery = $form->getDeliveryPayload();
+            $delivery = $input->getDeliveryPayload();
             MetaModel::upsertText(MetaModel::ENTITY_ORDER, (int)$order->id, 'delivery.region', $delivery['region'] ?? null);
             MetaModel::upsertText(MetaModel::ENTITY_ORDER, (int)$order->id, 'delivery.city', $delivery['city'] ?? null);
             MetaModel::upsertText(MetaModel::ENTITY_ORDER, (int)$order->id, 'delivery.branch', $delivery['branch'] ?? null);
@@ -141,7 +134,7 @@ final class CheckoutSubmitService
             $payment->status = PaymentModel::STATUS_NEW;
             $payment->amount = (float)$order->total_amount;
             $payment->currency = (string)$order->currency;
-            $payment->payment_method = $form->payment_method ?: PaymentModel::PROVIDER_WAYFORPAY;
+            $payment->payment_method = $input->payment_method ?: PaymentModel::PROVIDER_WAYFORPAY;
             $payment->external_order_id = 'order-' . $order->hash;
             $payment->idempotency_key = 'order-' . $order->id . '-wayforpay';
 
@@ -226,5 +219,29 @@ final class CheckoutSubmitService
                 $e
             );
         }
+    }
+
+    private function resolveCart(CheckoutSubmitInput $input): CartModel
+    {
+        $query = CartModel::find()
+            ->with('items.product')
+            ->andWhere(['status' => CartModel::STATUS_ACTIVE]);
+
+        if (trim((string)$input->cartHash) !== '') {
+            $query->andWhere(['hash' => $input->cartHash]);
+        } else {
+            $query->andWhere([
+                'session_key' => $input->sessionKey,
+                'source_type' => $input->sourceType,
+            ]);
+        }
+
+        $cart = $query->one();
+
+        if (!$cart instanceof CartModel) {
+            throw new DomainException('Active cart was not found.');
+        }
+
+        return $cart;
     }
 }

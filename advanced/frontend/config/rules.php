@@ -13,5 +13,10 @@ return [
     'cart' => 'cart/index',
     'cart/<customerHash:[a-zA-Z0-9_-]{8,64}>/<orderId:[a-zA-Z0-9_-]{8,32}>' => 'cart/view',
 
+    // NEW: canonical checkout flow
+    'checkout/<hash:[a-zA-Z0-9_-]{16,128}>' => 'checkout/view',
+    'POST checkout/<hash:[a-zA-Z0-9_-]{16,128}>/submit' => 'checkout/submit',
+    'checkout/payment-return' => 'checkout/payment-return',
+
     '' => 'entry/index',
 ];
