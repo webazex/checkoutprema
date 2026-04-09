@@ -34,7 +34,7 @@ return [
             },
         ],
         'definitions' => [
-            \common\services\checkout\GuestCartImportService::class => \common\services\checkout\GuestCartImportService::class,
+           // \common\services\checkout\GuestCartImportService::class => \common\services\checkout\GuestCartImportService::class,
             \common\integrations\keycrm\KeyCrmApiClient::class => static function () {
                 return new \common\integrations\keycrm\KeyCrmApiClient(
                     baseUrl: \Yii::$app->params['keycrm.baseUrl'],
@@ -53,6 +53,12 @@ return [
             \common\services\catalog\PublicCatalogService::class => static function ($container) {
                 return new \common\services\catalog\PublicCatalogService(
                     $container->get(\common\mappers\catalog\PublicProductMapper::class),
+                );
+            },
+            \common\services\checkout\CartProductResolver::class => \common\services\checkout\CartProductResolver::class,
+            \common\services\checkout\GuestCartImportService::class => static function ($container) {
+                return new \common\services\checkout\GuestCartImportService(
+                    $container->get(\common\services\checkout\CartProductResolver::class),
                 );
             },
         ]

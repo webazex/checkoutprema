@@ -6,7 +6,7 @@ namespace common\services\checkout;
 
 use common\models\cart\CartItemModel;
 use common\models\cart\CartModel;
-use common\models\product\ProductExternalMapModel;
+use common\models\product\ProductModel;
 use DomainException;
 use InvalidArgumentException;
 use Yii;
@@ -15,6 +15,11 @@ use yii\db\Exception as DbException;
 
 final class GuestCartImportService
 {
+    public function __construct(
+        private readonly CartProductResolver $productResolver,
+    ) {
+    }
+
     /**
      * @throws InvalidArgumentException
      * @throws DomainException
@@ -42,29 +47,19 @@ final class GuestCartImportService
             $responseItems = [];
 
             foreach ($normalized['items'] as $row) {
-                $map = ProductExternalMapModel::find()
-                    ->bySourceAndExternalId($row['externalSource'], $row['externalId'])
-                    ->with('product')
-                    ->one();
+                $resolved = $this->productResolver->resolve($row);
 
-                if ($map === null || $map->product === null) {
-                    throw new DomainException(sprintf(
-                        'Product mapping not found for source "%s" and external id "%s".',
-                        $row['externalSource'],
-                        $row['externalId'],
-                    ));
-                }
-
-                $product = $map->product;
+                /** @var ProductModel $product */
+                $product = $resolved['product'];
+                $quantity = (int)$resolved['quantity'];
                 $price = (float)$product->price;
-                $quantity = $row['quantity'];
                 $lineSubtotal = round($price * $quantity, 2);
                 $lineCurrency = strtoupper((string)($product->currency ?: $normalized['currency']));
 
                 if ($lineCurrency !== $normalized['currency']) {
                     throw new DomainException(sprintf(
-                        'Currency mismatch for external id "%s": expected "%s", got "%s".',
-                        $row['externalId'],
+                        'Currency mismatch for product "%d": expected "%s", got "%s".',
+                        (int)$product->id,
                         $normalized['currency'],
                         $lineCurrency,
                     ));
@@ -74,7 +69,7 @@ final class GuestCartImportService
                 $item->cart_id = (int)$cart->id;
                 $item->product_id = (int)$product->id;
                 $item->title = (string)$product->name;
-                $item->sku_snapshot = $map->sku_snapshot ?: $product->sku;
+                $item->sku_snapshot = $resolved['skuSnapshot'];
                 $item->price = $price;
                 $item->quantity = $quantity;
                 $item->subtotal = $lineSubtotal;
@@ -91,9 +86,10 @@ final class GuestCartImportService
 
                 $responseItems[] = [
                     'cartItemId' => (int)$item->id,
+                    'resolvedBy' => $resolved['resolvedBy'],
                     'productId' => (int)$product->id,
-                    'externalSource' => $row['externalSource'],
-                    'externalId' => $row['externalId'],
+                    'externalSource' => $resolved['externalSource'],
+                    'externalId' => $resolved['externalId'],
                     'title' => (string)$item->title,
                     'sku' => $item->sku_snapshot,
                     'price' => (float)$item->price,
@@ -147,55 +143,43 @@ final class GuestCartImportService
             $currency = 'UAH';
         }
 
+        $sourceType = strtolower(trim((string)($payload['sourceType'] ?? 'wix')));
+        if ($sourceType === '') {
+            $sourceType = 'wix';
+        }
+
         $items = $payload['items'] ?? null;
         if (!is_array($items) || $items === []) {
             throw new InvalidArgumentException('Field "items" must be a non-empty array.');
         }
-
-        $normalizedItems = [];
-        $sourceTypes = [];
 
         foreach ($items as $index => $item) {
             if (!is_array($item)) {
                 throw new InvalidArgumentException(sprintf('Item at index %d must be an object.', $index));
             }
 
-            $externalSource = strtolower(trim((string)($item['externalSource'] ?? '')));
-            $externalId = trim((string)($item['externalId'] ?? ''));
             $quantity = (int)($item['quantity'] ?? 0);
-
-            if ($externalSource === '') {
-                throw new InvalidArgumentException(sprintf('Field "externalSource" is required for item %d.', $index));
-            }
-
-            if ($externalId === '') {
-                throw new InvalidArgumentException(sprintf('Field "externalId" is required for item %d.', $index));
-            }
-
             if ($quantity < 1) {
                 throw new InvalidArgumentException(sprintf('Field "quantity" must be >= 1 for item %d.', $index));
             }
 
-            $sourceTypes[$externalSource] = true;
+            $hasProductId = isset($item['productId']) && (int)$item['productId'] > 0;
+            $hasExternal = trim((string)($item['externalSource'] ?? '')) !== ''
+                && trim((string)($item['externalId'] ?? '')) !== '';
 
-            $normalizedItems[] = [
-                'externalSource' => $externalSource,
-                'externalId' => $externalId,
-                'quantity' => $quantity,
-            ];
+            if (!$hasProductId && !$hasExternal) {
+                throw new InvalidArgumentException(sprintf(
+                    'Item %d must contain either "productId", or both "externalSource" and "externalId".',
+                    $index
+                ));
+            }
         }
-
-        if (count($sourceTypes) !== 1) {
-            throw new InvalidArgumentException('Mixed external sources in one cart are not supported yet.');
-        }
-
-        $sourceType = array_key_first($sourceTypes);
 
         return [
             'sessionKey' => $sessionKey,
             'currency' => $currency,
             'sourceType' => $sourceType,
-            'items' => $normalizedItems,
+            'items' => $items,
         ];
     }
 
