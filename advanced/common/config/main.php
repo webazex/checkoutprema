@@ -61,6 +61,13 @@ return [
                     $container->get(\common\services\checkout\CartProductResolver::class),
                 );
             },
+            \common\services\checkout\CheckoutCustomerResolver::class => \common\services\checkout\CheckoutCustomerResolver::class,
+            \common\services\checkout\CheckoutSubmitService::class => static function ($container) {
+                return new \common\services\checkout\CheckoutSubmitService(
+                    $container->get(\common\services\checkout\CheckoutCustomerResolver::class),
+                    $container->get(\common\services\payment\PaymentService::class),
+                );
+            },
         ]
     ],
     'timeZone' => 'Europe/Kyiv',

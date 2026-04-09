@@ -70,6 +70,7 @@ return [
                 'POST v1/public/checkout/submit' => 'v1/public/checkout/submit',
 
                 'GET v1/integrations' => 'v1/integrations/default/index',
+                'GET v1/public/checkout/payment-return' => 'v1/public/checkout/payment-return',
             ],
         ],
     ],
