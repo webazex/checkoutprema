@@ -11,6 +11,18 @@ return [
             'class' => \yii\caching\FileCache::class,
         ],
     ],
+    'i18n' => [
+        'translations' => [
+            'frontend*' => [
+                'class' => \yii\i18n\PhpMessageSource::class,
+                'basePath' => '@common/messages',
+                'sourceLanguage' => 'en-US',
+                'fileMap' => [
+                    'frontend' => 'frontend.php',
+                ],
+            ],
+        ],
+    ],
     'container' => [
         'singletons' => [
             \common\services\payment\gateways\WayForPayGateway::class => static function () {

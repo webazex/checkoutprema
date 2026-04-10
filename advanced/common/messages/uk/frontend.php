@@ -73,4 +73,5 @@ return [
     'Please check the entered data.' => 'Будь ласка, перевірте введені дані.',
     'An error occurred while processing the customer.' => 'Під час обробки покупця сталася помилка.',
     'Customer data processed successfully.' => 'Дані покупця успішно оброблено.',
+    'Unknown error' => 'Невідома помилка'
 ];
