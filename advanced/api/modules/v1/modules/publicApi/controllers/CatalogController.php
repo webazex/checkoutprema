@@ -7,6 +7,8 @@ namespace api\modules\v1\modules\publicApi\controllers;
 use api\components\ApiController;
 use common\services\catalog\PublicCatalogService;
 use Yii;
+use yii\filters\Cors;
+use yii\rest\OptionsAction;
 
 final class CatalogController extends ApiController
 {
@@ -15,6 +17,38 @@ final class CatalogController extends ApiController
         return [
             'index' => ['GET'],
             'view' => ['GET'],
+        ];
+    }
+
+    public function behaviors(): array
+    {
+        $behaviors = parent::behaviors();
+
+        $behaviors['corsFilter'] = [
+            'class' => Cors::class,
+            'cors' => [
+                'Origin' => [
+                    'https://YOUR-SITE.wixstudio.io',
+                    // или:
+                    // 'https://YOUR-SITE.wixsite.com',
+                ],
+                'Access-Control-Request-Method' => ['GET', 'POST', 'OPTIONS'],
+                'Access-Control-Request-Headers' => ['*'],
+                'Access-Control-Allow-Credentials' => false,
+                'Access-Control-Max-Age' => 86400,
+                'Access-Control-Expose-Headers' => [],
+            ],
+        ];
+
+        return $behaviors;
+    }
+
+    public function actions(): array
+    {
+        return [
+            'options' => [
+                'class' => OptionsAction::class,
+            ],
         ];
     }
 

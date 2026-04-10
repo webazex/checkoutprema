@@ -57,20 +57,24 @@ return [
             'rules' => [
                 '' => 'default/index',
                 'GET info' => 'default/info',
-
                 'GET v1' => 'v1/default/index',
                 'GET v1/ping' => 'v1/default/ping',
 
-                'POST v1/callbacks/payments/<provider:[a-z0-9-]+>' => 'v1/callbacks/payments/handle',
+                'POST v1/callbacks/payments/' => 'v1/callbacks/payments/handle',
 
                 'GET v1/public/catalog/items' => 'v1/public/catalog/index',
+                'OPTIONS v1/public/catalog/items' => 'v1/public/catalog/options',
+
                 'GET v1/public/catalog/items/<id:\d+>' => 'v1/public/catalog/view',
+                'OPTIONS v1/public/catalog/items/<id:\d+>' => 'v1/public/catalog/options',
 
                 'POST v1/public/checkout/cart/import' => 'v1/public/checkout/import-cart',
+                'OPTIONS v1/public/checkout/cart/import' => 'v1/public/checkout/options',
+
                 'POST v1/public/checkout/submit' => 'v1/public/checkout/submit',
+                'GET v1/public/checkout/payment-return' => 'v1/public/checkout/payment-return',
 
                 'GET v1/integrations' => 'v1/integrations/default/index',
-                'GET v1/public/checkout/payment-return' => 'v1/public/checkout/payment-return',
             ],
         ],
     ],
