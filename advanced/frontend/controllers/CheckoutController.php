@@ -9,18 +9,26 @@ use common\services\cart\CheckoutCartViewService;
 use common\services\checkout\CheckoutSubmitService;
 use DomainException;
 use Yii;
+use yii\base\Action;
 use yii\web\Controller;
-use yii\web\NotFoundHttpException;
 use yii\web\Response;
 use yii\web\ServerErrorHttpException;
 
 final class CheckoutController extends Controller
 {
+    public function beforeAction($action): bool
+    {
+        if ($action->id === 'payment-return') {
+            $this->enableCsrfValidation = false;
+        }
+
+        return parent::beforeAction($action);
+    }
+
     public function actionView(string $hash): string
     {
         /** @var CheckoutCartViewService $service */
         $service = Yii::$container->get(CheckoutCartViewService::class);
-
         $cart = $service->getActiveCartByHash($hash);
 
         return $this->render('view', [
@@ -71,6 +79,8 @@ final class CheckoutController extends Controller
     {
         return $this->render('payment_return', [
             'query' => Yii::$app->request->get(),
+            'post' => Yii::$app->request->post(),
+            'method' => Yii::$app->request->method,
         ]);
     }
 }

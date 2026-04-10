@@ -10,15 +10,15 @@ return [
         'cache' => [
             'class' => \yii\caching\FileCache::class,
         ],
-    ],
-    'i18n' => [
-        'translations' => [
-            'frontend*' => [
-                'class' => \yii\i18n\PhpMessageSource::class,
-                'basePath' => '@common/messages',
-                'sourceLanguage' => 'en-US',
-                'fileMap' => [
-                    'frontend' => 'frontend.php',
+        'i18n' => [
+            'translations' => [
+                'frontend*' => [
+                    'class' => \yii\i18n\PhpMessageSource::class,
+                    'basePath' => '@common/messages',
+                    'sourceLanguage' => 'en-US',
+                    'fileMap' => [
+                        'frontend' => 'frontend.php',
+                    ],
                 ],
             ],
         ],
