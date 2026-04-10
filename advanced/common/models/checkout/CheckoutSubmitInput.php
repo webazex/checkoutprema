@@ -9,6 +9,7 @@ use yii\base\Model;
 
 class CheckoutSubmitInput extends Model
 {
+    public ?string $cartHash = null;
     public ?string $sessionKey = null;
     public ?string $sourceType = 'wix';
 
@@ -27,23 +28,42 @@ class CheckoutSubmitInput extends Model
     public function rules(): array
     {
         return [
-            [['sessionKey', 'email', 'phone', 'first_name', 'last_name'], 'required'],
+            [['email', 'phone', 'first_name', 'last_name'], 'required'],
 
-            [['sessionKey', 'sourceType', 'payment_method', 'returnUrl'], 'trim'],
+            [['cartHash', 'sessionKey', 'sourceType', 'payment_method', 'returnUrl'], 'trim'],
             [['email', 'phone', 'first_name', 'last_name', 'region', 'city', 'branch'], 'trim'],
 
-            ['email', 'filter', 'filter' => static fn ($value) => $value !== null ? mb_strtolower(trim((string)$value)) : null],
+            [
+                'cartHash',
+                function (string $attribute): void {
+                    if (
+                        trim((string)$this->cartHash) === ''
+                        && trim((string)$this->sessionKey) === ''
+                    ) {
+                        $this->addError($attribute, 'Cart hash or session key is required.');
+                    }
+                },
+            ],
+
+            [
+                'email',
+                'filter',
+                'filter' => static fn($value) => $value !== null
+                    ? mb_strtolower(trim((string)$value))
+                    : null,
+            ],
             ['email', 'email'],
 
-            [['sessionKey'], 'string', 'max' => 128],
+            [['cartHash', 'sessionKey'], 'string', 'max' => 128],
             [['sourceType'], 'string', 'max' => 32],
             [['email'], 'string', 'max' => 255],
             [['phone'], 'string', 'max' => 30],
             [['first_name', 'last_name'], 'string', 'max' => 100],
             [['region', 'city', 'branch'], 'string', 'max' => 255],
-            [['payment_method'], 'string', 'max' => 64],
 
+            [['payment_method'], 'string', 'max' => 64],
             [['payment_method'], 'in', 'range' => ['wayforpay']],
+
             [['returnUrl'], 'url'],
         ];
     }
@@ -51,6 +71,7 @@ class CheckoutSubmitInput extends Model
     public function attributeLabels(): array
     {
         return [
+            'cartHash' => 'Cart Hash',
             'sessionKey' => 'Session Key',
             'sourceType' => 'Source Type',
             'email' => Yii::t('frontend', 'Email'),

@@ -29,7 +29,7 @@ final class CheckoutController extends Controller
         ]);
     }
 
-    public function actionSubmit(string $hash): string
+    public function actionSubmit(string $hash): Response|string
     {
         $payload = Yii::$app->request->post();
         $payload['cartHash'] = $hash;
@@ -48,6 +48,7 @@ final class CheckoutController extends Controller
             );
 
             $nextAction = $result['payment']['nextAction'] ?? null;
+
             if (!$nextAction || ($nextAction['type'] ?? null) !== 'redirect_post') {
                 throw new ServerErrorHttpException('Unsupported payment next action.');
             }
@@ -60,7 +61,7 @@ final class CheckoutController extends Controller
         } catch (DomainException $e) {
             Yii::$app->session->setFlash('error', $e->getMessage());
 
-            return $this->redirect(['checkout/view', 'hash' => $hash])->send();
+            return $this->redirect(['checkout/view', 'hash' => $hash]);
         } catch (\Throwable $e) {
             throw new ServerErrorHttpException($e->getMessage(), 0, $e);
         }
