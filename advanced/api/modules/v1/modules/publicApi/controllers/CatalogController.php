@@ -28,9 +28,8 @@ final class CatalogController extends ApiController
             'class' => Cors::class,
             'cors' => [
                 'Origin' => [
-                    'https://YOUR-SITE.wixstudio.io',
-                    // или:
-                    // 'https://YOUR-SITE.wixsite.com',
+                    'https://www.premabrand.com.ua',
+                    'https://premabrand.com.ua',
                 ],
                 'Access-Control-Request-Method' => ['GET', 'POST', 'OPTIONS'],
                 'Access-Control-Request-Headers' => ['*'],
@@ -45,12 +44,13 @@ final class CatalogController extends ApiController
 
     public function actions(): array
     {
-        return [
+        return array_merge(parent::actions(), [
             'options' => [
                 'class' => OptionsAction::class,
             ],
-        ];
+        ]);
     }
+
 
     public function actionIndex(): array
     {

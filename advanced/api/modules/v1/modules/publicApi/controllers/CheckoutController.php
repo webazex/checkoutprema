@@ -13,6 +13,8 @@ use InvalidArgumentException;
 use Yii;
 use yii\web\BadRequestHttpException;
 use yii\web\UnprocessableEntityHttpException;
+use yii\filters\Cors;
+use yii\rest\OptionsAction;
 
 final class CheckoutController extends ApiController
 {
@@ -23,6 +25,37 @@ final class CheckoutController extends ApiController
             'submit' => ['POST'],
             'payment-return' => ['GET'],
         ];
+    }
+
+    public function behaviors(): array
+    {
+        $behaviors = parent::behaviors();
+
+        $behaviors['corsFilter'] = [
+            'class' => Cors::class,
+            'cors' => [
+                'Origin' => [
+                    'https://www.premabrand.com.ua',
+                    'https://premabrand.com.ua',
+                ],
+                'Access-Control-Request-Method' => ['GET', 'POST', 'OPTIONS'],
+                'Access-Control-Request-Headers' => ['*'],
+                'Access-Control-Allow-Credentials' => false,
+                'Access-Control-Max-Age' => 86400,
+                'Access-Control-Expose-Headers' => [],
+            ],
+        ];
+
+        return $behaviors;
+    }
+
+    public function actions(): array
+    {
+        return array_merge(parent::actions(), [
+            'options' => [
+                'class' => OptionsAction::class,
+            ],
+        ]);
     }
 
     public function actionImportCart(): array

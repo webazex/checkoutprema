@@ -72,7 +72,10 @@ return [
                 'OPTIONS v1/public/checkout/cart/import' => 'v1/public/checkout/options',
 
                 'POST v1/public/checkout/submit' => 'v1/public/checkout/submit',
+                'OPTIONS v1/public/checkout/submit' => 'v1/public/checkout/options',
+
                 'GET v1/public/checkout/payment-return' => 'v1/public/checkout/payment-return',
+                'OPTIONS v1/public/checkout/payment-return' => 'v1/public/checkout/options',
 
                 'GET v1/integrations' => 'v1/integrations/default/index',
             ],
