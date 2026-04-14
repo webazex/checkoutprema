@@ -78,6 +78,7 @@ return [
                 'OPTIONS v1/public/checkout/payment-return' => 'v1/public/checkout/options',
 
                 'GET v1/integrations' => 'v1/integrations/default/index',
+                'POST v1/integrations/keycrm/stocks/<token:[A-Za-z0-9_-]{16,128}>' => 'v1/integrations/keycrm/stocks',
             ],
         ],
     ],

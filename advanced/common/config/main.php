@@ -100,6 +100,7 @@ return [
                     $container->get(\common\services\payment\PaymentService::class),
                 );
             },
+            \common\services\keycrm\KeyCrmStockWebhookService::class => \common\services\keycrm\KeyCrmStockWebhookService::class,
         ],
     ],
     'timeZone' => 'Europe/Kyiv',
