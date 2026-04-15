@@ -70,4 +70,18 @@ final class PublicCatalogService
 
         return $this->productMapper->mapOne($product)->toArray();
     }
+
+    public function getVersion(): array
+    {
+        $query = ProductModel::find()->active();
+
+        $total = (int)(clone $query)->count('*');
+        $maxUpdatedAt = (int)((clone $query)->max('updated_at') ?: 0);
+
+        return [
+            'version' => hash('sha256', $total . '|' . $maxUpdatedAt),
+            'updatedAt' => $maxUpdatedAt,
+            'total' => $total,
+        ];
+    }
 }

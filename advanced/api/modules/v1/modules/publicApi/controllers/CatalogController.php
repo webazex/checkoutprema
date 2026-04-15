@@ -89,4 +89,16 @@ final class CatalogController extends ApiController
             'data' => $service->getItemById($id),
         ];
     }
+
+    public function actionVersion(): array
+    {
+        /** @var PublicCatalogService $service */
+        $service = Yii::$container->get(PublicCatalogService::class);
+
+        return [
+            'status' => 'ok',
+            'message' => 'Catalog version loaded successfully.',
+            'data' => $service->getVersion(),
+        ];
+    }
 }

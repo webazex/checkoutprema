@@ -79,6 +79,9 @@ return [
 
                 'GET v1/integrations' => 'v1/integrations/default/index',
                 'POST v1/integrations/keycrm/stocks/<token:[A-Za-z0-9_-]{16,128}>' => 'v1/integrations/keycrm/stocks',
+
+                'GET v1/public/catalog/version' => 'v1/public/catalog/version',
+                'OPTIONS v1/public/catalog/version' => 'v1/public/catalog/options',
             ],
         ],
     ],
