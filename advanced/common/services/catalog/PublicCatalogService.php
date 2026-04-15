@@ -73,7 +73,7 @@ final class PublicCatalogService
 
     public function getVersion(): array
     {
-        $query = ProductModel::find()->active();
+        $query = ProductModel::find()->notArchived();
 
         $total = (int)(clone $query)->count('*');
         $maxUpdatedAt = (int)((clone $query)->max('updated_at') ?: 0);
