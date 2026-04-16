@@ -36,6 +36,7 @@ use common\models\payment\PaymentModel;
  * @property OrderItemModel[] $items
  * @property PaymentModel[] $payments
  * @property PaymentLogModel[] $paymentLogs
+ * @property string|null $keycrm_order_id
  */
 class OrderModel extends BaseModel
 {
@@ -82,6 +83,8 @@ class OrderModel extends BaseModel
                 'targetClass' => CartModel::class,
                 'targetAttribute' => ['cart_id' => 'id'],
             ],
+            [['keycrm_order_id'], 'string', 'max' => 64],
+            [['keycrm_order_id'], 'unique'],
         ]);
     }
 
@@ -89,27 +92,28 @@ class OrderModel extends BaseModel
     {
         return [
             'id' => 'ID',
-            'hash' => 'Хэш заказа',
-            'customer_id' => 'Клиент',
-            'cart_id' => 'Корзина',
-            'total_amount' => 'Итого',
+            'hash' => 'Хеш замовлення',
+            'customer_id' => 'Клієнт',
+            'cart_id' => 'Кошик',
+            'total_amount' => 'Разом',
             'currency' => 'Валюта',
-            'subtotal_amount' => 'Subtotal',
-            'discount_amount' => 'Скидка',
+            'subtotal_amount' => 'Проміжний підсумок',
+            'discount_amount' => 'Знижка',
             'shipping_amount' => 'Доставка',
-            'status' => 'Статус заказа',
-            'payment_status' => 'Статус оплаты',
-            'payment_method' => 'Способ оплаты',
-            'customer_email' => 'E-mail клиента',
-            'customer_phone' => 'Телефон клиента',
-            'customer_first_name' => 'Имя клиента',
-            'customer_last_name' => 'Фамилия клиента',
-            'source_type' => 'Источник',
-            'placed_at' => 'Оформлен',
-            'paid_at' => 'Оплачен',
-            'cancelled_at' => 'Отменён',
-            'created_at' => 'Создано',
-            'updated_at' => 'Обновлено',
+            'status' => 'Статус замовлення',
+            'payment_status' => 'Статус оплати',
+            'payment_method' => 'Спосіб оплати',
+            'customer_email' => 'E-mail клієнта',
+            'customer_phone' => 'Телефон клієнта',
+            'customer_first_name' => 'Ім’я клієнта',
+            'customer_last_name' => 'Прізвище клієнта',
+            'source_type' => 'Джерело',
+            'placed_at' => 'Оформлено',
+            'paid_at' => 'Оплачено',
+            'cancelled_at' => 'Скасовано',
+            'created_at' => 'Створено',
+            'updated_at' => 'Оновлено',
+            'keycrm_order_id' => 'KeyCRM Order ID',
         ];
     }
 
