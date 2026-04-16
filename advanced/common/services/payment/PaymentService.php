@@ -201,7 +201,6 @@ final class PaymentService
             }
 
             $this->syncOrderPaymentState($payment, $now);
-            //add calling OrderPostPaymentProcessor
             $this->processSuccessfulOrderExport($payment);
 
             if ($oldStatus !== $payment->status) {
