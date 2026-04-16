@@ -12,6 +12,8 @@ use common\models\order\OrderModel;
 use common\models\payment\PaymentLogModel;
 use common\models\payment\PaymentModel;
 use RuntimeException;
+use common\services\order\OrderPostPaymentProcessor;
+use Yii;
 
 final class PaymentService
 {
@@ -199,6 +201,8 @@ final class PaymentService
             }
 
             $this->syncOrderPaymentState($payment, $now);
+            //add calling OrderPostPaymentProcessor
+            $this->processSuccessfulOrderExport($payment);
 
             if ($oldStatus !== $payment->status) {
                 $this->writeLog(
@@ -440,5 +444,24 @@ final class PaymentService
         $json = json_encode($payload, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);
 
         return $json === false ? null : $json;
+    }
+    private function processSuccessfulOrderExport(PaymentModel $payment): void
+    {
+        if ($payment->status !== PaymentModel::STATUS_PAID) {
+            return;
+        }
+
+        $order = $payment->order;
+
+        if (!$order instanceof OrderModel) {
+            throw new RuntimeException(sprintf(
+                'Payment #%d is not linked to a valid order for post-payment processing.',
+                (int)$payment->id
+            ));
+        }
+
+        /** @var OrderPostPaymentProcessor $processor */
+        $processor = Yii::$container->get(OrderPostPaymentProcessor::class);
+        $processor->process($order);
     }
 }

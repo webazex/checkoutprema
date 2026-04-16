@@ -65,4 +65,10 @@ return [
             $container->get(\common\integrations\keycrm\KeyCrmApiClient::class),
         );
     },
+    \common\services\order\OrderPostPaymentProcessor::class => static function ($container) {
+        return new \common\services\order\OrderPostPaymentProcessor(
+            $container->get(\common\services\keycrm\KeyCrmCustomerSyncService::class),
+            $container->get(\common\services\keycrm\KeyCrmOrderExportService::class),
+        );
+    },
 ];
