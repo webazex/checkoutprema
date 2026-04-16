@@ -66,16 +66,11 @@ final class KeyCrmCustomerSyncService
             throw new DomainException('Customer email or phone is required for KeyCRM lookup.');
         }
 
-        /**
-         * Buyer API resource уже подтверждён.
-         *
-         * TODO:
-         * Подтвердить точные filter params для поиска Buyer по email и phone
-         * и зафиксировать один канонический запрос.
-         */
         if ($email !== null) {
             $response = $this->apiClient->get('/buyer', [
-                'email' => $email,
+                'filter' => [
+                    'buyer_email' => $email,
+                ],
                 'limit' => 1,
             ]);
 
@@ -87,7 +82,9 @@ final class KeyCrmCustomerSyncService
 
         if ($phone !== null) {
             $response = $this->apiClient->get('/buyer', [
-                'phone' => $phone,
+                'filter' => [
+                    'buyer_phone' => $phone,
+                ],
                 'limit' => 1,
             ]);
 
@@ -102,20 +99,20 @@ final class KeyCrmCustomerSyncService
 
     private function createRemoteCustomer(CustomerModel $customer): array
     {
-        /**
-         * Buyer create endpoint уже подтверждён.
-         *
-         * TODO:
-         * После живого теста по Swagger уточнить каноническую схему payload-а
-         * для создания покупателя.
-         */
         $payload = [
             'full_name' => $customer->getFullName() ?: $customer->email,
-            'first_name' => $this->nullableString($customer->first_name),
-            'last_name' => $this->nullableString($customer->last_name),
-            'email' => $this->nullableString($customer->email),
-            'phone' => $this->nullableString($customer->phone),
         ];
+
+        $email = $this->nullableString($customer->email);
+        $phone = $this->nullableString($customer->phone);
+
+        if ($email !== null) {
+            $payload['email'] = [$email];
+        }
+
+        if ($phone !== null) {
+            $payload['phone'] = [$phone];
+        }
 
         $response = $this->apiClient->post('/buyer', $payload);
 
