@@ -45,6 +45,10 @@ class OrderModel extends BaseModel
     public const STATUS_PAID = 'paid';
     public const STATUS_CANCELLED = 'cancelled';
 
+    public const PAYMENT_STATUS_PENDING = 'pending';
+    public const PAYMENT_STATUS_PAID = 'paid';
+    public const PAYMENT_STATUS_FAILED = 'failed';
+    public const PAYMENT_STATUS_CANCELLED = 'cancelled';
     public static function tableName(): string
     {
         return '{{%order}}';
