@@ -8,4 +8,7 @@ return [
     'keycrm.token' => 'MDk0YmFhOWU0YjY2MTk2ZWZiNTAzNDhlOTExMmMyZmIxZDgzMWRkYg',
     'keycrm.timeout' => 30,
     'keycrm.webhookToken' => 'rNGUzqQKJXd9sdvxrLK3Wkzw4toXtWxJdtm_HmmMFJt3DbbFeS3oy3jxPWF-X7Cv',
+    'keycrm.orderSourceId' => 22,
+    'keycrm.paymentMethodId' => null,
+    'keycrm.paymentMethodName' => 'WayForPay',
 ];

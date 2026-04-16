@@ -60,4 +60,9 @@ return [
             $container->get(\common\integrations\keycrm\KeyCrmApiClient::class),
         );
     },
+    \common\services\keycrm\KeyCrmOrderExportService::class => static function ($container) {
+        return new \common\services\keycrm\KeyCrmOrderExportService(
+            $container->get(\common\integrations\keycrm\KeyCrmApiClient::class),
+        );
+    },
 ];
