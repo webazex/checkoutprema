@@ -1,6 +1,5 @@
 <?php
 
-
 declare(strict_types=1);
 
 namespace common\integrations\keycrm;
@@ -13,42 +12,83 @@ final class KeyCrmApiClient
     public function __construct(
         private readonly string $baseUrl,
         private readonly string $token,
-        private readonly int    $timeout = 30,
-    )
-    {
+        private readonly int $timeout = 30,
+    ) {
     }
 
     public function get(string $path, array $query = []): array
     {
+        return $this->request(
+            method: 'GET',
+            path: $path,
+            query: $query,
+        );
+    }
+
+    public function post(string $path, array $body = [], array $query = []): array
+    {
+        return $this->request(
+            method: 'POST',
+            path: $path,
+            query: $query,
+            body: $body,
+        );
+    }
+
+    private function request(
+        string $method,
+        string $path,
+        array $query = [],
+        array $body = [],
+    ): array {
         $url = rtrim($this->baseUrl, '/') . '/' . ltrim($path, '/');
+
         if ($query !== []) {
             $url .= '?' . http_build_query($query);
         }
 
         $ch = curl_init($url);
+
         if ($ch === false) {
             throw new RuntimeException('Failed to initialize cURL for KeyCRM request.');
         }
 
-        curl_setopt_array($ch, [
+        $headers = [
+            'Accept: application/json',
+            'Authorization: Bearer ' . $this->token,
+        ];
+
+        $options = [
             CURLOPT_RETURNTRANSFER => true,
             CURLOPT_FOLLOWLOCATION => true,
             CURLOPT_TIMEOUT => $this->timeout,
-            CURLOPT_HTTPHEADER => [
-                'Accept: application/json',
-                'Authorization: Bearer ' . $this->token,
-            ],
-        ]);
+            CURLOPT_CUSTOMREQUEST => strtoupper($method),
+            CURLOPT_HTTPHEADER => $headers,
+        ];
 
-        $body = curl_exec($ch);
+        if (strtoupper($method) !== 'GET') {
+            $headers[] = 'Content-Type: application/json';
+            $options[CURLOPT_HTTPHEADER] = $headers;
+            $options[CURLOPT_POSTFIELDS] = Json::encode(
+                $body,
+                JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES
+            );
+        }
+
+        curl_setopt_array($ch, $options);
+
+        $responseBody = curl_exec($ch);
         $curlError = curl_error($ch);
         $httpCode = (int) curl_getinfo($ch, CURLINFO_RESPONSE_CODE);
 
-        if ($body === false) {
+        curl_close($ch);
+
+        if ($responseBody === false) {
             throw new RuntimeException('KeyCRM request failed: ' . $curlError);
         }
 
-        $decoded = Json::decode($body, true);
+        $decoded = Json::decode($responseBody, true);
+
         if (!is_array($decoded)) {
             throw new RuntimeException('KeyCRM returned non-JSON response.');
         }
