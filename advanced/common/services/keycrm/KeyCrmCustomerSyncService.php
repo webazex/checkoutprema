@@ -75,7 +75,7 @@ final class KeyCrmCustomerSyncService
          * - если не нашли, ищем по phone
          */
         if ($email !== null) {
-            $response = $this->apiClient->get('/customers', [
+            $response = $this->apiClient->get('/buyer', [
                 'email' => $email,
                 'limit' => 1,
             ]);
@@ -87,7 +87,7 @@ final class KeyCrmCustomerSyncService
         }
 
         if ($phone !== null) {
-            $response = $this->apiClient->get('/customers', [
+            $response = $this->apiClient->get('/buyer', [
                 'phone' => $phone,
                 'limit' => 1,
             ]);
@@ -115,7 +115,7 @@ final class KeyCrmCustomerSyncService
             'phone' => $this->nullableString($customer->phone),
         ];
 
-        $response = $this->apiClient->post('/customers', $payload);
+        $response = $this->apiClient->post('/buyer', $payload);
 
         if (!is_array($response)) {
             throw new RuntimeException('KeyCRM create customer returned invalid response.');
