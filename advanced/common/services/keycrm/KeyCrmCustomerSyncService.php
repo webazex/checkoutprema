@@ -67,12 +67,11 @@ final class KeyCrmCustomerSyncService
         }
 
         /**
-         * TODO:
-         * Подтвердить точный endpoint и query params по Swagger KeyCRM.
+         * Buyer API resource уже подтверждён.
          *
-         * Идея текущего каркаса:
-         * - сначала ищем по email
-         * - если не нашли, ищем по phone
+         * TODO:
+         * Подтвердить точные filter params для поиска Buyer по email и phone
+         * и зафиксировать один канонический запрос.
          */
         if ($email !== null) {
             $response = $this->apiClient->get('/buyer', [
@@ -104,8 +103,11 @@ final class KeyCrmCustomerSyncService
     private function createRemoteCustomer(CustomerModel $customer): array
     {
         /**
+         * Buyer create endpoint уже подтверждён.
+         *
          * TODO:
-         * Подтвердить точный create endpoint и payload schema по Swagger KeyCRM.
+         * После живого теста по Swagger уточнить каноническую схему payload-а
+         * для создания покупателя.
          */
         $payload = [
             'full_name' => $customer->getFullName() ?: $customer->email,
@@ -128,12 +130,8 @@ final class KeyCrmCustomerSyncService
     {
         /**
          * TODO:
-         * После проверки Swagger привести к точной структуре ответа.
-         *
-         * Сейчас каркас пытается жить с самыми типичными формами:
-         * - ['data' => [...]]
-         * - ['data' => ['items' => [...]]]
-         * - ['items' => [...]]
+         * После живого теста Buyer list endpoint привести разбор ответа
+         * к одной канонической структуре.
          */
         $candidates = null;
 
@@ -162,7 +160,7 @@ final class KeyCrmCustomerSyncService
     {
         /**
          * TODO:
-         * После проверки Swagger оставить один канонический путь.
+         * После живого теста Buyer response оставить один канонический путь к buyer ID.
          */
         $id = ArrayHelper::getValue($response, 'id')
             ?? ArrayHelper::getValue($response, 'data.id')
