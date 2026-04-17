@@ -284,4 +284,29 @@ class KeycrmTestController extends Controller
 
         return ExitCode::UNSPECIFIED_ERROR;
     }
+
+    public function actionFindPaidOrder(): int
+    {
+        $orders = OrderModel::find()
+            ->where(['payment_status' => OrderModel::PAYMENT_STATUS_PAID])
+            ->andWhere(['or', ['keycrm_order_id' => null], ['keycrm_order_id' => '']])
+            ->with(['customer', 'items'])
+            ->orderBy(['id' => SORT_DESC])
+            ->limit(10)
+            ->all();
+
+        foreach ($orders as $order) {
+            $this->stdout(sprintf(
+                "#%d | customer=%s | email=%s | phone=%s | items=%d | keycrm_order_id=%s\n",
+                $order->id,
+                $order->customer_id ?? 'null',
+                $order->customer->email ?? '-',
+                $order->customer->phone ?? '-',
+                count($order->items),
+                $order->keycrm_order_id ?: 'null'
+            ));
+        }
+
+        return ExitCode::OK;
+    }
 }
