@@ -141,13 +141,19 @@ final class KeyCrmOrderExportService
 
         /** @var OrderItemModel $item */
         foreach ($order->items as $item) {
+            $sku = $this->nullableString($item->sku_snapshot);
+            $name = $this->nullableString($item->title);
+
+            if ($sku === null && $name === null) {
+                throw new DomainException(
+                    sprintf('Order item #%d must have at least sku or name for KeyCRM export.', (int)$item->id)
+                );
+            }
+
             $row = [
                 'price' => (float)$item->price,
                 'quantity' => (int)$item->quantity,
             ];
-
-            $sku = $this->nullableString($item->sku_snapshot);
-            $name = $this->nullableString($item->title);
 
             if ($sku !== null) {
                 $row['sku'] = $sku;
@@ -155,12 +161,6 @@ final class KeyCrmOrderExportService
 
             if ($name !== null) {
                 $row['name'] = $name;
-            }
-
-            if (!isset($row['sku']) && !isset($row['name'])) {
-                throw new DomainException(
-                    sprintf('Order item #%d must have at least sku or name for KeyCRM export.', (int)$item->id)
-                );
             }
 
             $products[] = $row;
@@ -179,7 +179,7 @@ final class KeyCrmOrderExportService
         }
 
         $paymentMethodId = Yii::$app->params['keycrm.paymentMethodId'] ?? null;
-        $paymentMethodName = (string)(Yii::$app->params['keycrm.paymentMethodName'] ?? $order->payment_method ?? 'Online payment');
+        $paymentMethodName = (string)(Yii::$app->params['keycrm.paymentMethodName'] ?? $order->payment_method ?? 'WayForPay');
 
         $payment = [
             'amount' => (float)$order->total_amount,
@@ -205,8 +205,7 @@ final class KeyCrmOrderExportService
     private function extractRemoteOrderId(array $response): ?string
     {
         $id = ArrayHelper::getValue($response, 'id')
-            ?? ArrayHelper::getValue($response, 'data.id')
-            ?? ArrayHelper::getValue($response, 'data.order.id');
+            ?? ArrayHelper::getValue($response, 'data.id');
 
         if ($id === null) {
             return null;
