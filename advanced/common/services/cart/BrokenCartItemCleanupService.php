@@ -151,4 +151,53 @@ final class BrokenCartItemCleanupService
             );
         }
     }
+
+    public function cleanupAbandonedActiveCarts(int $olderThanDays = 7): array
+    {
+        $days = $olderThanDays > 0 ? $olderThanDays : 7;
+        $threshold = time() - ($days * 24 * 60 * 60);
+
+        $stats = [
+            'scanned' => 0,
+            'deleted' => 0,
+            'skippedWithItems' => 0,
+            'skippedFresh' => 0,
+            'errors' => 0,
+        ];
+
+        /** @var CartModel[] $carts */
+        $carts = CartModel::find()
+            ->where(['status' => CartModel::STATUS_ACTIVE])
+            ->with('items')
+            ->all();
+
+        $stats['scanned'] = count($carts);
+
+        foreach ($carts as $cart) {
+            try {
+                if (!empty($cart->items)) {
+                    $stats['skippedWithItems']++;
+                    continue;
+                }
+
+                $lastActivityAt = (int)($cart->last_activity_at ?? 0);
+                if ($lastActivityAt <= 0 || $lastActivityAt > $threshold) {
+                    $stats['skippedFresh']++;
+                    continue;
+                }
+
+                if ($cart->delete() === false) {
+                    throw new RuntimeException(
+                        'Failed to delete abandoned cart #' . $cart->id
+                    );
+                }
+
+                $stats['deleted']++;
+            } catch (\Throwable $e) {
+                $stats['errors']++;
+            }
+        }
+
+        return $stats;
+    }
 }

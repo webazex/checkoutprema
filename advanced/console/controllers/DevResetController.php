@@ -43,4 +43,21 @@ final class DevResetController extends Controller
 
         return ExitCode::OK;
     }
+
+    public function actionCleanupAbandonedActiveCarts(int $days = 7): int
+    {
+        /** @var BrokenCartItemCleanupService $service */
+        $service = Yii::$container->get(BrokenCartItemCleanupService::class);
+
+        $stats = $service->cleanupAbandonedActiveCarts($days > 0 ? $days : 7);
+
+        $this->stdout("Abandoned active carts cleanup completed.\n");
+        $this->stdout('Scanned: ' . $stats['scanned'] . "\n");
+        $this->stdout('Deleted: ' . $stats['deleted'] . "\n");
+        $this->stdout('Skipped (with items): ' . $stats['skippedWithItems'] . "\n");
+        $this->stdout('Skipped (fresh): ' . $stats['skippedFresh'] . "\n");
+        $this->stdout('Errors: ' . $stats['errors'] . "\n");
+
+        return ExitCode::OK;
+    }
 }
