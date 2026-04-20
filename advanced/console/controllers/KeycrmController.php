@@ -22,11 +22,17 @@ final class KeycrmController extends Controller
         );
 
         $this->stdout("KeyCRM products import completed.\n");
-        $this->stdout('Pages: ' . $stats['pages'] . "\n");
-        $this->stdout('Processed: ' . $stats['processed'] . "\n");
-        $this->stdout('Created: ' . $stats['created'] . "\n");
-        $this->stdout('Updated: ' . $stats['updated'] . "\n");
-        $this->stdout('Mappings created: ' . $stats['mapped'] . "\n");
+        $this->stdout("Pages: {$stats['pages']}\n");
+        $this->stdout("Processed: {$stats['processed']}\n");
+        $this->stdout("Created: {$stats['created']}\n");
+        $this->stdout("Updated: {$stats['updated']}\n");
+        $this->stdout("Mappings created: {$stats['mapped']}\n");
+        $this->stdout("Archived: {$stats['archived']}\n");
+        $this->stdout("Restored: {$stats['restored']}\n");
+        $this->stdout("Unchanged: {$stats['unchanged']}\n");
+        $this->stdout("Orphan repaired: {$stats['orphanRepaired']}\n");
+        $this->stdout("Orphan removed: {$stats['orphanRemoved']}\n");
+        $this->stdout("Errors: {$stats['errors']}\n");
 
         return ExitCode::OK;
     }

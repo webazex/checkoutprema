@@ -87,9 +87,7 @@ final class KeyCrmProductImportService
         $ids = [];
 
         foreach ($products as $dto) {
-            if ($dto->id !== null) {
-                $ids[] = (string) $dto->id;
-            }
+            $ids[] = (string) $dto->externalId;
         }
 
         return array_values(array_unique($ids));
@@ -185,7 +183,7 @@ final class KeyCrmProductImportService
         $orphanRepaired = false;
         $orphanRemoved = false;
 
-        $externalId = (string) $dto->id;
+        $externalId = (string) $dto->externalId;
         $source = ProductExternalMapModel::SOURCE_KEYCRM;
 
         /** @var ProductExternalMapModel|null $mapping */
@@ -347,6 +345,6 @@ final class KeyCrmProductImportService
             $base = 'product';
         }
 
-        return sprintf('%s-keycrm-%d', $base, $dto->id);
+        return sprintf('%s-keycrm-%d', $base, $dto->externalId);
     }
 }
