@@ -52,6 +52,7 @@ class ProductModel extends BaseModel
             [['slug'], 'unique'],
             [['sku'], 'unique'],
             [['is_archived'], 'boolean'],
+            [['archived_at'], 'integer'],
         ]);
     }
 
@@ -77,6 +78,7 @@ class ProductModel extends BaseModel
             'is_archived' => 'В архиве',
             'created_at' => 'Создано',
             'updated_at' => 'Обновлено',
+            'archived_at' => 'Архивировано',
         ];
     }
 
