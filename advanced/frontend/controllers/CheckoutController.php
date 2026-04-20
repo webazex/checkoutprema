@@ -6,16 +6,31 @@ namespace frontend\controllers;
 
 use common\models\payment\PaymentModel;
 use common\services\cart\CheckoutCartViewService;
+use common\services\checkout\CheckoutCartManageService;
 use common\services\checkout\CheckoutSubmitService;
 use DomainException;
 use Yii;
-use yii\base\Action;
+use yii\filters\VerbFilter;
 use yii\web\Controller;
 use yii\web\Response;
 use yii\web\ServerErrorHttpException;
 
 final class CheckoutController extends Controller
 {
+    public function behaviors(): array
+    {
+        return [
+            'verbs' => [
+                'class' => VerbFilter::class,
+                'actions' => [
+                    'submit' => ['post'],
+                    'clear' => ['post'],
+                    'remove-item' => ['post'],
+                ],
+            ],
+        ];
+    }
+
     public function beforeAction($action): bool
     {
         if ($action->id === 'payment-return') {
@@ -37,6 +52,46 @@ final class CheckoutController extends Controller
         ]);
     }
 
+    public function actionClear(string $hash): Response
+    {
+        try {
+            /** @var CheckoutCartManageService $service */
+            $service = Yii::$container->get(CheckoutCartManageService::class);
+            $service->clearByHash($hash);
+
+            Yii::$app->session->setFlash('success', 'Cart was cleared.');
+        } catch (DomainException $e) {
+            Yii::$app->session->setFlash('error', $e->getMessage());
+        } catch (\Throwable $e) {
+            Yii::$app->session->setFlash('error', 'Failed to clear cart.');
+        }
+
+        return $this->redirect(['checkout/view', 'hash' => $hash]);
+    }
+
+    public function actionRemoveItem(string $hash): Response
+    {
+        $itemId = (int)Yii::$app->request->post('itemId', 0);
+
+        try {
+            if ($itemId <= 0) {
+                throw new DomainException('Invalid cart item id.');
+            }
+
+            /** @var CheckoutCartManageService $service */
+            $service = Yii::$container->get(CheckoutCartManageService::class);
+            $service->removeItemByHashAndItemId($hash, $itemId);
+
+            Yii::$app->session->setFlash('success', 'Item was removed from cart.');
+        } catch (DomainException $e) {
+            Yii::$app->session->setFlash('error', $e->getMessage());
+        } catch (\Throwable $e) {
+            Yii::$app->session->setFlash('error', 'Failed to remove item from cart.');
+        }
+
+        return $this->redirect(['checkout/view', 'hash' => $hash]);
+    }
+
     public function actionSubmit(string $hash): Response|string
     {
         $payload = Yii::$app->request->post();
@@ -56,7 +111,6 @@ final class CheckoutController extends Controller
             );
 
             $nextAction = $result['payment']['nextAction'] ?? null;
-
             if (!$nextAction || ($nextAction['type'] ?? null) !== 'redirect_post') {
                 throw new ServerErrorHttpException('Unsupported payment next action.');
             }

@@ -1,20 +1,28 @@
 <?php
 
-use yii\helpers\Html;
-use yii\helpers\Url;
-
 /** @var array $cart */
 /** @var string $hash */
 
+use yii\helpers\Html;
+use yii\helpers\Url;
+
 $this->title = 'Checkout';
+
 $hasItems = !empty($cart['items']);
+$items = $cart['items'] ?? [];
 ?>
 
     <h1>Checkout</h1>
 
 <?php if (Yii::$app->session->hasFlash('error')): ?>
-    <div style="color: red; margin-bottom: 16px;">
+    <div style="padding:10px;margin-bottom:16px;border:1px solid #dc3545;color:#842029;background:#f8d7da;">
         <?= Html::encode(Yii::$app->session->getFlash('error')) ?>
+    </div>
+<?php endif; ?>
+
+<?php if (Yii::$app->session->hasFlash('success')): ?>
+    <div style="padding:10px;margin-bottom:16px;border:1px solid #198754;color:#0f5132;background:#d1e7dd;">
+        <?= Html::encode(Yii::$app->session->getFlash('success')) ?>
     </div>
 <?php endif; ?>
 
@@ -23,24 +31,45 @@ $hasItems = !empty($cart['items']);
 <?php if (!$hasItems): ?>
     <p>Cart is empty.</p>
 <?php else: ?>
-    <table border="1" cellpadding="8" cellspacing="0" width="100%">
+    <div style="margin-bottom:16px;">
+        <form method="post" action="<?= Url::to(['checkout/clear', 'hash' => $hash]) ?>" style="display:inline-block;">
+            <input type="hidden" name="<?= Html::encode(Yii::$app->request->csrfParam) ?>" value="<?= Html::encode(Yii::$app->request->getCsrfToken()) ?>">
+            <button type="submit" onclick="return confirm('Clear the whole cart?');">Clear cart</button>
+        </form>
+    </div>
+
+    <table border="1" cellpadding="8" cellspacing="0" width="100%" style="margin-bottom:16px;border-collapse:collapse;">
         <thead>
         <tr>
-            <th>Title</th>
-            <th>SKU</th>
-            <th>Price</th>
-            <th>Qty</th>
-            <th>Subtotal</th>
+            <th align="left">Title</th>
+            <th align="left">SKU</th>
+            <th align="right">Price</th>
+            <th align="right">Qty</th>
+            <th align="right">Subtotal</th>
+            <th align="center">Action</th>
         </tr>
         </thead>
         <tbody>
-        <?php foreach ($cart['items'] as $item): ?>
+        <?php foreach ($items as $item): ?>
             <tr>
-                <td><?= Html::encode($item['title']) ?></td>
+                <td><?= Html::encode((string)($item['title'] ?? '')) ?></td>
                 <td><?= Html::encode((string)($item['sku'] ?? '')) ?></td>
-                <td><?= Html::encode((string)$item['price']) ?> <?= Html::encode($item['currency']) ?></td>
-                <td><?= Html::encode((string)$item['quantity']) ?></td>
-                <td><?= Html::encode((string)$item['subtotal']) ?> <?= Html::encode($item['currency']) ?></td>
+                <td align="right">
+                    <?= Html::encode((string)($item['price'] ?? '0')) ?>
+                    <?= Html::encode((string)($item['currency'] ?? ($cart['currency'] ?? '')) ) ?>
+                </td>
+                <td align="right"><?= Html::encode((string)($item['quantity'] ?? '0')) ?></td>
+                <td align="right">
+                    <?= Html::encode((string)($item['subtotal'] ?? '0')) ?>
+                    <?= Html::encode((string)($item['currency'] ?? ($cart['currency'] ?? '')) ) ?>
+                </td>
+                <td align="center">
+                    <form method="post" action="<?= Url::to(['checkout/remove-item', 'hash' => $hash]) ?>" style="display:inline-block;">
+                        <input type="hidden" name="<?= Html::encode(Yii::$app->request->csrfParam) ?>" value="<?= Html::encode(Yii::$app->request->getCsrfToken()) ?>">
+                        <input type="hidden" name="itemId" value="<?= (int)($item['id'] ?? 0) ?>">
+                        <button type="submit" onclick="return confirm('Remove this item?');">Remove</button>
+                    </form>
+                </td>
             </tr>
         <?php endforeach; ?>
         </tbody>
@@ -48,60 +77,61 @@ $hasItems = !empty($cart['items']);
 
     <p>
         <strong>Total:</strong>
-        <?= Html::encode((string)$cart['totalAmount']) ?> <?= Html::encode($cart['currency']) ?>
+        <?= Html::encode((string)($cart['totalAmount'] ?? '0')) ?>
+        <?= Html::encode((string)($cart['currency'] ?? '')) ?>
     </p>
+<?php endif; ?>
 
     <hr>
 
+<?php if ($hasItems): ?>
     <form method="post" action="<?= Url::to(['checkout/submit', 'hash' => $hash]) ?>">
-        <?= Html::hiddenInput(Yii::$app->request->csrfParam, Yii::$app->request->getCsrfToken()) ?>
-        <?= Html::hiddenInput('cartHash', (string)($cart['hash'] ?? $hash)) ?>
-        <?= Html::hiddenInput('sessionKey', (string)($cart['sessionKey'] ?? '')) ?>
-        <?= Html::hiddenInput('sourceType', (string)($cart['sourceType'] ?? 'wix')) ?>
+        <input type="hidden" name="<?= Html::encode(Yii::$app->request->csrfParam) ?>" value="<?= Html::encode(Yii::$app->request->getCsrfToken()) ?>">
 
-        <div>
+        <div style="margin-bottom:12px;">
             <label>Email</label><br>
-            <input type="email" name="email" required>
+            <input type="email" name="email" required style="width:100%;max-width:420px;">
         </div>
 
-        <div>
+        <div style="margin-bottom:12px;">
             <label>Phone</label><br>
-            <input type="text" name="phone" required>
+            <input type="text" name="phone" required style="width:100%;max-width:420px;">
         </div>
 
-        <div>
+        <div style="margin-bottom:12px;">
             <label>First name</label><br>
-            <input type="text" name="first_name" required>
+            <input type="text" name="first_name" required style="width:100%;max-width:420px;">
         </div>
 
-        <div>
+        <div style="margin-bottom:12px;">
             <label>Last name</label><br>
-            <input type="text" name="last_name" required>
+            <input type="text" name="last_name" required style="width:100%;max-width:420px;">
         </div>
 
-        <div>
+        <div style="margin-bottom:12px;">
             <label>Region</label><br>
-            <input type="text" name="region">
+            <input type="text" name="region" style="width:100%;max-width:420px;">
         </div>
 
-        <div>
+        <div style="margin-bottom:12px;">
             <label>City</label><br>
-            <input type="text" name="city">
+            <input type="text" name="city" style="width:100%;max-width:420px;">
         </div>
 
-        <div>
+        <div style="margin-bottom:12px;">
             <label>Branch</label><br>
-            <input type="text" name="branch">
+            <input type="text" name="branch" style="width:100%;max-width:420px;">
         </div>
 
-        <div>
+        <div style="margin-bottom:12px;">
             <label>Payment method</label><br>
-            <input type="hidden" name="payment_method" value="wayforpay">
-            <strong>WayForPay</strong>
+            <select name="payment_method" style="width:100%;max-width:420px;">
+                <option value="wayforpay">WayForPay</option>
+            </select>
         </div>
 
-        <div style="margin-top: 16px;">
-            <button type="submit">Proceed to payment</button>
-        </div>
+        <button type="submit">Proceed to payment</button>
     </form>
+<?php else: ?>
+    <p>Checkout form is unavailable because the cart is empty.</p>
 <?php endif; ?>
