@@ -74,5 +74,9 @@ return [
     'An error occurred while processing the customer.' => 'Під час обробки покупця сталася помилка.',
     'Customer data processed successfully.' => 'Дані покупця успішно оброблено.',
     'Unknown error' => 'Невідома помилка',
-    'Unable to verify your data submission' => 'Помилка валідації запиту'
+    'Unable to verify your data submission' => 'Помилка валідації запиту',
+    'status_message' => 'Під час оплати сталася помилка. Будь-ласка, спробуйте іншу картку, 
+    або звʼяжіться з нашим менеджером',
+    'link_to_front' => 'До магазину',
+    'link_to_pa' => 'В особистий кабінет',
 ];
