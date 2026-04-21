@@ -38,8 +38,8 @@ final class CheckoutCartStateService
     private function buildEmptyCartDto(string $sessionKey, string $sourceType): CheckoutCartDto
     {
         return new CheckoutCartDto(
-            cartId: null,
-            hash: null,
+            id: 0,
+            hash: '',
             sessionKey: $sessionKey,
             status: CartModel::STATUS_ACTIVE,
             sourceType: $sourceType,
@@ -48,7 +48,6 @@ final class CheckoutCartStateService
             subtotalAmount: 0.0,
             totalAmount: 0.0,
             items: [],
-            checkoutUrl: null,
         );
     }
 }
