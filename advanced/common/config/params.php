@@ -6,7 +6,7 @@ return [
     'senderName' => 'Example.com mailer',
     'user.passwordResetTokenExpire' => 3600,
     'user.passwordMinLength' => 8,
-    'wayforpay.merchantAccount' => '',
-    'wayforpay.secretKey' => '',
-    'wayforpay.domain' => '',
+    'wayforpay.merchantAccount' => 'freelance_user_6720e0795a509',
+    'wayforpay.secretKey' => 'c97b450c4c2f68fc07aa78db72ac9b1e16f75fc1',
+    'wayforpay.domain' => 'checkoutprema.biz.ua',
 ];
