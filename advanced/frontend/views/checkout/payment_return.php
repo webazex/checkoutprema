@@ -8,11 +8,11 @@ use yii\helpers\Html;
 /** @var string $method */
 
 $this->title = 'Payment return';
-$dirtyOrderId = $query['orderReference'];
-$amount = $query['amount'];
-$email = $query['email'];
-$phone = $query['phone'];
-$transactionStatus = $query['transactionStatus'];
+$dirtyOrderId = (!empty($query['orderReference'])) ? $query['orderReference'] : '';
+$amount = (!empty($query['amount'])) ? $query['amount'] : '';
+$email = (!empty($query['email'])) ? $query['email'] : '';
+$phone = (!empty($query['phone'])) ? $query['phone'] : '';
+$transactionStatus = (!empty(['transactionStatus'])) ? $query['transactionStatus'] : '';
 $msgToClient = ($transactionStatus == 'Declined') ? '' : 'failure';
 ?>
 <div class="payment-return">
