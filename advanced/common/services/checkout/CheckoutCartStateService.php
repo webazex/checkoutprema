@@ -5,7 +5,6 @@ declare(strict_types=1);
 namespace common\services\checkout;
 
 use common\dto\cart\CheckoutCartDto;
-use common\dto\cart\CheckoutCartItemDto;
 use common\mappers\cart\CheckoutCartMapper;
 use common\models\cart\CartModel;
 
