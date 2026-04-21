@@ -4,29 +4,20 @@ declare(strict_types=1);
 
 namespace api\modules\v1\modules\publicApi\controllers;
 
-use api\components\ApiController;
-use common\models\payment\PaymentModel;
+use common\models\checkout\CheckoutCartStateInput;
+use common\services\checkout\CheckoutCartStateService;
 use common\services\checkout\CheckoutSubmitService;
 use common\services\checkout\GuestCartImportService;
-use DomainException;
-use InvalidArgumentException;
 use Yii;
-use yii\web\BadRequestHttpException;
-use yii\web\UnprocessableEntityHttpException;
 use yii\filters\Cors;
-use yii\rest\OptionsAction;
+use yii\filters\VerbFilter;
+use yii\helpers\ArrayHelper;
+use yii\rest\Controller;
+use yii\web\BadRequestHttpException;
+use yii\web\Response;
 
-final class CheckoutController extends ApiController
+final class CheckoutController extends Controller
 {
-    protected function verbs(): array
-    {
-        return [
-            'import-cart' => ['POST'],
-            'submit' => ['POST'],
-            'payment-return' => ['GET'],
-        ];
-    }
-
     public function behaviors(): array
     {
         $behaviors = parent::behaviors();
@@ -41,8 +32,17 @@ final class CheckoutController extends ApiController
                 'Access-Control-Request-Method' => ['GET', 'POST', 'OPTIONS'],
                 'Access-Control-Request-Headers' => ['*'],
                 'Access-Control-Allow-Credentials' => false,
-                'Access-Control-Max-Age' => 86400,
-                'Access-Control-Expose-Headers' => [],
+            ],
+        ];
+
+        $behaviors['verbs'] = [
+            'class' => VerbFilter::class,
+            'actions' => [
+                'import-cart' => ['POST', 'OPTIONS'],
+                'cart-state' => ['POST', 'OPTIONS'],
+                'submit' => ['POST', 'OPTIONS'],
+                'payment-return' => ['GET', 'OPTIONS'],
+                'options' => ['OPTIONS'],
             ],
         ];
 
@@ -51,77 +51,90 @@ final class CheckoutController extends ApiController
 
     public function actions(): array
     {
-        return array_merge(parent::actions(), [
+        return ArrayHelper::merge(parent::actions(), [
             'options' => [
-                'class' => OptionsAction::class,
+                'class' => 'yii\rest\OptionsAction',
             ],
         ]);
     }
 
     public function actionImportCart(): array
     {
-        $payload = Yii::$app->request->bodyParams;
+        /** @var GuestCartImportService $service */
+        $service = Yii::$container->get(GuestCartImportService::class);
 
-        if ($payload === []) {
-            throw new BadRequestHttpException('Empty import cart payload.');
+        $payload = Yii::$app->request->getBodyParams();
+        $result = $service->import($payload);
+
+        Yii::$app->response->statusCode = 200;
+
+        return [
+            'status' => 'ok',
+            'message' => 'Cart imported successfully.',
+            'data' => $result,
+        ];
+    }
+
+    public function actionCartState(): array
+    {
+        $input = new CheckoutCartStateInput();
+        $input->load(Yii::$app->request->getBodyParams(), '');
+
+        if (!$input->validate()) {
+            throw new BadRequestHttpException(json_encode($input->getFirstErrors(), JSON_UNESCAPED_UNICODE));
         }
 
-        try {
-            /** @var GuestCartImportService $service */
-            $service = Yii::$container->get(GuestCartImportService::class);
-            $result = $service->import($payload);
+        /** @var CheckoutCartStateService $service */
+        $service = Yii::$container->get(CheckoutCartStateService::class);
 
-            $checkoutUrl = Yii::$app->request->hostInfo . '/checkout/' . $result['hash'];
-            $result['checkoutUrl'] = $checkoutUrl;
+        $dto = $service->getActiveCartBySession(
+            sessionKey: (string)$input->sessionKey,
+            sourceType: (string)$input->sourceType,
+        );
 
-            return [
-                'status' => 'ok',
-                'message' => 'Cart imported successfully.',
-                'data' => $result,
-            ];
-        } catch (InvalidArgumentException | DomainException $e) {
-            throw new UnprocessableEntityHttpException($e->getMessage(), 0, $e);
-        }
+        Yii::$app->response->statusCode = 200;
+
+        return [
+            'status' => 'ok',
+            'message' => 'Cart state loaded.',
+            'data' => $dto->toArray(),
+        ];
     }
 
     public function actionSubmit(): array
     {
-        $payload = Yii::$app->request->bodyParams;
+        /** @var CheckoutSubmitService $service */
+        $service = Yii::$container->get(CheckoutSubmitService::class);
 
-        if ($payload === []) {
-            throw new BadRequestHttpException('Empty checkout payload.');
-        }
+        $payload = Yii::$app->request->getBodyParams();
+        $callbackUrl = Yii::$app->request->hostInfo . '/api/v1/callbacks/payments/';
+        $defaultReturnUrl = Yii::$app->request->hostInfo . '/checkout/payment-return';
 
-        $hostInfo = Yii::$app->request->hostInfo;
-        $callbackUrl = $hostInfo . '/api/v1/callbacks/payments/' . PaymentModel::PROVIDER_WAYFORPAY;
-        $defaultReturnUrl = $hostInfo . '/api/v1/public/checkout/payment-return';
+        $result = $service->submit(
+            payload: $payload,
+            callbackUrl: $callbackUrl,
+            defaultReturnUrl: $defaultReturnUrl,
+        );
 
-        try {
-            /** @var CheckoutSubmitService $service */
-            $service = Yii::$container->get(CheckoutSubmitService::class);
+        Yii::$app->response->statusCode = 200;
 
-            $result = $service->submit(
-                payload: $payload,
-                callbackUrl: $callbackUrl,
-                defaultReturnUrl: $defaultReturnUrl,
-            );
-
-            return [
-                'status' => 'ok',
-                'message' => 'Checkout submitted successfully.',
-                'data' => $result,
-            ];
-        } catch (InvalidArgumentException | DomainException $e) {
-            throw new UnprocessableEntityHttpException($e->getMessage(), 0, $e);
-        }
+        return [
+            'status' => 'ok',
+            'message' => 'Checkout submitted successfully.',
+            'data' => $result,
+        ];
     }
 
     public function actionPaymentReturn(): array
     {
+        Yii::$app->response->format = Response::FORMAT_JSON;
+
         return [
             'status' => 'ok',
-            'message' => 'Payment return endpoint reached.',
-            'data' => Yii::$app->request->get(),
+            'message' => 'Payment return received.',
+            'data' => [
+                'query' => Yii::$app->request->get(),
+            ],
         ];
     }
 }

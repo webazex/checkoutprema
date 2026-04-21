@@ -82,6 +82,9 @@ return [
 
                 'GET v1/public/catalog/version' => 'v1/public/catalog/version',
                 'OPTIONS v1/public/catalog/version' => 'v1/public/catalog/options',
+
+                'POST v1/public/checkout/cart/state' => 'v1/public/checkout/cart-state',
+                'OPTIONS v1/public/checkout/cart/state' => 'v1/public/checkout/options',
             ],
         ],
     ],
