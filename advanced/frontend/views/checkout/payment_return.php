@@ -12,7 +12,7 @@ $dirtyOrderId = (!empty($query['orderReference'])) ? $query['orderReference'] : 
 $amount = (!empty($query['amount'])) ? $query['amount'] : '';
 $email = (!empty($query['email'])) ? $query['email'] : '';
 $phone = (!empty($query['phone'])) ? $query['phone'] : '';
-$transactionStatus = (!empty(['transactionStatus'])) ? $query['transactionStatus'] : '';
+$transactionStatus = (!empty($query['transactionStatus'])) ? $query['transactionStatus'] : '';
 $msgToClient = ($transactionStatus == 'Declined') ? '' : 'failure';
 ?>
 <div class="payment-return">
