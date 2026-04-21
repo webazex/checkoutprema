@@ -15,7 +15,6 @@ $phone = (!empty($query['phone'])) ? $query['phone'] : '';
 $transactionStatus = (!empty($query['transactionStatus'])) ? $query['transactionStatus'] : '';
 $msgToClient = ($transactionStatus == 'Declined') ? '' : 'failure';
 ?>
-<pre><?= Yii::$app->language ?></pre>
 <div class="payment-return">
     <h1><?= Yii::t('frontend', 'status_message'); ?></h1>
     <a href="https://www.premabrand.com.ua/" class="payment-return__link link-to-front">

@@ -31,4 +31,5 @@ return [
         'definitions' => $definitions,
     ],
     'timeZone' => 'Europe/Kyiv',
+    'language' => 'uk'
 ];
