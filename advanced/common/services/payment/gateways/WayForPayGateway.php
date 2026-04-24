@@ -10,6 +10,7 @@ use common\dto\payment\PaymentCreateResultDto;
 use common\dto\payment\PaymentLineItemDto;
 use common\dto\payment\PaymentNextActionDto;
 use common\models\payment\PaymentModel;
+use Yii;
 
 final class WayForPayGateway implements PaymentGatewayInterface
 {
@@ -145,8 +146,23 @@ final class WayForPayGateway implements PaymentGatewayInterface
 
     public function parseCallback(array $payload): PaymentCallbackResultDto
     {
-        $isValid = $this->validateCallback($payload);
         $providerStatus = isset($payload['transactionStatus']) ? (string)$payload['transactionStatus'] : null;
+
+        $stringToSign = $this->buildCallbackSignatureString($payload);
+        $expectedSignature = hash_hmac('md5', $stringToSign, $this->merchantSecretKey);
+        $receivedSignature = (string)($payload['merchantSignature'] ?? '');
+
+        $isValid = $this->hasRequiredCallbackFields($payload)
+            && (string)($payload['merchantAccount'] ?? '') === $this->merchantAccount
+            && hash_equals($expectedSignature, $receivedSignature);
+
+        Yii::error([
+            'payload' => $payload,
+            'stringToSign' => $stringToSign,
+            'expectedSignature' => $expectedSignature,
+            'receivedSignature' => $receivedSignature,
+            'isValid' => $isValid,
+        ], 'wayforpay.signature.debug');
 
         return new PaymentCallbackResultDto(
             provider: $this->getCode(),
@@ -161,6 +177,29 @@ final class WayForPayGateway implements PaymentGatewayInterface
             errorMessage: $isValid ? $this->buildProviderErrorMessage($payload) : 'Invalid callback signature.',
             rawPayload: $payload,
         );
+    }
+
+    private function hasRequiredCallbackFields(array $payload): bool
+    {
+        $required = [
+            'merchantAccount',
+            'orderReference',
+            'merchantSignature',
+            'amount',
+            'currency',
+            'authCode',
+            'cardPan',
+            'transactionStatus',
+            'reasonCode',
+        ];
+
+        foreach ($required as $key) {
+            if (!array_key_exists($key, $payload)) {
+                return false;
+            }
+        }
+
+        return true;
     }
 
     public function buildCallbackResponse(PaymentCallbackResultDto $result): PaymentCallbackResponseDto
