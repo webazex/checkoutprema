@@ -1,0 +1,90 @@
+<?php
+
+declare(strict_types=1);
+
+namespace common\services\checkout;
+
+use common\models\cart\CartItemModel;
+use common\models\cart\CartModel;
+use DomainException;
+use Yii;
+
+final class CheckoutCartManageService
+{
+    public function clearByHash(string $cartHash): void
+    {
+        $cart = $this->findActiveCartByHash($cartHash);
+
+        Yii::$app->db->transaction(function () use ($cart): void {
+            CartItemModel::deleteAll(['cart_id' => (int)$cart->id]);
+
+            $this->refreshCartTotals($cart);
+        });
+    }
+
+    public function removeItemByHashAndItemId(string $cartHash, int $itemId): void
+    {
+        $cart = $this->findActiveCartByHash($cartHash);
+
+        Yii::$app->db->transaction(function () use ($cart, $itemId): void {
+            $item = CartItemModel::find()
+                ->where([
+                    'id' => $itemId,
+                    'cart_id' => (int)$cart->id,
+                ])
+                ->one();
+
+            if (!$item instanceof CartItemModel) {
+                throw new DomainException('Cart item was not found.');
+            }
+
+            if ($item->delete() === false) {
+                throw new DomainException('Failed to delete cart item.');
+            }
+
+            $this->refreshCartTotals($cart);
+        });
+    }
+
+    private function findActiveCartByHash(string $cartHash): CartModel
+    {
+        $cart = CartModel::find()
+            ->where([
+                'hash' => $cartHash,
+                'status' => CartModel::STATUS_ACTIVE,
+            ])
+            ->with('items')
+            ->one();
+
+        if (!$cart instanceof CartModel) {
+            throw new DomainException('Active checkout cart was not found.');
+        }
+
+        return $cart;
+    }
+
+    private function refreshCartTotals(CartModel $cart): void
+    {
+        $items = CartItemModel::find()
+            ->where(['cart_id' => (int)$cart->id])
+            ->all();
+
+        $itemsCount = 0;
+        $subtotalAmount = 0.0;
+
+        /** @var CartItemModel $item */
+        foreach ($items as $item) {
+            $itemsCount += (int)$item->quantity;
+            $subtotalAmount += (float)$item->subtotal;
+        }
+
+        $cart->items_count = $itemsCount;
+        $cart->subtotal_amount = $subtotalAmount;
+        $cart->total_amount = $subtotalAmount;
+        $cart->last_activity_at = time();
+
+        if (!$cart->save()) {
+            throw new DomainException('Failed to update cart totals.');
+        }
+    }
+}
