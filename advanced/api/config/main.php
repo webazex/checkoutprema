@@ -60,7 +60,8 @@ return [
                 'GET v1' => 'v1/default/index',
                 'GET v1/ping' => 'v1/default/ping',
 
-                'POST v1/callbacks/payments/' => 'v1/callbacks/payments/handle',
+                'POST v1/callbacks/payments/<provider:[A-Za-z0-9_-]+>' => 'v1/callbacks/payments/handle',
+                'OPTIONS v1/callbacks/payments/<provider:[A-Za-z0-9_-]+>' => 'v1/callbacks/payments/options',
 
                 'GET v1/public/catalog/items' => 'v1/public/catalog/index',
                 'OPTIONS v1/public/catalog/items' => 'v1/public/catalog/options',
