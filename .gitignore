@@ -6002,3 +6002,6 @@ README.md
 
 # ACME challenge files
 /advanced/**/web/.well-known/
+
+# Legacy bower/scaffold files
+/advanced/.bowerrc
