@@ -5966,3 +5966,20 @@ README.md
 /advanced/vendor/yiisoft/yii2-symfonymailer/LICENSE.md
 /advanced/vendor/yiisoft/extensions.php
 /advanced/vendor/autoload.php
+
+# Yii2 Advanced local environment files
+/advanced/**/config/*-local.php
+/advanced/**/config/codeception-local.php
+/advanced/**/config/test-local.php
+
+# Server/local files
+/advanced/.user.ini
+/advanced/**/.user.ini
+/advanced/**/.env
+
+# Runtime and published assets
+/advanced/**/runtime/*
+/advanced/**/web/assets/*
+
+# SSL/ACME challenge files
+/advanced/**/web/.well-known/
