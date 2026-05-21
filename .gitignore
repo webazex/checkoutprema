@@ -1,4 +1,6 @@
 .idea
+.user.ini
+advanced/.user.ini
 app/vendor
 app/vagrant
 app/environments
