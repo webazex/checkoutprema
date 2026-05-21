@@ -15,6 +15,7 @@ app/Vagrantfile
 app/README.md
 app/.bowerrc
 app/frontend/runtime/*
+frontend/web/.well-known/
 .gitignore
 README.md
 
