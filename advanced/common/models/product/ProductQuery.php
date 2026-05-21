@@ -6,6 +6,10 @@ use yii\db\ActiveQuery;
 
 class ProductQuery extends ActiveQuery
 {
+    public function byCategoryId(int $categoryId): self
+    {
+        return $this->andWhere(['category_id' => $categoryId]);
+    }
     public function notArchived(): self
     {
         return $this->andWhere(['is_archived' => 0]);

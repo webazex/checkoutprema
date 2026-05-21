@@ -4,6 +4,7 @@ namespace common\models\product;
 use common\models\BaseModel;
 use common\models\cart\CartItemModel;
 use common\models\order\OrderItemModel;
+use common\models\catalog\CatalogCategoryModel;
 
 /**
  * @property int $id
@@ -53,6 +54,14 @@ class ProductModel extends BaseModel
             [['sku'], 'unique'],
             [['is_archived'], 'boolean'],
             [['archived_at'], 'integer'],
+            [['category_id'], 'integer'],
+            [
+                ['category_id'],
+                'exist',
+                'skipOnError' => true,
+                'targetClass' => CatalogCategoryModel::class,
+                'targetAttribute' => ['category_id' => 'id'],
+            ],
         ]);
     }
 
@@ -79,12 +88,18 @@ class ProductModel extends BaseModel
             'created_at' => 'Создано',
             'updated_at' => 'Обновлено',
             'archived_at' => 'Архивировано',
+            'category_id' => 'Категория',
         ];
     }
 
     public function getExternalMaps()
     {
         return $this->hasMany(ProductExternalMapModel::class, ['product_id' => 'id']);
+    }
+
+    public function getCategory()
+    {
+        return $this->hasOne(CatalogCategoryModel::class, ['id' => 'category_id']);
     }
 
     public function getCartItems()
