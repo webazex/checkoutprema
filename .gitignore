@@ -5983,3 +5983,22 @@ README.md
 
 # SSL/ACME challenge files
 /advanced/**/web/.well-known/
+
+# Yii2 Advanced real local configs
+/advanced/common/config/*-local.php
+/advanced/frontend/config/*-local.php
+/advanced/backend/config/*-local.php
+/advanced/api/config/*-local.php
+/advanced/console/config/*-local.php
+
+# Local/server files
+/advanced/.user.ini
+/advanced/**/.user.ini
+/advanced/**/.env
+
+# Runtime and published assets
+/advanced/**/runtime/*
+/advanced/**/web/assets/*
+
+# ACME challenge files
+/advanced/**/web/.well-known/
