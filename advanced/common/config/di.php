@@ -71,4 +71,13 @@ return [
             $container->get(\common\services\keycrm\KeyCrmOrderExportService::class),
         );
     },
+
+    \common\integrations\keycrm\mappers\KeyCrmCategoryMapper::class => \common\integrations\keycrm\mappers\KeyCrmCategoryMapper::class,
+
+    \common\services\keycrm\KeyCrmCategorySyncService::class => static function ($container) {
+        return new \common\services\keycrm\KeyCrmCategorySyncService(
+            $container->get(\common\integrations\keycrm\KeyCrmApiClient::class),
+            $container->get(\common\integrations\keycrm\mappers\KeyCrmCategoryMapper::class),
+        );
+    },
 ];

@@ -9,6 +9,7 @@ use Yii;
 use yii\console\Controller;
 use yii\console\ExitCode;
 use common\services\keycrm\KeyCrmArchivedProductCleanupService;
+use common\services\keycrm\KeyCrmCategorySyncService;
 
 final class KeycrmController extends Controller
 {
@@ -55,5 +56,45 @@ final class KeycrmController extends Controller
         $this->stdout('Errors: ' . $stats['errors'] . "\n");
 
         return ExitCode::OK;
+    }
+
+    public function actionImportCategories(int $maxPages = 0): int
+    {
+        /** @var KeyCrmCategorySyncService $service */
+        $service = \Yii::$container->get(KeyCrmCategorySyncService::class);
+
+        $stats = $service->importAllCategories(
+            maxPages: $maxPages > 0 ? $maxPages : null,
+        );
+
+        $this->stdout("KeyCRM categories import completed.\n");
+        $this->stdout("Pages: {$stats['pages']}\n");
+        $this->stdout("Processed: {$stats['processed']}\n");
+        $this->stdout("Created: {$stats['created']}\n");
+        $this->stdout("Updated: {$stats['updated']}\n");
+        $this->stdout("Archived: {$stats['archived']}\n");
+        $this->stdout("Parents linked: {$stats['parentsLinked']}\n");
+        $this->stdout("Missing parents: {$stats['missingParents']}\n");
+        $this->stdout("Errors: {$stats['errors']}\n");
+
+        return \yii\console\ExitCode::OK;
+    }
+
+    public function actionLinkProductCategories(): int
+    {
+        /** @var KeyCrmCategorySyncService $service */
+        $service = \Yii::$container->get(KeyCrmCategorySyncService::class);
+
+        $stats = $service->linkProductsToCategories();
+
+        $this->stdout("Product categories linking completed.\n");
+        $this->stdout("Scanned: {$stats['scanned']}\n");
+        $this->stdout("Linked: {$stats['linked']}\n");
+        $this->stdout("Unchanged: {$stats['unchanged']}\n");
+        $this->stdout("Missing category: {$stats['missingCategory']}\n");
+        $this->stdout("Empty external category: {$stats['emptyExternalCategory']}\n");
+        $this->stdout("Errors: {$stats['errors']}\n");
+
+        return \yii\console\ExitCode::OK;
     }
 }
