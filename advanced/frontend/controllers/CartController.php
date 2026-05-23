@@ -201,9 +201,15 @@ class CartController extends Controller
 
         $this->touchOrder($order);
 
+        $cartUrl = $this->buildCartUrl($order);
+
+        if (!Yii::$app->request->isAjax) {
+            return $this->redirect($cartUrl);
+        }
+
         return $this->asJson([
             'success' => true,
-            'cartUrl' => $this->buildCartUrl($order),
+            'cartUrl' => $cartUrl,
             'itemCount' => $order->getTotalQuantity(),
             'totalAmount' => $order->calculateTotal(),
         ]);

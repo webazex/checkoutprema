@@ -1,4 +1,5 @@
 <?php
+
 return [
     'login' => 'customer/login',
     'register' => 'customer/register',
@@ -11,9 +12,15 @@ return [
     'customer/<customerHash:[a-zA-Z0-9_-]{8,64}>' => 'customer/view',
 
     'cart' => 'cart/index',
+    'POST cart/add' => 'cart/add',
     'cart/<customerHash:[a-zA-Z0-9_-]{8,64}>/<orderId:[a-zA-Z0-9_-]{8,32}>' => 'cart/view',
 
-    // NEW: canonical checkout flow
+    // SEO-ready catalog
+    'catalog' => 'catalog/index',
+    'catalog/<categorySlug:[a-z0-9-]+>' => 'catalog/category',
+    'catalog/<categorySlug:[a-z0-9-]+>/<productSlug:[a-z0-9-]+>' => 'catalog/product',
+
+    // canonical checkout flow
     'checkout/<hash:[a-zA-Z0-9_-]{16,128}>' => 'checkout/view',
     'POST checkout/<hash:[a-zA-Z0-9_-]{16,128}>/submit' => 'checkout/submit',
     'checkout/payment-return' => 'checkout/payment-return',
