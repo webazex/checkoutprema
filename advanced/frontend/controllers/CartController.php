@@ -13,6 +13,10 @@ use common\models\OrderItem;
 use frontend\models\CheckoutForm;
 use common\services\customer\CheckoutCustomerService;
 use common\services\customer\CheckoutCustomerResult;
+use common\models\cart\CartItemModel;
+use common\models\cart\CartModel;
+use common\models\product\ProductModel;
+use DomainException;
 
 class CartController extends Controller
 {
@@ -162,57 +166,114 @@ class CartController extends Controller
      */
     public function actionAdd(): Response
     {
-        $productId = (int)Yii::$app->request->post('product_id');
-        $qty = max(1, (int)Yii::$app->request->post('qty', 1));
+        $request = Yii::$app->request;
 
-        if ($productId < 1) {
+        try {
+            $productId = (int)$request->post('product_id');
+            $qty = max(1, (int)$request->post('qty', 1));
+
+            if ($productId < 1) {
+                throw new DomainException('Невірний товар.');
+            }
+
+            /** @var ProductModel|null $product */
+            $product = ProductModel::find()
+                ->notArchived()
+                ->byId($productId)
+                ->one();
+
+            if (!$product instanceof ProductModel) {
+                throw new DomainException('Товар не знайдено.');
+            }
+
+            if (!$product->getIsAvailable()) {
+                throw new DomainException('Товар недоступний для замовлення.');
+            }
+
+            $currency = strtoupper((string)($product->currency ?: 'UAH'));
+
+            /** @var CartModel $cart */
+            $cart = Yii::$app->db->transaction(function () use ($product, $qty, $currency): CartModel {
+                $cart = $this->getOrCreateActiveCart($currency);
+
+                /** @var CartItemModel|null $item */
+                $item = CartItemModel::find()
+                    ->where([
+                        'cart_id' => (int)$cart->id,
+                        'product_id' => (int)$product->id,
+                    ])
+                    ->one();
+
+                if (!$item instanceof CartItemModel) {
+                    $item = new CartItemModel();
+                    $item->cart_id = (int)$cart->id;
+                    $item->product_id = (int)$product->id;
+                    $item->quantity = 0;
+                }
+
+                $item->title = (string)$product->name;
+                $item->sku_snapshot = $product->sku ?: null;
+                $item->price = (float)$product->price;
+                $item->currency = $currency;
+                $item->quantity = (int)$item->quantity + $qty;
+                $item->subtotal = round((float)$item->price * (int)$item->quantity, 2);
+
+                if (!$item->save()) {
+                    throw new DomainException(
+                        'Не вдалося додати товар до кошика: ' . $this->formatModelErrors($item->errors)
+                    );
+                }
+
+                $this->refreshCartTotals($cart);
+
+                return $cart;
+            });
+
+            $checkoutUrl = Yii::$app->urlManager->createUrl([
+                '/checkout/view',
+                'hash' => $cart->hash,
+            ]);
+
+            if (!$request->isAjax) {
+                return $this->redirect($checkoutUrl);
+            }
+
+            return $this->asJson([
+                'success' => true,
+                'cartHash' => (string)$cart->hash,
+                'checkoutUrl' => $checkoutUrl,
+                'itemsCount' => (int)$cart->items_count,
+                'totalAmount' => (float)$cart->total_amount,
+            ]);
+        } catch (DomainException $e) {
+            if (!$request->isAjax) {
+                Yii::$app->session->setFlash('error', $e->getMessage());
+
+                return $this->redirect($request->referrer ?: ['/catalog/index']);
+            }
+
             return $this->asJson([
                 'success' => false,
-                'message' => 'Невірний товар.',
+                'message' => $e->getMessage(),
             ]);
-        }
+        } catch (\Throwable $e) {
+            Yii::error([
+                'message' => 'Failed to add catalog product to cart.',
+                'exception' => $e->getMessage(),
+                'trace' => $e->getTraceAsString(),
+            ], __METHOD__);
 
-        $order = $this->getCurrentOrder(true);
+            if (!$request->isAjax) {
+                Yii::$app->session->setFlash('error', 'Не вдалося додати товар до кошика.');
 
-        $item = OrderItem::findOne([
-            'order_id' => $order->id,
-            'product_id' => $productId,
-        ]);
+                return $this->redirect($request->referrer ?: ['/catalog/index']);
+            }
 
-        if ($item !== null) {
-            $item->quantity += $qty;
-        } else {
-            $item = new OrderItem();
-            $item->order_id = $order->id;
-            $item->product_id = $productId;
-            $item->quantity = $qty;
-            $item->price = $this->getProductPrice($productId);
-        }
-
-        $item->price_total = (float)$item->price * (int)$item->quantity;
-
-        if (!$item->save()) {
             return $this->asJson([
                 'success' => false,
                 'message' => 'Не вдалося додати товар до кошика.',
-                'errors' => $item->errors,
             ]);
         }
-
-        $this->touchOrder($order);
-
-        $cartUrl = $this->buildCartUrl($order);
-
-        if (!Yii::$app->request->isAjax) {
-            return $this->redirect($cartUrl);
-        }
-
-        return $this->asJson([
-            'success' => true,
-            'cartUrl' => $cartUrl,
-            'itemCount' => $order->getTotalQuantity(),
-            'totalAmount' => $order->calculateTotal(),
-        ]);
     }
 
     /**
@@ -332,6 +393,116 @@ class CartController extends Controller
             'totalAmount' => 0,
             'isEmpty' => true,
         ]);
+    }
+
+    private function getOrCreateActiveCart(string $currency): CartModel
+    {
+        $this->ensureSessionStarted();
+
+        $session = Yii::$app->session;
+        $activeCartHash = (string)$session->get('active_cart_hash', '');
+
+        if ($activeCartHash !== '') {
+            /** @var CartModel|null $cart */
+            $cart = CartModel::find()
+                ->where([
+                    'hash' => $activeCartHash,
+                    'status' => CartModel::STATUS_ACTIVE,
+                ])
+                ->one();
+
+            if ($cart instanceof CartModel) {
+                $this->assertCartCurrency($cart, $currency);
+
+                return $cart;
+            }
+        }
+
+        $sessionKey = (string)$session->id;
+
+        /** @var CartModel|null $cart */
+        $cart = CartModel::find()
+            ->where([
+                'session_key' => $sessionKey,
+                'source_type' => CartModel::SOURCE_DIRECT,
+                'status' => CartModel::STATUS_ACTIVE,
+            ])
+            ->orderBy(['id' => SORT_DESC])
+            ->one();
+
+        if ($cart instanceof CartModel) {
+            $this->assertCartCurrency($cart, $currency);
+            $session->set('active_cart_hash', (string)$cart->hash);
+
+            return $cart;
+        }
+
+        $cart = new CartModel();
+        $cart->hash = Yii::$app->security->generateRandomString(32);
+        $cart->session_key = $sessionKey;
+        $cart->status = CartModel::STATUS_ACTIVE;
+        $cart->source_type = CartModel::SOURCE_DIRECT;
+        $cart->currency = $currency;
+        $cart->items_count = 0;
+        $cart->subtotal_amount = 0.0;
+        $cart->total_amount = 0.0;
+        $cart->last_activity_at = time();
+
+        if (!$cart->save()) {
+            throw new DomainException(
+                'Не вдалося створити кошик: ' . $this->formatModelErrors($cart->errors)
+            );
+        }
+
+        $session->set('active_cart_hash', (string)$cart->hash);
+
+        return $cart;
+    }
+
+    private function refreshCartTotals(CartModel $cart): void
+    {
+        /** @var CartItemModel[] $items */
+        $items = CartItemModel::find()
+            ->where(['cart_id' => (int)$cart->id])
+            ->all();
+
+        $itemsCount = 0;
+        $subtotalAmount = 0.0;
+
+        foreach ($items as $item) {
+            $itemsCount += (int)$item->quantity;
+            $subtotalAmount += (float)$item->subtotal;
+        }
+
+        $cart->items_count = $itemsCount;
+        $cart->subtotal_amount = round($subtotalAmount, 2);
+        $cart->total_amount = round($subtotalAmount, 2);
+        $cart->last_activity_at = time();
+
+        if (!$cart->save()) {
+            throw new DomainException(
+                'Не вдалося оновити кошик: ' . $this->formatModelErrors($cart->errors)
+            );
+        }
+    }
+
+    private function assertCartCurrency(CartModel $cart, string $currency): void
+    {
+        if (strtoupper((string)$cart->currency) !== strtoupper($currency)) {
+            throw new DomainException('У кошику вже є товари в іншій валюті.');
+        }
+    }
+
+    private function ensureSessionStarted(): void
+    {
+        if (!Yii::$app->session->isActive) {
+            Yii::$app->session->open();
+        }
+    }
+
+    private function formatModelErrors(array $errors): string
+    {
+        return json_encode($errors, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES) ?: 'unknown error';
     }
 
     /**
