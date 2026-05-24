@@ -8,11 +8,17 @@ use yii\helpers\Url;
 /** @var ProductModel $product */
 
 $category = $product->category;
+
 $productUrl = $category instanceof CatalogCategoryModel && !empty($product->slug)
-    ? Url::to(['/catalog/product', 'categorySlug' => $category->slug, 'productSlug' => $product->slug])
-    : null;
+        ? Url::to([
+                '/catalog/product',
+                'categorySlug' => $category->slug,
+                'productSlug' => $product->slug,
+        ])
+        : null;
 
 $price = number_format((float)$product->price, 0, '.', ' ') . ' ' . Html::encode($product->currency ?: 'UAH');
+
 $alt = trim($product->name . ($category instanceof CatalogCategoryModel ? ', ' . $category->name : ''));
 ?>
 
@@ -23,12 +29,12 @@ $alt = trim($product->name . ($category instanceof CatalogCategoryModel ? ', ' .
 
         <?php if (!empty($product->thumbnail_url)): ?>
             <img
-                class="catalog-card__image"
-                src="<?= Html::encode($product->thumbnail_url) ?>"
-                alt="<?= Html::encode($alt) ?>"
-                loading="lazy"
-                width="420"
-                height="420"
+                    class="catalog-card__image"
+                    src="<?= Html::encode($product->thumbnail_url) ?>"
+                    alt="<?= Html::encode($alt) ?>"
+                    loading="lazy"
+                    width="420"
+                    height="420"
             >
         <?php else: ?>
             <div class="catalog-card__image catalog-card__image--empty">
@@ -52,14 +58,28 @@ $alt = trim($product->name . ($category instanceof CatalogCategoryModel ? ', ' .
         <div class="catalog-card__price"><?= $price ?></div>
 
         <?php if ($product->getIsAvailable()): ?>
-            <?= Html::beginForm(['/cart/add'], 'post', [
-                    'class' => 'catalog-card__form js-catalog-add-to-cart',
-                    'data-product-name' => $product->name,
-            ]); ?>
-            <?= Html::hiddenInput('product_id', (int)$product->id) ?>
-            <?= Html::hiddenInput('qty', 1) ?>
-            <button class="catalog-card__button" type="submit">Додати в кошик</button>
-            <?= Html::endForm() ?>
+            <div class="catalog-card__actions">
+                <?= Html::beginForm(['/cart/add'], 'post', [
+                        'class' => 'catalog-card__form js-catalog-add-to-cart',
+                        'data-product-name' => $product->name,
+                ]) ?>
+                <?= Html::hiddenInput('product_id', (int)$product->id) ?>
+                <?= Html::hiddenInput('qty', 1) ?>
+                <button class="catalog-card__button catalog-card__button--secondary" type="submit">
+                    В кошик
+                </button>
+                <?= Html::endForm() ?>
+
+                <?= Html::beginForm(['/cart/buy-now'], 'post', [
+                        'class' => 'catalog-card__form catalog-card__form--buy-now',
+                ]) ?>
+                <?= Html::hiddenInput('product_id', (int)$product->id) ?>
+                <?= Html::hiddenInput('qty', 1) ?>
+                <button class="catalog-card__button catalog-card__button--primary" type="submit">
+                    Купити
+                </button>
+                <?= Html::endForm() ?>
+            </div>
         <?php else: ?>
             <div class="catalog-card__unavailable">Немає в наявності</div>
         <?php endif; ?>

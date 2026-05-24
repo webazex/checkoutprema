@@ -13,7 +13,7 @@ return [
 
     'cart' => 'cart/index',
     'POST cart/add' => 'cart/add',
-    'cart/<customerHash:[a-zA-Z0-9_-]{8,64}>/<orderId:[a-zA-Z0-9_-]{8,32}>' => 'cart/view',
+    'POST cart/buy-now' => 'cart/buy-now',
 
     // SEO-ready catalog
     'catalog' => 'catalog/index',

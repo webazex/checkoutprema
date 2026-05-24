@@ -1,5 +1,6 @@
-$(document).ready(function(){
-    console.log("started");
+$(function () {
+    'use strict';
+
     var FORM_SELECTOR = '.js-catalog-add-to-cart';
 
     function getToastContainer() {
@@ -16,8 +17,7 @@ $(document).ready(function(){
         return $container;
     }
 
-    function
-    showToast(message, type) {
+    function showToast(message, type) {
         type = type || 'success';
 
         var $container = getToastContainer();
@@ -64,6 +64,14 @@ $(document).ready(function(){
         }
     }
 
+    function updateCartCounters(data) {
+        if (!data || typeof data.itemsCount === 'undefined') {
+            return;
+        }
+
+        $('.js-cart-count, [data-cart-count]').text(data.itemsCount);
+    }
+
     $(document).on('submit', FORM_SELECTOR, function (event) {
         event.preventDefault();
 
@@ -77,6 +85,9 @@ $(document).ready(function(){
             type: $form.attr('method') || 'POST',
             data: $form.serialize(),
             dataType: 'json',
+            headers: {
+                'X-Requested-With': 'XMLHttpRequest'
+            },
             success: function (data) {
                 if (!data || !data.success) {
                     showToast(
@@ -88,16 +99,14 @@ $(document).ready(function(){
                 }
 
                 showToast(data.message || 'Товар додано до кошика.', 'success');
+                updateCartCounters(data);
 
                 $(document).trigger('catalog:cart-updated', [data]);
             },
             error: function (xhr) {
                 var message = 'Не вдалося додати товар до кошика.';
 
-                if (
-                    xhr.responseJSON &&
-                    xhr.responseJSON.message
-                ) {
+                if (xhr.responseJSON && xhr.responseJSON.message) {
                     message = xhr.responseJSON.message;
                 }
 

@@ -52,14 +52,28 @@ $alt = trim($product->name . ', ' . $category->name);
             </div>
 
             <?php if ($product->getIsAvailable()): ?>
-                <?= Html::beginForm(['/cart/add'], 'post', [
-                        'class' => 'product-hero__form js-catalog-add-to-cart',
-                        'data-product-name' => $product->name,
-                ]) ?>
-                <?= Html::hiddenInput('product_id', (int)$product->id) ?>
-                <?= Html::hiddenInput('qty', 1) ?>
-                <button class="product-hero__button" type="submit">Додати в кошик</button>
-                <?= Html::endForm() ?>
+                <div class="product-hero__actions">
+                    <?= Html::beginForm(['/cart/add'], 'post', [
+                            'class' => 'product-hero__form js-catalog-add-to-cart',
+                            'data-product-name' => $product->name,
+                    ]) ?>
+                    <?= Html::hiddenInput('product_id', (int)$product->id) ?>
+                    <?= Html::hiddenInput('qty', 1) ?>
+                    <button class="product-hero__button product-hero__button--secondary" type="submit">
+                        Додати в кошик
+                    </button>
+                    <?= Html::endForm() ?>
+
+                    <?= Html::beginForm(['/cart/buy-now'], 'post', [
+                            'class' => 'product-hero__form product-hero__form--buy-now',
+                    ]) ?>
+                    <?= Html::hiddenInput('product_id', (int)$product->id) ?>
+                    <?= Html::hiddenInput('qty', 1) ?>
+                    <button class="product-hero__button product-hero__button--primary" type="submit">
+                        Купити зараз
+                    </button>
+                    <?= Html::endForm() ?>
+                </div>
             <?php else: ?>
                 <div class="product-hero__unavailable">Немає в наявності</div>
             <?php endif; ?>

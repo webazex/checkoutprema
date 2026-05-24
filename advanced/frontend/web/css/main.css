@@ -777,6 +777,104 @@ label.order-form__label[for='fio'] > span, label.order-form__label[for='mail'] {
     background: #ffe1e1;
 }
 
+.catalog-grid {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+
+.catalog-card {
+    min-width: 0;
+}
+
+.catalog-card__body {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+}
+
+.catalog-card__actions,
+.product-hero__actions {
+    display: flex;
+    gap: 10px;
+    align-items: stretch;
+    width: 100%;
+}
+
+.catalog-card__form,
+.product-hero__form {
+    flex: 1 1 0;
+    min-width: 0;
+    margin: 0;
+}
+
+.catalog-card__button,
+.product-hero__button {
+    width: 100%;
+    white-space: nowrap;
+}
+
+.catalog-card__button--secondary,
+.product-hero__button--secondary {
+    background: transparent;
+    border: 1px solid currentColor;
+    color: inherit;
+}
+
+.catalog-card__button--primary,
+.product-hero__button--primary {
+    background: var(--secondary-color, #222);
+    color: var(--txt-color, #fff);
+    border: 1px solid var(--secondary-color, #222);
+}
+
+.catalog-toast-container {
+    position: fixed;
+    right: 24px;
+    bottom: 24px;
+    z-index: 9999;
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    max-width: 360px;
+}
+
+.catalog-toast {
+    padding: 14px 18px;
+    border-radius: 16px;
+    background: var(--secondary-color, #222);
+    color: var(--txt-color, #fff);
+    box-shadow: 0 12px 32px rgba(0, 0, 0, 0.18);
+    opacity: 0;
+    transform: translateY(12px);
+    transition: opacity 0.25s ease, transform 0.25s ease;
+}
+
+.catalog-toast--visible {
+    opacity: 1;
+    transform: translateY(0);
+}
+
+.catalog-toast--error {
+    background: #ffe1e1;
+    color: #7a0000;
+}
+
+@media (max-width: 991px) {
+    .catalog-grid {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+}
+
+@media (max-width: 575px) {
+    .catalog-grid {
+        grid-template-columns: 1fr;
+    }
+
+    .catalog-card__actions,
+    .product-hero__actions {
+        flex-direction: column;
+    }
+}
+
 @media (max-width: 767px) {
     .product-hero {
         grid-template-columns: 1fr;
