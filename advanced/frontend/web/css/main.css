@@ -746,6 +746,37 @@ label.order-form__label[for='fio'] > span, label.order-form__label[for='mail'] {
     line-height: 1.65;
 }
 
+.catalog-toast-container {
+    position: fixed;
+    right: 24px;
+    bottom: 24px;
+    z-index: 9999;
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    max-width: 360px;
+}
+
+.catalog-toast {
+    padding: 14px 18px;
+    border-radius: 16px;
+    background: var(--secondary-color);
+    color: var(--txt-color);
+    box-shadow: 0 12px 32px rgba(0, 0, 0, 0.18);
+    opacity: 0;
+    transform: translateY(12px);
+    transition: opacity 0.25s ease, transform 0.25s ease;
+}
+
+.catalog-toast--visible {
+    opacity: 1;
+    transform: translateY(0);
+}
+
+.catalog-toast--error {
+    background: #ffe1e1;
+}
+
 @media (max-width: 767px) {
     .product-hero {
         grid-template-columns: 1fr;

@@ -16,7 +16,8 @@ $(document).ready(function(){
         return $container;
     }
 
-    function showToast(message, type) {
+    function
+    showToast(message, type) {
         type = type || 'success';
 
         var $container = getToastContainer();
