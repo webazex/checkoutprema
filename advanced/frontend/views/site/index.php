@@ -1,17 +1,20 @@
 <?php
 
-/** @var yii\web\View $this */
+use yii\helpers\Html;
+use yii\helpers\Url;
 
-$this->title = 'My Yii Application';
 ?>
-<div class="page-container empty-cart">
-    <h2 class="empty-cart__title">
-        <span class="title__txt-h2">кошик</span>
-    </h2>
-    <div class="empty-cart__centered-box">
-        <p>Кошик поки що пустий :(</p>
-        <a href="" class="centered-box__link">
-            <span class="link__txt">Перейти в каталог</span>
+
+<section class="site-home">
+    <div class="site-home__inner">
+        <h1>Prema</h1>
+
+        <p>
+            Товари для йоги, пілатесу, спорту, ароматерапії та щоденних wellness-практик.
+        </p>
+
+        <a class="site-home__button" href="<?= Html::encode(Url::to(['/catalog/index'])) ?>">
+            Перейти в каталог
         </a>
     </div>
-</div>
+</section>

@@ -27,5 +27,9 @@ return [
     'POST checkout/<hash:[a-zA-Z0-9_-]{16,128}>/clear' => 'checkout/clear',
     'POST checkout/<hash:[a-zA-Z0-9_-]{16,128}>/remove-item' => 'checkout/remove-item',
 
-    '' => 'catalog/index',
+    // Static/public pages zone.
+    // Важно: это правило стоит после catalog/cart/checkout/customer,
+    // поэтому специализированные зоны оно не перехватывает.
+    '' => 'site/index',
+    '<slug:[a-z0-9-]+>' => 'site/page',
 ];

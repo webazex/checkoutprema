@@ -881,6 +881,41 @@ label.order-form__label[for='fio'] > span, label.order-form__label[for='mail'] {
         gap: 24px;
     }
 }
+
+.site-home,
+.site-page {
+    padding: 48px 0 72px;
+}
+
+.site-home__inner,
+.site-page__header,
+.site-page__body {
+    max-width: 920px;
+}
+
+.site-home h1,
+.site-page h1 {
+    margin: 0 0 16px;
+}
+
+.site-home p,
+.site-page__header p,
+.site-page__body {
+    line-height: 1.65;
+}
+
+.site-home__button {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-height: 44px;
+    margin-top: 24px;
+    padding: 10px 22px;
+    border-radius: 999px;
+    background: var(--secondary-color, #222);
+    color: var(--txt-color, #fff);
+    text-decoration: none;
+}
 /* ──────────────────────────────────────────────── */
 /* ADAPTIVE START */
 /* ──────────────────────────────────────────────── */

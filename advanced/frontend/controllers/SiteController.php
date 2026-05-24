@@ -1,61 +1,20 @@
 <?php
 
+declare(strict_types=1);
+
 namespace frontend\controllers;
 
-use frontend\models\ResendVerificationEmailForm;
-use frontend\models\VerifyEmailForm;
 use Yii;
-use yii\base\InvalidArgumentException;
-use yii\web\BadRequestHttpException;
 use yii\web\Controller;
-use yii\filters\VerbFilter;
-use yii\filters\AccessControl;
-use common\models\LoginForm;
-use frontend\models\PasswordResetRequestForm;
-use frontend\models\ResetPasswordForm;
-use frontend\models\SignupForm;
-use frontend\models\ContactForm;
+use yii\web\NotFoundHttpException;
+use yii\web\Response;
 
-/**
- * Site controller
- */
-class SiteController extends Controller
+final class SiteController extends Controller
 {
     /**
-     * {@inheritdoc}
+     * System actions: error/captcha.
      */
-    public function behaviors()
-    {
-        return [
-            'access' => [
-                'class' => AccessControl::class,
-                'only' => ['logout', 'signup'],
-                'rules' => [
-                    [
-                        'actions' => ['signup'],
-                        'allow' => true,
-                        'roles' => ['?'],
-                    ],
-                    [
-                        'actions' => ['logout'],
-                        'allow' => true,
-                        'roles' => ['@'],
-                    ],
-                ],
-            ],
-            'verbs' => [
-                'class' => VerbFilter::class,
-                'actions' => [
-                    'logout' => ['post'],
-                ],
-            ],
-        ];
-    }
-
-    /**
-     * {@inheritdoc}
-     */
-    public function actions()
+    public function actions(): array
     {
         return [
             'error' => [
@@ -69,191 +28,102 @@ class SiteController extends Controller
     }
 
     /**
-     * Displays homepage.
+     * Главная страница сайта.
      *
-     * @return mixed
+     * Сейчас это временная публичная страница.
+     * Позже сюда можно перенести полноценную главную из Wix/дизайна.
      */
-    public function actionIndex()
+    public function actionIndex(): string
     {
-        return $this->render('@frontend/views/cart/view');
+        $this->view->title = 'Prema — товари для йоги, пілатесу та wellness';
+
+        $this->registerPageMeta(
+            description: 'Prema — товари для йоги, пілатесу, спорту, ароматерапії та подарунків. Перегляньте каталог і замовляйте онлайн з доставкою по Україні.',
+            canonicalUrl: Yii::$app->urlManager->createAbsoluteUrl(['/site/index'])
+        );
+
+        return $this->render('index');
     }
 
     /**
-     * Logs in a user.
-     *
-     * @return mixed
+     * Простые публичные страницы:
+     * /about
+     * /contacts
+     * /delivery
+     * /payment
+     * etc.
      */
-    public function actionLogin()
+    public function actionPage(string $slug): string
     {
-        if (!Yii::$app->user->isGuest) {
-            return $this->goHome();
+        $page = $this->getStaticPageConfig($slug);
+
+        if ($page === null) {
+            throw new NotFoundHttpException('Сторінку не знайдено.');
         }
 
-        $model = new LoginForm();
-        if ($model->load(Yii::$app->request->post()) && $model->login()) {
-            return $this->goBack();
-        }
+        $this->view->title = $page['title'];
 
-        $model->password = '';
+        $this->registerPageMeta(
+            description: $page['description'],
+            canonicalUrl: Yii::$app->urlManager->createAbsoluteUrl(['/site/page', 'slug' => $slug])
+        );
 
-        return $this->render('login', [
-            'model' => $model,
+        return $this->render('page', [
+            'slug' => $slug,
+            'page' => $page,
         ]);
     }
 
     /**
-     * Logs out the current user.
+     * Временный источник статических страниц.
      *
-     * @return mixed
+     * На следующем этапе это можно заменить на:
+     * - таблицу static_page;
+     * - config-файл;
+     * - админку;
+     * - импорт из markdown/json.
      */
-    public function actionLogout()
+    private function getStaticPageConfig(string $slug): ?array
     {
-        Yii::$app->user->logout();
+        $pages = [
+            'about' => [
+                'title' => 'Про Prema',
+                'h1' => 'Про Prema',
+                'description' => 'Дізнайтеся більше про Prema, бренд товарів для йоги, пілатесу, спорту та щоденних wellness-практик.',
+                'body' => 'Цю сторінку буде наповнено після підготовки контенту.',
+            ],
+            'contacts' => [
+                'title' => 'Контакти Prema',
+                'h1' => 'Контакти',
+                'description' => 'Контактна інформація Prema для питань щодо товарів, замовлень, доставки та співпраці.',
+                'body' => 'Контактну інформацію буде додано після узгодження з замовником.',
+            ],
+            'delivery' => [
+                'title' => 'Доставка і оплата — Prema',
+                'h1' => 'Доставка і оплата',
+                'description' => 'Інформація про доставку та оплату замовлень Prema по Україні.',
+                'body' => 'Умови доставки та оплати буде додано після узгодження.',
+            ],
+        ];
 
-        return $this->goHome();
+        return $pages[$slug] ?? null;
     }
 
-    /**
-     * Displays contact page.
-     *
-     * @return mixed
-     */
-    public function actionContact()
+    private function registerPageMeta(string $description, string $canonicalUrl): void
     {
-        $model = new ContactForm();
-        if ($model->load(Yii::$app->request->post()) && $model->validate()) {
-            if ($model->sendEmail(Yii::$app->params['adminEmail'])) {
-                Yii::$app->session->setFlash('success', 'Thank you for contacting us. We will respond to you as soon as possible.');
-            } else {
-                Yii::$app->session->setFlash('error', 'There was an error sending your message.');
-            }
+        $view = $this->view;
 
-            return $this->refresh();
-        }
+        $view->registerMetaTag(['name' => 'description', 'content' => $description], 'description');
+        $view->registerMetaTag(['name' => 'robots', 'content' => 'index, follow'], 'robots');
+        $view->registerLinkTag(['rel' => 'canonical', 'href' => $canonicalUrl], 'canonical');
 
-        return $this->render('contact', [
-            'model' => $model,
-        ]);
-    }
+        $view->registerMetaTag(['property' => 'og:title', 'content' => (string)$view->title], 'og:title');
+        $view->registerMetaTag(['property' => 'og:description', 'content' => $description], 'og:description');
+        $view->registerMetaTag(['property' => 'og:url', 'content' => $canonicalUrl], 'og:url');
+        $view->registerMetaTag(['property' => 'og:type', 'content' => 'website'], 'og:type');
 
-    /**
-     * Displays about page.
-     *
-     * @return mixed
-     */
-    public function actionAbout()
-    {
-        return $this->render('about');
-    }
-
-    /**
-     * Signs user up.
-     *
-     * @return mixed
-     */
-    public function actionSignup()
-    {
-        $model = new SignupForm();
-        if ($model->load(Yii::$app->request->post()) && $model->signup()) {
-            Yii::$app->session->setFlash('success', 'Thank you for registration. Please check your inbox for verification email.');
-            return $this->goHome();
-        }
-
-        return $this->render('signup', [
-            'model' => $model,
-        ]);
-    }
-
-    /**
-     * Requests password reset.
-     *
-     * @return mixed
-     */
-    public function actionRequestPasswordReset()
-    {
-        $model = new PasswordResetRequestForm();
-        if ($model->load(Yii::$app->request->post()) && $model->validate()) {
-            if ($model->sendEmail()) {
-                Yii::$app->session->setFlash('success', 'Check your email for further instructions.');
-
-                return $this->goHome();
-            }
-
-            Yii::$app->session->setFlash('error', 'Sorry, we are unable to reset password for the provided email address.');
-        }
-
-        return $this->render('requestPasswordResetToken', [
-            'model' => $model,
-        ]);
-    }
-
-    /**
-     * Resets password.
-     *
-     * @param string $token
-     * @return mixed
-     * @throws BadRequestHttpException
-     */
-    public function actionResetPassword($token)
-    {
-        try {
-            $model = new ResetPasswordForm($token);
-        } catch (InvalidArgumentException $e) {
-            throw new BadRequestHttpException($e->getMessage());
-        }
-
-        if ($model->load(Yii::$app->request->post()) && $model->validate() && $model->resetPassword()) {
-            Yii::$app->session->setFlash('success', 'New password saved.');
-
-            return $this->goHome();
-        }
-
-        return $this->render('resetPassword', [
-            'model' => $model,
-        ]);
-    }
-
-    /**
-     * Verify email address
-     *
-     * @param string $token
-     * @throws BadRequestHttpException
-     * @return yii\web\Response
-     */
-    public function actionVerifyEmail($token)
-    {
-        try {
-            $model = new VerifyEmailForm($token);
-        } catch (InvalidArgumentException $e) {
-            throw new BadRequestHttpException($e->getMessage());
-        }
-        if ($model->verifyEmail()) {
-            Yii::$app->session->setFlash('success', 'Your email has been confirmed!');
-            return $this->goHome();
-        }
-
-        Yii::$app->session->setFlash('error', 'Sorry, we are unable to verify your account with provided token.');
-        return $this->goHome();
-    }
-
-    /**
-     * Resend verification email
-     *
-     * @return mixed
-     */
-    public function actionResendVerificationEmail()
-    {
-        $model = new ResendVerificationEmailForm();
-        if ($model->load(Yii::$app->request->post()) && $model->validate()) {
-            if ($model->sendEmail()) {
-                Yii::$app->session->setFlash('success', 'Check your email for further instructions.');
-                return $this->goHome();
-            }
-            Yii::$app->session->setFlash('error', 'Sorry, we are unable to resend verification email for the provided email address.');
-        }
-
-        return $this->render('resendVerificationEmail', [
-            'model' => $model
-        ]);
+        $view->registerMetaTag(['name' => 'twitter:card', 'content' => 'summary_large_image'], 'twitter:card');
+        $view->registerMetaTag(['name' => 'twitter:title', 'content' => (string)$view->title], 'twitter:title');
+        $view->registerMetaTag(['name' => 'twitter:description', 'content' => $description], 'twitter:description');
     }
 }
