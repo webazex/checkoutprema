@@ -636,7 +636,7 @@ label.order-form__label[for='fio'] > span, label.order-form__label[for='mail'] {
 .catalog-grid {
     display: grid;
     grid-template-columns: repeat(auto-fill, minmax(230px, 1fr));
-    row-gap: 35px;
+    row-gap: 40px;
     column-gap: 24px;
 }
 
@@ -651,7 +651,7 @@ label.order-form__label[for='fio'] > span, label.order-form__label[for='mail'] {
     width: 100%;
     aspect-ratio: 1 / 1;
     height: auto;
-    object-fit: cover;
+    /*object-fit: cover;*/
     border-radius: 20px;
     background: rgba(0, 0, 0, 0.04);
 }
