@@ -27,5 +27,5 @@ return [
     'POST checkout/<hash:[a-zA-Z0-9_-]{16,128}>/clear' => 'checkout/clear',
     'POST checkout/<hash:[a-zA-Z0-9_-]{16,128}>/remove-item' => 'checkout/remove-item',
 
-    '' => 'entry/index',
+    '' => 'catalog/index',
 ];
