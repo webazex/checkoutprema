@@ -52,7 +52,10 @@ $alt = trim($product->name . ', ' . $category->name);
             </div>
 
             <?php if ($product->getIsAvailable()): ?>
-                <?= Html::beginForm(['/cart/add'], 'post', ['class' => 'product-hero__form']) ?>
+                <?= Html::beginForm(['/cart/add'], 'post', [
+                        'class' => 'product-hero__form js-catalog-add-to-cart',
+                        'data-product-name' => $product->name,
+                ]) ?>
                 <?= Html::hiddenInput('product_id', (int)$product->id) ?>
                 <?= Html::hiddenInput('qty', 1) ?>
                 <button class="product-hero__button" type="submit">Додати в кошик</button>

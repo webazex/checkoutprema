@@ -52,7 +52,10 @@ $alt = trim($product->name . ($category instanceof CatalogCategoryModel ? ', ' .
         <div class="catalog-card__price"><?= $price ?></div>
 
         <?php if ($product->getIsAvailable()): ?>
-            <?= Html::beginForm(['/cart/add'], 'post', ['class' => 'catalog-card__form']) ?>
+            <?= Html::beginForm(['/cart/add'], 'post', [
+                    'class' => 'catalog-card__form js-catalog-add-to-cart',
+                    'data-product-name' => $product->name,
+            ]); ?>
             <?= Html::hiddenInput('product_id', (int)$product->id) ?>
             <?= Html::hiddenInput('qty', 1) ?>
             <button class="catalog-card__button" type="submit">Додати в кошик</button>

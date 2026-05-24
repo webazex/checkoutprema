@@ -234,12 +234,17 @@ class CartController extends Controller
                 'hash' => $cart->hash,
             ]);
 
+            $message = 'Товар додано до кошика.';
+
             if (!$request->isAjax) {
-                return $this->redirect($checkoutUrl);
+                Yii::$app->session->setFlash('success', $message);
+
+                return $this->redirect($request->referrer ?: ['/catalog/index']);
             }
 
             return $this->asJson([
                 'success' => true,
+                'message' => $message,
                 'cartHash' => (string)$cart->hash,
                 'checkoutUrl' => $checkoutUrl,
                 'itemsCount' => (int)$cart->items_count,
