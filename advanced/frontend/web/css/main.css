@@ -1281,3 +1281,17 @@ label.order-form__label[for='fio'] > span, label.order-form__label[for='mail'] {
         max-width: 150px;
     }
 }
+@media (max-width: 767px) {
+    .catalog-category-menu__item--has-children:hover > .catalog-category-menu__submenu,
+    .catalog-category-menu__item--has-children:focus-within > .catalog-category-menu__submenu {
+        display: none !important;
+    }
+
+    .catalog-category-menu__item--has-children.is-open > .catalog-category-menu__submenu {
+        display: block !important;
+    }
+
+    .catalog-category-menu__item--has-children::after {
+        display: none !important;
+    }
+}

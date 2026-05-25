@@ -120,6 +120,7 @@ $(function () {
 
     $(document).on('click', '.js-category-collapse-toggle', function (event) {
         event.preventDefault();
+        event.stopPropagation();
 
         var $button = $(this);
         var $item = $button.closest('.catalog-category-menu__item');
@@ -127,6 +128,10 @@ $(function () {
 
         $item.toggleClass('is-open', !isOpen);
         $button.attr('aria-expanded', !isOpen ? 'true' : 'false');
+
+        if (isOpen) {
+            $button.blur();
+        }
     });
 
     $(document).on('click', function (event) {
