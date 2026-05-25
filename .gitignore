@@ -18,7 +18,9 @@ app/frontend/runtime/*
 frontend/web/.well-known/
 .gitignore
 README.md
-
+vendor/
+yii
+../qodana.yml
 /advanced/vendor/behat/gherkin/resources/gherkin-languages.json
 /advanced/vendor/behat/gherkin/src/Cache/CacheInterface.php
 /advanced/vendor/behat/gherkin/src/Cache/FileCache.php
