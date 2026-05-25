@@ -18,10 +18,7 @@ final class CatalogController extends Controller
 {
     public function actionIndex(): string
     {
-        $categories = CatalogCategoryModel::find()
-            ->active()
-            ->ordered()
-            ->all();
+        $categoryTree = $this->findVisibleCategoryTree();
 
         $products = ProductModel::find()
             ->notArchived()
@@ -44,7 +41,7 @@ final class CatalogController extends Controller
         ];
 
         return $this->render('index', [
-            'categories' => $categories,
+            'categoryTree' => $categoryTree,
             'products' => $products,
             'breadcrumbs' => $breadcrumbs,
             'schemaJson' => $this->buildItemListSchema($products),
@@ -86,7 +83,7 @@ final class CatalogController extends Controller
         );
 
         $breadcrumbs = [
-            ['label' => 'Головна', 'url' => Url::to(['/entry/index'], true)],
+            ['label' => 'Головна', 'url' => Url::to(['/site/index'], true)],
             ['label' => 'Каталог', 'url' => Url::to(['/catalog/index'], true)],
             ['label' => $category->name, 'url' => $canonicalUrl],
         ];
@@ -152,7 +149,7 @@ final class CatalogController extends Controller
         );
 
         $breadcrumbs = [
-            ['label' => 'Головна', 'url' => Url::to(['/entry/index'], true)],
+            ['label' => 'Головна', 'url' => Url::to(['/site/index'], true)],
             ['label' => 'Каталог', 'url' => Url::to(['/catalog/index'], true)],
             ['label' => $category->name, 'url' => Url::to(['/catalog/category', 'categorySlug' => $category->slug], true)],
             ['label' => $product->name, 'url' => $canonicalUrl],
@@ -166,6 +163,72 @@ final class CatalogController extends Controller
             'schemaJson' => $this->buildProductSchema($product, $canonicalUrl),
             'breadcrumbSchemaJson' => $this->buildBreadcrumbSchema($breadcrumbs),
         ]);
+    }
+
+    /**
+     * Возвращает дерево категорий для публичного вывода.
+     *
+     * Категория попадает в дерево, если:
+     * - она активна;
+     * - не архивная;
+     * - в ней есть хотя бы один неархивный товар
+     *   ИЛИ у неё есть дочерние категории, которые прошли это же правило.
+     *
+     * Наличие товара на складе здесь НЕ учитываем.
+     * Товары "немає в наявності" остаются на сайте.
+     *
+     * @return array<int, array{category: CatalogCategoryModel, children: array, hasProducts: bool}>
+     */
+    private function findVisibleCategoryTree(): array
+    {
+        /** @var CatalogCategoryModel[] $categories */
+        $categories = CatalogCategoryModel::find()
+            ->active()
+            ->ordered()
+            ->all();
+
+        $productCategoryIds = ProductModel::find()
+            ->notArchived()
+            ->select('category_id')
+            ->andWhere(['not', ['category_id' => null]])
+            ->groupBy('category_id')
+            ->column();
+
+        $productCategoryLookup = array_fill_keys(
+            array_map('intval', $productCategoryIds),
+            true
+        );
+
+        $categoriesByParent = [];
+
+        foreach ($categories as $category) {
+            $parentId = $category->parent_id !== null ? (int)$category->parent_id : 0;
+            $categoriesByParent[$parentId][] = $category;
+        }
+
+        $buildTree = function (int $parentId) use (&$buildTree, $categoriesByParent, $productCategoryLookup): array {
+            $tree = [];
+
+            foreach ($categoriesByParent[$parentId] ?? [] as $category) {
+                $categoryId = (int)$category->id;
+                $children = $buildTree($categoryId);
+                $hasProducts = isset($productCategoryLookup[$categoryId]);
+
+                if (!$hasProducts && $children === []) {
+                    continue;
+                }
+
+                $tree[] = [
+                    'category' => $category,
+                    'children' => $children,
+                    'hasProducts' => $hasProducts,
+                ];
+            }
+
+            return $tree;
+        };
+
+        return $buildTree(0);
     }
 
     private function findCategoryBySlug(string $slug): CatalogCategoryModel

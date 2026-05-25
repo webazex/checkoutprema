@@ -5,7 +5,7 @@ use common\models\product\ProductModel;
 use yii\helpers\Html;
 use yii\helpers\Url;
 
-/** @var CatalogCategoryModel[] $categories */
+/** @var array<int, array{category: CatalogCategoryModel, children: array, hasProducts: bool}> $categoryTree */
 /** @var ProductModel[] $products */
 /** @var array $breadcrumbs */
 /** @var string $schemaJson */
@@ -28,24 +28,10 @@ echo $this->render('_schema', [
         </p>
     </header>
 
-    <?php if ($categories !== []): ?>
-        <section class="catalog-categories" aria-label="Категорії товарів">
-            <?php foreach ($categories as $category): ?>
-                <a class="catalog-category-tile" href="<?= Html::encode(Url::to(['/catalog/category', 'categorySlug' => $category->slug])) ?>">
-                    <?php if (!empty($category->thumbnail_url)): ?>
-                        <img
-                            src="<?= Html::encode($category->thumbnail_url) ?>"
-                            alt="<?= Html::encode($category->name) ?>"
-                            loading="lazy"
-                            width="360"
-                            height="240"
-                        >
-                    <?php endif; ?>
-
-                    <span><?= Html::encode($category->name) ?></span>
-                </a>
-            <?php endforeach; ?>
-        </section>
+    <?php if ($categoryTree !== []): ?>
+        <?= $this->render('_category_tree', [
+                'categoryTree' => $categoryTree,
+        ]) ?>
     <?php endif; ?>
 
     <section class="catalog-grid" aria-label="Товари">

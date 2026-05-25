@@ -117,4 +117,28 @@ $(function () {
             }
         });
     });
+
+    $(document).on('click', '.js-category-collapse-toggle', function (event) {
+        event.preventDefault();
+
+        var $button = $(this);
+        var $item = $button.closest('.catalog-category-menu__item');
+        var isOpen = $item.hasClass('is-open');
+
+        $item.toggleClass('is-open', !isOpen);
+        $button.attr('aria-expanded', !isOpen ? 'true' : 'false');
+    });
+
+    $(document).on('click', function (event) {
+        var $target = $(event.target);
+
+        if ($target.closest('.catalog-category-menu').length) {
+            return;
+        }
+
+        $('.catalog-category-menu__item.is-open')
+            .removeClass('is-open')
+            .find('> .js-category-collapse-toggle')
+            .attr('aria-expanded', 'false');
+    });
 });
