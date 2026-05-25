@@ -608,13 +608,6 @@ label.order-form__label[for='fio'] > span, label.order-form__label[for='mail'] {
     line-height: 1.6;
 }
 
-.catalog-categories {
-    display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
-    gap: 16px;
-    margin-bottom: 36px;
-}
-
 .catalog-category-tile {
     display: block;
     padding: 18px;
