@@ -143,8 +143,14 @@ final class PaymentService
         }
 
         $now = time();
+        $shouldProcessSuccessfulOrderExport = false;
 
-        PaymentModel::getDb()->transaction(function () use ($payment, $result, $now): void {
+        PaymentModel::getDb()->transaction(function () use (
+            $payment,
+            $result,
+            $now,
+            &$shouldProcessSuccessfulOrderExport
+        ): void {
             $this->writeLog(
                 payment: $payment,
                 eventType: PaymentLogModel::EVENT_CALLBACK,
@@ -201,7 +207,6 @@ final class PaymentService
             }
 
             $this->syncOrderPaymentState($payment, $now);
-            $this->processSuccessfulOrderExport($payment);
 
             if ($oldStatus !== $payment->status) {
                 $this->writeLog(
@@ -218,7 +223,14 @@ final class PaymentService
                     externalId: $result->externalId,
                 );
             }
+
+            $shouldProcessSuccessfulOrderExport = $payment->status === PaymentModel::STATUS_PAID;
         });
+
+        if ($shouldProcessSuccessfulOrderExport) {
+            $payment->refresh();
+            $this->tryProcessSuccessfulOrderExport($payment);
+        }
 
         return $result;
     }
@@ -462,5 +474,32 @@ final class PaymentService
         /** @var OrderPostPaymentProcessor $processor */
         $processor = Yii::$container->get(OrderPostPaymentProcessor::class);
         $processor->process($order);
+    }
+    private function tryProcessSuccessfulOrderExport(PaymentModel $payment): void
+    {
+        try {
+            $this->processSuccessfulOrderExport($payment);
+        } catch (\Throwable $e) {
+            Yii::error([
+                'message' => 'Post-payment order export failed.',
+                'paymentId' => (int)$payment->id,
+                'orderId' => (int)$payment->order_id,
+                'exception' => $e->getMessage(),
+                'trace' => $e->getTraceAsString(),
+            ], __METHOD__);
+
+            $this->writeLog(
+                payment: $payment,
+                eventType: PaymentLogModel::EVENT_ERROR,
+                direction: PaymentLogModel::DIRECTION_INTERNAL,
+                status: $payment->status,
+                payload: [
+                    'reason' => 'post_payment_export_failed',
+                    'exception' => $e->getMessage(),
+                ],
+                errorMessage: $e->getMessage(),
+                externalId: $payment->external_id,
+            );
+        }
     }
 }

@@ -27,12 +27,20 @@ final class OrderPostPaymentProcessor
 
         $order->populateRelation('customer', $order->customer ?: $order->getCustomer()->one());
         $order->populateRelation('items', $order->items ?: $order->getItems()->all());
-
         if (!$order->customer) {
             throw new DomainException('Order customer is required for post-payment processing.');
         }
 
-        $this->customerSyncService->sync($order->customer);
+        try {
+            $this->customerSyncService->sync($order->customer);
+        } catch (\Throwable $e) {
+            \Yii::warning([
+                'message' => 'KeyCRM customer sync failed, continuing with order export.',
+                'orderId' => (int)$order->id,
+                'customerId' => (int)$order->customer->id,
+                'exception' => $e->getMessage(),
+            ], __METHOD__);
+        }
 
         return $this->orderExportService->export($order);
     }
