@@ -1,6 +1,5 @@
 <?php
 
-
 declare(strict_types=1);
 
 namespace common\dto\cart;
@@ -8,16 +7,16 @@ namespace common\dto\cart;
 final class CheckoutCartItemDto
 {
     public function __construct(
-        public readonly int     $id,
-        public readonly ?int    $productId,
-        public readonly string  $title,
+        public readonly int $id,
+        public readonly ?int $productId,
+        public readonly string $title,
         public readonly ?string $sku,
-        public readonly float   $price,
-        public readonly int     $quantity,
-        public readonly float   $subtotal,
-        public readonly string  $currency,
-    )
-    {
+        public readonly float $price,
+        public readonly int $quantity,
+        public readonly float $subtotal,
+        public readonly string $currency,
+        public readonly int $availableQuantity = 0,
+    ) {
     }
 
     public function toArray(): array
@@ -31,6 +30,7 @@ final class CheckoutCartItemDto
             'quantity' => $this->quantity,
             'subtotal' => $this->subtotal,
             'currency' => $this->currency,
+            'availableQuantity' => $this->availableQuantity,
         ];
     }
 }

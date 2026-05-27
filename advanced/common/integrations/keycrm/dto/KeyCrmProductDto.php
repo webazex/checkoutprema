@@ -11,7 +11,14 @@ final class KeyCrmProductDto
         public readonly string $name,
         public readonly ?string $description,
         public readonly ?string $thumbnailUrl,
+
+        /**
+         * Legacy/raw KeyCRM quantity value.
+         * Do not write this directly to product.quantity unless it is proven
+         * to be available-to-sell quantity.
+         */
         public readonly int $quantity,
+
         public readonly string $currencyCode,
         public readonly float $price,
         public readonly ?float $purchasedPrice,
@@ -25,6 +32,22 @@ final class KeyCrmProductDto
         public readonly ?float $height,
         public readonly array $customFields,
         public readonly array $raw,
+
+        /**
+         * Total stock quantity from KeyCRM, if available.
+         */
+        public readonly ?int $stockQuantity = null,
+
+        /**
+         * Reserved quantity from KeyCRM, if available.
+         */
+        public readonly ?int $reservedQuantity = null,
+
+        /**
+         * Available-to-sell quantity.
+         * This is the only value that may be written to product.quantity.
+         */
+        public readonly ?int $availableQuantity = null,
     ) {
     }
 }

@@ -1,6 +1,5 @@
 <?php
 
-
 declare(strict_types=1);
 
 namespace common\integrations\keycrm\mappers;
@@ -27,12 +26,23 @@ final class KeyCrmProductMapper
             ));
         }
 
+        $stockQuantity = $this->extractStockQuantity($item);
+        $reservedQuantity = $this->extractReservedQuantity($item);
+        $availableQuantity = $this->extractAvailableQuantity(
+            item: $item,
+            stockQuantity: $stockQuantity,
+            reservedQuantity: $reservedQuantity,
+        );
+
         return new KeyCrmProductDto(
             externalId: $externalId,
             name: $name,
             description: $this->nullableString($item['description'] ?? null),
             thumbnailUrl: $this->nullableString($item['thumbnail_url'] ?? null),
+
+            // Raw/legacy value. Do not treat it as available-to-sell.
             quantity: (int)($item['quantity'] ?? 0),
+
             currencyCode: $currencyCode !== '' ? $currencyCode : 'UAH',
             price: (float)($item['price'] ?? 0),
             purchasedPrice: $this->nullableFloat($item['purchased_price'] ?? null),
@@ -46,6 +56,9 @@ final class KeyCrmProductMapper
             height: $this->nullableFloat($item['height'] ?? null),
             customFields: is_array($item['custom_fields'] ?? null) ? $item['custom_fields'] : [],
             raw: $item,
+            stockQuantity: $stockQuantity,
+            reservedQuantity: $reservedQuantity,
+            availableQuantity: $availableQuantity,
         );
     }
 
@@ -67,9 +80,76 @@ final class KeyCrmProductMapper
         return $result;
     }
 
+    private function extractStockQuantity(array $item): ?int
+    {
+        foreach ([
+                     'quantity',
+                     'stock_quantity',
+                     'stockQuantity',
+                     'in_stock',
+                     'inStock',
+                     'balance',
+                 ] as $key) {
+            if (array_key_exists($key, $item)) {
+                return $this->nullableInt($item[$key]);
+            }
+        }
+
+        return null;
+    }
+
+    private function extractReservedQuantity(array $item): ?int
+    {
+        foreach ([
+                     'in_reserve',
+                     'inReserve',
+                     'reserved',
+                     'reserve',
+                     'reserved_quantity',
+                     'reservedQuantity',
+                     'quantity_reserved',
+                     'quantityReserved',
+                 ] as $key) {
+            if (array_key_exists($key, $item)) {
+                return $this->nullableInt($item[$key]);
+            }
+        }
+
+        return null;
+    }
+
+    private function extractAvailableQuantity(
+        array $item,
+        ?int $stockQuantity,
+        ?int $reservedQuantity,
+    ): ?int {
+        foreach ([
+                     'available_quantity',
+                     'availableQuantity',
+                     'available',
+                     'available_qty',
+                     'availableQty',
+                     'stock_available',
+                     'stockAvailable',
+                     'quantity_available',
+                     'quantityAvailable',
+                 ] as $key) {
+            if (array_key_exists($key, $item)) {
+                return max((int)$item[$key], 0);
+            }
+        }
+
+        if ($stockQuantity !== null && $reservedQuantity !== null) {
+            return max($stockQuantity - $reservedQuantity, 0);
+        }
+
+        return null;
+    }
+
     private function nullableString(mixed $value): ?string
     {
         $value = is_string($value) ? trim($value) : null;
+
         return $value !== '' ? $value : null;
     }
 

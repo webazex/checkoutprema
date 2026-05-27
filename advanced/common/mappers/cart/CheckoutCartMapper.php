@@ -20,6 +20,8 @@ final class CheckoutCartMapper
                 continue;
             }
 
+            $product = $item->product;
+
             $items[] = new CheckoutCartItemDto(
                 id: (int)$item->id,
                 productId: $item->product_id ? (int)$item->product_id : null,
@@ -29,6 +31,7 @@ final class CheckoutCartMapper
                 quantity: (int)$item->quantity,
                 subtotal: (float)$item->subtotal,
                 currency: (string)$item->currency,
+                availableQuantity: $product ? (int)$product->quantity : 0,
             );
         }
 

@@ -7,11 +7,12 @@
 
 use yii\helpers\Html;
 use yii\helpers\Url;
+use frontend\assets\CheckoutAsset;
 
 $t = static fn(string $message, array $params = []): string => Yii::t('frontend', $message, $params);
 
 $this->title = $t('Checkout');
-
+CheckoutAsset::register($this);
 $hasItems = !empty($cart['items']);
 $items = $cart['items'] ?? [];
 $currency = (string)($cart['currency'] ?? 'UAH');
@@ -169,7 +170,11 @@ $formatMoney = static function (mixed $amount, ?string $itemCurrency = null) use
 
                     <button type="submit"
                             class="checkout-clear-btn"
-                            onclick="return confirm('<?= Html::encode($t('Are you sure you want to clear the cart?')) ?>');">
+                            data-confirm-modal
+                            data-confirm-title="<?= Html::encode($t('Clear cart')) ?>"
+                            data-confirm-message="<?= Html::encode($t('Are you sure you want to clear the cart?')) ?>"
+                            data-confirm-confirm="<?= Html::encode($t('Clear')) ?>"
+                            data-confirm-cancel="<?= Html::encode($t('Cancel')) ?>">
                         <?= Html::encode($t('Clear cart')) ?>
                     </button>
                 </form>
@@ -182,6 +187,10 @@ $formatMoney = static function (mixed $amount, ?string $itemCurrency = null) use
                     $itemTitle = (string)($item['title'] ?? '');
                     $itemSku = (string)($item['sku'] ?? '');
                     $itemQty = (int)($item['quantity'] ?? 0);
+                    $itemAvailableQty = (int)($item['availableQuantity'] ?? $item['available_quantity'] ?? 0);
+                    $itemMaxQty = $itemAvailableQty > 0 ? $itemAvailableQty : $itemQty;
+                    $canDecrease = $itemQty > 1;
+                    $canIncrease = $itemMaxQty <= 0 || $itemQty < $itemMaxQty;
                     $itemPrice = $item['price'] ?? 0;
                     $itemSubtotal = $item['subtotal'] ?? 0;
                     $itemCurrency = (string)($item['currency'] ?? $currency);
@@ -210,7 +219,50 @@ $formatMoney = static function (mixed $amount, ?string $itemCurrency = null) use
 
                             <div class="checkout-product__meta">
                                 <span><?= Html::encode($formatMoney($itemPrice, $itemCurrency)) ?></span>
-                                <span>× <?= Html::encode((string)$itemQty) ?></span>
+                                <div class="checkout-qty" aria-label="<?= Html::encode($t('Quantity')) ?>">
+                                    <form method="post"
+                                          action="<?= Html::encode(Url::to(['checkout/update-item', 'hash' => $hash])) ?>"
+                                          class="checkout-qty__form">
+                                        <input type="hidden"
+                                               name="<?= Html::encode($csrfParam) ?>"
+                                               value="<?= Html::encode($csrfToken) ?>">
+                                        <input type="hidden" name="itemId" value="<?= $itemId ?>">
+                                        <input type="hidden" name="quantity" value="<?= max(1, $itemQty - 1) ?>">
+
+                                        <button type="submit"
+                                                class="checkout-qty__btn"
+                                                <?= $canDecrease ? '' : 'disabled' ?>>
+                                            −
+                                        </button>
+                                    </form>
+
+                                    <span class="checkout-qty__value">
+        <?= Html::encode((string)$itemQty) ?>
+    </span>
+
+                                    <form method="post"
+                                          action="<?= Html::encode(Url::to(['checkout/update-item', 'hash' => $hash])) ?>"
+                                          class="checkout-qty__form">
+                                        <input type="hidden"
+                                               name="<?= Html::encode($csrfParam) ?>"
+                                               value="<?= Html::encode($csrfToken) ?>">
+                                        <input type="hidden" name="itemId" value="<?= $itemId ?>">
+                                        <input type="hidden" name="quantity" value="<?= $itemQty + 1 ?>">
+
+                                        <button type="submit"
+                                                class="checkout-qty__btn"
+                                                <?= $canIncrease ? '' : 'disabled' ?>
+                                                title="<?= $canIncrease ? '' : Html::encode($t('Only {count} item(s) available.', ['count' => $itemMaxQty])) ?>">
+                                            +
+                                        </button>
+                                    </form>
+                                </div>
+
+                                <?php if ($itemMaxQty > 0): ?>
+                                    <div class="checkout-stock-note">
+                                        <?= Html::encode($t('Available: {count}', ['count' => $itemMaxQty])) ?>
+                                    </div>
+                                <?php endif; ?>
                             </div>
                         </div>
 
@@ -227,7 +279,11 @@ $formatMoney = static function (mixed $amount, ?string $itemCurrency = null) use
                                 <button type="submit"
                                         class="product-item__remove-icon checkout-remove-btn"
                                         aria-label="<?= Html::encode($t('Remove item')) ?>"
-                                        onclick="return confirm('<?= Html::encode($t('Are you sure you want to remove this item?')) ?>');">
+                                        data-confirm-modal
+                                        data-confirm-title="<?= Html::encode($t('Remove item')) ?>"
+                                        data-confirm-message="<?= Html::encode($t('Are you sure you want to remove this item?')) ?>"
+                                        data-confirm-confirm="<?= Html::encode($t('Remove')) ?>"
+                                        data-confirm-cancel="<?= Html::encode($t('Cancel')) ?>">
                                     ×
                                 </button>
                             </form>
@@ -248,4 +304,36 @@ $formatMoney = static function (mixed $amount, ?string $itemCurrency = null) use
             </div>
         </aside>
     </section>
+    <div class="checkout-confirm-modal" id="checkoutConfirmModal" hidden>
+        <div class="checkout-confirm-modal__backdrop" data-confirm-close></div>
+
+        <div class="checkout-confirm-modal__dialog"
+             role="dialog"
+             aria-modal="true"
+             aria-labelledby="checkoutConfirmTitle">
+            <button type="button"
+                    class="checkout-confirm-modal__close"
+                    data-confirm-close
+                    aria-label="<?= Html::encode($t('Close')) ?>">
+                ×
+            </button>
+
+            <h2 class="checkout-confirm-modal__title" id="checkoutConfirmTitle"></h2>
+            <p class="checkout-confirm-modal__message"></p>
+
+            <div class="checkout-confirm-modal__actions">
+                <button type="button"
+                        class="checkout-confirm-modal__btn checkout-confirm-modal__btn--ghost"
+                        data-confirm-cancel>
+                    <?= Html::encode($t('Cancel')) ?>
+                </button>
+
+                <button type="button"
+                        class="checkout-confirm-modal__btn checkout-confirm-modal__btn--danger"
+                        data-confirm-submit>
+                    <?= Html::encode($t('Confirm')) ?>
+                </button>
+            </div>
+        </div>
+    </div>
 <?php endif; ?>

@@ -326,7 +326,16 @@ final class KeyCrmProductImportService
         $product->price = $dto->price;
         $product->currency = $dto->currencyCode;
         $product->purchased_price = $dto->purchasedPrice;
-        $product->quantity = $dto->quantity;
+        // product.quantity stores available-to-sell quantity.
+        // Do not overwrite it with raw KeyCRM product quantity because it may be
+        // total stock without reserved quantity deduction.
+        // If KeyCRM product payload contains an explicitly calculated available quantity,
+        // we may safely write it. Otherwise stock is updated by stock webhook.
+        if ($dto->availableQuantity !== null) {
+            $product->quantity = $dto->availableQuantity;
+        } elseif ($product->isNewRecord) {
+            $product->quantity = 0;
+        }
         $product->thumbnail_url = $dto->thumbnailUrl;
         $product->category_external_id = $dto->categoryId !== null ? (string) $dto->categoryId : null;
         $product->is_archived = $dto->isArchived ? 1 : 0;

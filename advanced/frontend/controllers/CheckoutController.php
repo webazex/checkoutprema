@@ -26,6 +26,7 @@ final class CheckoutController extends Controller
                     'submit' => ['post'],
                     'clear' => ['post'],
                     'remove-item' => ['post'],
+                    'update-item' => ['post'],
                 ],
             ],
         ];
@@ -87,6 +88,34 @@ final class CheckoutController extends Controller
             Yii::$app->session->setFlash('error', $e->getMessage());
         } catch (\Throwable $e) {
             Yii::$app->session->setFlash('error', Yii::t('frontend', 'Failed to remove item from cart.'));
+        }
+
+        return $this->redirect(['checkout/view', 'hash' => $hash]);
+    }
+
+    public function actionUpdateItem(string $hash): Response
+    {
+        $itemId = (int)Yii::$app->request->post('itemId', 0);
+        $quantity = (int)Yii::$app->request->post('quantity', 0);
+
+        try {
+            if ($itemId <= 0) {
+                throw new DomainException(Yii::t('frontend', 'Invalid cart item id.'));
+            }
+
+            if ($quantity <= 0) {
+                throw new DomainException(Yii::t('frontend', 'Invalid quantity.'));
+            }
+
+            /** @var CheckoutCartManageService $service */
+            $service = Yii::$container->get(CheckoutCartManageService::class);
+            $service->updateItemQuantityByHashAndItemId($hash, $itemId, $quantity);
+
+            Yii::$app->session->setFlash('success', Yii::t('frontend', 'Cart was updated.'));
+        } catch (DomainException $e) {
+            Yii::$app->session->setFlash('error', $e->getMessage());
+        } catch (\Throwable $e) {
+            Yii::$app->session->setFlash('error', Yii::t('frontend', 'Failed to update cart.'));
         }
 
         return $this->redirect(['checkout/view', 'hash' => $hash]);

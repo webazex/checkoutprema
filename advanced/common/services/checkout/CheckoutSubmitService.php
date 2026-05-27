@@ -16,6 +16,7 @@ use DomainException;
 use RuntimeException;
 use Yii;
 use yii\helpers\Json;
+use common\models\product\ProductModel;
 
 final class CheckoutSubmitService
 {
@@ -49,7 +50,7 @@ final class CheckoutSubmitService
             if ($cart->items === [] || count($cart->items) === 0) {
                 throw new DomainException('Cannot submit an empty cart.');
             }
-
+            $this->validateCartStock($cart);
             $existingOrder = OrderModel::find()
                 ->where(['cart_id' => $cart->id])
                 ->one();
@@ -218,6 +219,49 @@ final class CheckoutSubmitService
                 0,
                 $e
             );
+        }
+    }
+
+    private function validateCartStock(CartModel $cart): void
+    {
+        foreach ($cart->items as $cartItem) {
+            if (!$cartItem instanceof CartItemModel) {
+                continue;
+            }
+
+            $product = $cartItem->product;
+
+            if (!$product instanceof ProductModel) {
+                throw new DomainException(sprintf(
+                    'Product "%s" is no longer available.',
+                    (string)$cartItem->title
+                ));
+            }
+
+            if ($product->getIsArchived()) {
+                throw new DomainException(sprintf(
+                    'Product "%s" is no longer available.',
+                    (string)$cartItem->title
+                ));
+            }
+
+            $requestedQuantity = (int)$cartItem->quantity;
+            $availableQuantity = (int)$product->quantity;
+
+            if ($availableQuantity <= 0) {
+                throw new DomainException(sprintf(
+                    'Product "%s" is out of stock.',
+                    (string)$cartItem->title
+                ));
+            }
+
+            if ($requestedQuantity > $availableQuantity) {
+                throw new DomainException(sprintf(
+                    'Only %d item(s) of "%s" available.',
+                    $availableQuantity,
+                    (string)$cartItem->title
+                ));
+            }
         }
     }
 
