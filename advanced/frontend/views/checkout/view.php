@@ -1,137 +1,259 @@
 <?php
 
-/** @var array $cart */
-/** @var string $hash */
+/**
+ * @var array $cart
+ * @var string $hash
+ */
 
 use yii\helpers\Html;
 use yii\helpers\Url;
 
-$this->title = 'Checkout';
+$t = static fn(string $message, array $params = []): string => Yii::t('frontend', $message, $params);
+
+$this->title = $t('Checkout');
 
 $hasItems = !empty($cart['items']);
 $items = $cart['items'] ?? [];
+$currency = (string)($cart['currency'] ?? 'UAH');
+$totalAmount = (string)($cart['totalAmount'] ?? '0');
+
+$csrfParam = Yii::$app->request->csrfParam;
+$csrfToken = Yii::$app->request->getCsrfToken();
+
+$formatMoney = static function (mixed $amount, ?string $itemCurrency = null) use ($currency, $t): string {
+    $value = is_numeric($amount) ? (float)$amount : 0.0;
+    $formatted = fmod($value, 1.0) === 0.0
+            ? number_format($value, 0, '.', ' ')
+            : number_format($value, 2, '.', ' ');
+
+    $currentCurrency = $itemCurrency ?: $currency;
+
+    return $formatted . ' ' . ($currentCurrency === 'UAH' ? $t('UAH') : $currentCurrency);
+};
+
 ?>
 
-    <h1>Checkout</h1>
-
 <?php if (Yii::$app->session->hasFlash('error')): ?>
-    <div style="padding:10px;margin-bottom:16px;border:1px solid #dc3545;color:#842029;background:#f8d7da;">
+    <div class="checkout-alert checkout-alert--error">
         <?= Html::encode(Yii::$app->session->getFlash('error')) ?>
     </div>
 <?php endif; ?>
 
 <?php if (Yii::$app->session->hasFlash('success')): ?>
-    <div style="padding:10px;margin-bottom:16px;border:1px solid #198754;color:#0f5132;background:#d1e7dd;">
+    <div class="checkout-alert checkout-alert--success">
         <?= Html::encode(Yii::$app->session->getFlash('success')) ?>
     </div>
 <?php endif; ?>
 
-    <h2>Your cart</h2>
-
 <?php if (!$hasItems): ?>
-    <p>Cart is empty.</p>
+    <section class="empty-cart">
+        <h1 class="empty-cart__title title__txt-h2">
+            <?= Html::encode($t('Cart')) ?>
+        </h1>
+
+        <div class="empty-cart__centered-box">
+            <p><?= Html::encode($t('Your cart is empty :(')) ?></p>
+
+            <a class="centered-box__link" href="<?= Html::encode(Url::to(['/catalog'])) ?>">
+                <span class="link__txt"><?= Html::encode($t('Go to catalog')) ?></span>
+            </a>
+        </div>
+    </section>
 <?php else: ?>
-    <div style="margin-bottom:16px;">
-        <form method="post" action="<?= Url::to(['checkout/clear', 'hash' => $hash]) ?>" style="display:inline-block;">
-            <input type="hidden" name="<?= Html::encode(Yii::$app->request->csrfParam) ?>" value="<?= Html::encode(Yii::$app->request->getCsrfToken()) ?>">
-            <button type="submit" onclick="return confirm('Clear the whole cart?');">Clear cart</button>
-        </form>
-    </div>
+    <section class="page-container checkout-page">
+        <div class="page-container__customer-box checkout-page__customer">
+            <div class="customer-box__title">
+                <h1 class="title__txt-h2">
+                    <?= Html::encode($t('Checkout')) ?>
+                </h1>
+            </div>
 
-    <table border="1" cellpadding="8" cellspacing="0" width="100%" style="margin-bottom:16px;border-collapse:collapse;">
-        <thead>
-        <tr>
-            <th align="left">Title</th>
-            <th align="left">SKU</th>
-            <th align="right">Price</th>
-            <th align="right">Qty</th>
-            <th align="right">Subtotal</th>
-            <th align="center">Action</th>
-        </tr>
-        </thead>
-        <tbody>
-        <?php foreach ($items as $item): ?>
-            <tr>
-                <td><?= Html::encode((string)($item['title'] ?? '')) ?></td>
-                <td><?= Html::encode((string)($item['sku'] ?? '')) ?></td>
-                <td align="right">
-                    <?= Html::encode((string)($item['price'] ?? '0')) ?>
-                    <?= Html::encode((string)($item['currency'] ?? ($cart['currency'] ?? '')) ) ?>
-                </td>
-                <td align="right"><?= Html::encode((string)($item['quantity'] ?? '0')) ?></td>
-                <td align="right">
-                    <?= Html::encode((string)($item['subtotal'] ?? '0')) ?>
-                    <?= Html::encode((string)($item['currency'] ?? ($cart['currency'] ?? '')) ) ?>
-                </td>
-                <td align="center">
-                    <form method="post" action="<?= Url::to(['checkout/remove-item', 'hash' => $hash]) ?>" style="display:inline-block;">
-                        <input type="hidden" name="<?= Html::encode(Yii::$app->request->csrfParam) ?>" value="<?= Html::encode(Yii::$app->request->getCsrfToken()) ?>">
-                        <input type="hidden" name="itemId" value="<?= (int)($item['id'] ?? 0) ?>">
-                        <button type="submit" onclick="return confirm('Remove this item?');">Remove</button>
-                    </form>
-                </td>
-            </tr>
-        <?php endforeach; ?>
-        </tbody>
-    </table>
+            <form class="customer-box__order-form order-form"
+                  method="post"
+                  action="<?= Html::encode(Url::to(['checkout/submit', 'hash' => $hash])) ?>">
 
-    <p>
-        <strong>Total:</strong>
-        <?= Html::encode((string)($cart['totalAmount'] ?? '0')) ?>
-        <?= Html::encode((string)($cart['currency'] ?? '')) ?>
-    </p>
-<?php endif; ?>
+                <input type="hidden"
+                       name="<?= Html::encode($csrfParam) ?>"
+                       value="<?= Html::encode($csrfToken) ?>">
 
-    <hr>
+                <div class="order-form__title">
+                    <h2 class="title__txt-h3">
+                        <?= Html::encode($t('Recipient details')) ?>
+                    </h2>
+                </div>
 
-<?php if ($hasItems): ?>
-    <form method="post" action="<?= Url::to(['checkout/submit', 'hash' => $hash]) ?>">
-        <input type="hidden" name="<?= Html::encode(Yii::$app->request->csrfParam) ?>" value="<?= Html::encode(Yii::$app->request->getCsrfToken()) ?>">
+                <label class="order-form__label checkout-field" for="checkout-first-name">
+                    <span><?= Html::encode($t('First name')) ?></span>
+                    <input id="checkout-first-name"
+                           type="text"
+                           name="first_name"
+                           autocomplete="given-name"
+                           required>
+                </label>
 
-        <div style="margin-bottom:12px;">
-            <label>Email</label><br>
-            <input type="email" name="email" required style="width:100%;max-width:420px;">
+                <label class="order-form__label checkout-field" for="checkout-last-name">
+                    <span><?= Html::encode($t('Last name')) ?></span>
+                    <input id="checkout-last-name"
+                           type="text"
+                           name="last_name"
+                           autocomplete="family-name"
+                           required>
+                </label>
+
+                <label class="order-form__label checkout-field" for="checkout-phone">
+                    <span><?= Html::encode($t('Phone number')) ?></span>
+                    <input id="checkout-phone"
+                           type="tel"
+                           name="phone"
+                           autocomplete="tel"
+                           required>
+                </label>
+
+                <label class="order-form__label checkout-field" for="checkout-email">
+                    <span><?= Html::encode($t('Email')) ?></span>
+                    <input id="checkout-email"
+                           type="email"
+                           name="email"
+                           autocomplete="email"
+                           required>
+                </label>
+
+                <div class="order-form__title checkout-section-title">
+                    <h2 class="title__txt-h3">
+                        <?= Html::encode($t('Delivery')) ?>
+                    </h2>
+                </div>
+
+                <label class="order-form__label checkout-field" for="region">
+                    <span><?= Html::encode($t('Select region')) ?></span>
+                    <input id="region"
+                           type="text"
+                           name="region"
+                           autocomplete="address-level1">
+                </label>
+
+                <label class="order-form__label checkout-field" for="city">
+                    <span><?= Html::encode($t('Select city')) ?></span>
+                    <input id="city"
+                           type="text"
+                           name="city"
+                           autocomplete="address-level2">
+                </label>
+
+                <label class="order-form__label checkout-field" for="branch">
+                    <span><?= Html::encode($t('Select branch')) ?></span>
+                    <input id="branch"
+                           type="text"
+                           name="branch"
+                           autocomplete="street-address">
+                </label>
+
+                <div class="order-form__title checkout-section-title">
+                    <h2 class="title__txt-h3">
+                        <?= Html::encode($t('Payment')) ?>
+                    </h2>
+                </div>
+
+                <input type="hidden" name="payment_method" value="wayforpay">
+
+                <button class="order-form__btn" type="submit">
+                    <?= Html::encode($t('Place order')) ?>
+                </button>
+            </form>
         </div>
 
-        <div style="margin-bottom:12px;">
-            <label>Phone</label><br>
-            <input type="text" name="phone" required style="width:100%;max-width:420px;">
-        </div>
+        <aside class="page-container__cart-box checkout-page__cart">
+            <div class="cart-box__title checkout-cart-title">
+                <h2 class="title__txt-h2">
+                    <?= Html::encode($t('In cart')) ?>
+                </h2>
 
-        <div style="margin-bottom:12px;">
-            <label>First name</label><br>
-            <input type="text" name="first_name" required style="width:100%;max-width:420px;">
-        </div>
+                <form method="post"
+                      action="<?= Html::encode(Url::to(['checkout/clear', 'hash' => $hash])) ?>"
+                      class="checkout-clear-form">
+                    <input type="hidden"
+                           name="<?= Html::encode($csrfParam) ?>"
+                           value="<?= Html::encode($csrfToken) ?>">
 
-        <div style="margin-bottom:12px;">
-            <label>Last name</label><br>
-            <input type="text" name="last_name" required style="width:100%;max-width:420px;">
-        </div>
+                    <button type="submit"
+                            class="checkout-clear-btn"
+                            onclick="return confirm('<?= Html::encode($t('Are you sure you want to clear the cart?')) ?>');">
+                        <?= Html::encode($t('Clear cart')) ?>
+                    </button>
+                </form>
+            </div>
 
-        <div style="margin-bottom:12px;">
-            <label>Region</label><br>
-            <input type="text" name="region" style="width:100%;max-width:420px;">
-        </div>
+            <div class="cart-box__products checkout-products">
+                <?php foreach ($items as $item): ?>
+                    <?php
+                    $itemId = (int)($item['id'] ?? 0);
+                    $itemTitle = (string)($item['title'] ?? '');
+                    $itemSku = (string)($item['sku'] ?? '');
+                    $itemQty = (int)($item['quantity'] ?? 0);
+                    $itemPrice = $item['price'] ?? 0;
+                    $itemSubtotal = $item['subtotal'] ?? 0;
+                    $itemCurrency = (string)($item['currency'] ?? $currency);
+                    ?>
 
-        <div style="margin-bottom:12px;">
-            <label>City</label><br>
-            <input type="text" name="city" style="width:100%;max-width:420px;">
-        </div>
+                    <article class="products__product-item checkout-product">
+                        <div class="product-item__thumb checkout-product__thumb" aria-hidden="true">
+                            <span class="checkout-product__thumb-text">
+                                <?= Html::encode(mb_substr($itemTitle, 0, 1, 'UTF-8') ?: 'P') ?>
+                            </span>
+                        </div>
 
-        <div style="margin-bottom:12px;">
-            <label>Branch</label><br>
-            <input type="text" name="branch" style="width:100%;max-width:420px;">
-        </div>
+                        <div class="product-item__info-box checkout-product__info">
+                            <div class="info-box__product-name checkout-product__name">
+                                <?= Html::encode($itemTitle) ?>
+                            </div>
 
-        <div style="margin-bottom:12px;">
-            <label>Payment method</label><br>
-            <select name="payment_method" style="width:100%;max-width:420px;">
-                <option value="wayforpay">WayForPay</option>
-            </select>
-        </div>
+                            <?php if ($itemSku !== ''): ?>
+                                <div class="info-box__properties checkout-product__props">
+                                    <div class="properties__prop-row">
+                                        <span class="prop-row__key"><?= Html::encode($t('SKU')) ?>:</span>
+                                        <span class="prop-row__val"><?= Html::encode($itemSku) ?></span>
+                                    </div>
+                                </div>
+                            <?php endif; ?>
 
-        <button type="submit">Proceed to payment</button>
-    </form>
-<?php else: ?>
-    <p>Checkout form is unavailable because the cart is empty.</p>
+                            <div class="checkout-product__meta">
+                                <span><?= Html::encode($formatMoney($itemPrice, $itemCurrency)) ?></span>
+                                <span>× <?= Html::encode((string)$itemQty) ?></span>
+                            </div>
+                        </div>
+
+                        <div class="checkout-product__side">
+                            <form method="post"
+                                  action="<?= Html::encode(Url::to(['checkout/remove-item', 'hash' => $hash])) ?>"
+                                  class="checkout-remove-form">
+                                <input type="hidden"
+                                       name="<?= Html::encode($csrfParam) ?>"
+                                       value="<?= Html::encode($csrfToken) ?>">
+
+                                <input type="hidden" name="itemId" value="<?= $itemId ?>">
+
+                                <button type="submit"
+                                        class="product-item__remove-icon checkout-remove-btn"
+                                        aria-label="<?= Html::encode($t('Remove item')) ?>"
+                                        onclick="return confirm('<?= Html::encode($t('Are you sure you want to remove this item?')) ?>');">
+                                    ×
+                                </button>
+                            </form>
+
+                            <div class="checkout-product__subtotal">
+                                <?= Html::encode($formatMoney($itemSubtotal, $itemCurrency)) ?>
+                            </div>
+                        </div>
+                    </article>
+                <?php endforeach; ?>
+            </div>
+
+            <div class="cart-box__price-row checkout-total">
+                <span class="price-row__label"><?= Html::encode($t('Total')) ?></span>
+                <span class="checkout-total__value">
+                    <?= Html::encode($formatMoney($totalAmount, $currency)) ?>
+                </span>
+            </div>
+        </aside>
+    </section>
 <?php endif; ?>
