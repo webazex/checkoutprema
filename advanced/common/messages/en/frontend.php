@@ -113,4 +113,5 @@ return [
     'Cancel' => 'Cancel',
     'Confirm' => 'Confirm',
     'Close' => 'Close',
+    'Available:' => 'Available:',
 ];

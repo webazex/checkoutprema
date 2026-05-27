@@ -94,7 +94,6 @@
             this.$modal.prop('hidden', true);
             $('html').removeClass('checkout-confirm-open');
 
-            // Native submit: не триггерим jQuery submit handlers.
             form.submit();
         }
     };
@@ -119,18 +118,19 @@
 
         submit: function ($form) {
             var self = this;
-            var $button = $form.find('.checkout-qty__btn');
+            var $row = $form.closest('.checkout-product');
 
-            if ($form.data('checkoutPending')) {
+            if (!$row.length) {
+                $form.get(0).submit();
                 return;
             }
 
-            if ($button.prop('disabled')) {
+            if ($row.data('checkoutPending')) {
                 return;
             }
 
-            $form.data('checkoutPending', true);
-            $button.prop('disabled', true).addClass('is-loading');
+            $row.data('checkoutPending', true);
+            $row.addClass('is-pending');
 
             $.ajax({
                 url: $form.attr('action'),
@@ -148,7 +148,6 @@
                             true
                         );
 
-                        $button.prop('disabled', false);
                         return;
                     }
 
@@ -163,11 +162,10 @@
                     }
 
                     self.showMessage(message, true);
-                    $button.prop('disabled', false);
                 })
                 .always(function () {
-                    $form.removeData('checkoutPending');
-                    $button.removeClass('is-loading');
+                    $row.removeData('checkoutPending');
+                    $row.removeClass('is-pending');
                 });
         },
 
@@ -196,10 +194,13 @@
             var availableQuantity = parseInt(item.availableQuantity || 0, 10);
             var currency = item.currency || fallbackCurrency || 'UAH';
 
-            var canDecrease = quantity > 1;
+            if (availableQuantity > 0) {
+                $row.attr('data-available-quantity', availableQuantity);
+            } else {
+                availableQuantity = parseInt($row.attr('data-available-quantity') || 0, 10);
+            }
 
-            // Важно: если availableQuantity не пришёл или равен 0,
-            // НЕ разрешаем бесконечно увеличивать количество.
+            var canDecrease = quantity > 1;
             var canIncrease = availableQuantity > 0 && quantity < availableQuantity;
 
             $row.find('.checkout-qty__value').text(quantity);

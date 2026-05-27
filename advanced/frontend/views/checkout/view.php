@@ -5,24 +5,27 @@
  * @var string $hash
  */
 
+use frontend\assets\CheckoutAsset;
 use yii\helpers\Html;
 use yii\helpers\Url;
-use frontend\assets\CheckoutAsset;
 
 $t = static fn(string $message, array $params = []): string => Yii::t('frontend', $message, $params);
 
 $this->title = $t('Checkout');
+
 CheckoutAsset::register($this);
+
 $hasItems = !empty($cart['items']);
 $items = $cart['items'] ?? [];
 $currency = (string)($cart['currency'] ?? 'UAH');
-$totalAmount = (string)($cart['totalAmount'] ?? '0');
+$totalAmount = $cart['totalAmount'] ?? 0;
 
 $csrfParam = Yii::$app->request->csrfParam;
 $csrfToken = Yii::$app->request->getCsrfToken();
 
 $formatMoney = static function (mixed $amount, ?string $itemCurrency = null) use ($currency, $t): string {
     $value = is_numeric($amount) ? (float)$amount : 0.0;
+
     $formatted = fmod($value, 1.0) === 0.0
             ? number_format($value, 0, '.', ' ')
             : number_format($value, 2, '.', ' ');
@@ -186,7 +189,7 @@ $formatMoney = static function (mixed $amount, ?string $itemCurrency = null) use
                     $itemId = (int)($item['id'] ?? 0);
                     $itemTitle = (string)($item['title'] ?? '');
                     $itemSku = (string)($item['sku'] ?? '');
-                    $itemQty = (int)($item['quantity'] ?? 0);
+                    $itemQty = max((int)($item['quantity'] ?? 0), 1);
                     $itemAvailableQty = (int)($item['availableQuantity'] ?? 0);
                     $itemMaxQty = max($itemAvailableQty, 0);
                     $canDecrease = $itemQty > 1;
@@ -194,13 +197,22 @@ $formatMoney = static function (mixed $amount, ?string $itemCurrency = null) use
                     $itemPrice = $item['price'] ?? 0;
                     $itemSubtotal = $item['subtotal'] ?? 0;
                     $itemCurrency = (string)($item['currency'] ?? $currency);
+                    $itemImage = $item['image'] ?? $item['thumbnail'] ?? $item['thumbnailUrl'] ?? null;
                     ?>
 
-                    <article class="products__product-item checkout-product" data-cart-item-id="<?= $itemId ?>">
+                    <article class="products__product-item checkout-product"
+                             data-cart-item-id="<?= $itemId ?>"
+                             data-available-quantity="<?= $itemMaxQty ?>">
                         <div class="product-item__thumb checkout-product__thumb" aria-hidden="true">
-                            <span class="checkout-product__thumb-text">
-                                <?= Html::encode(mb_substr($itemTitle, 0, 1, 'UTF-8') ?: 'P') ?>
-                            </span>
+                            <?php if (is_string($itemImage) && trim($itemImage) !== ''): ?>
+                                <img src="<?= Html::encode($itemImage) ?>"
+                                     alt=""
+                                     loading="lazy">
+                            <?php else: ?>
+                                <span class="checkout-product__thumb-text">
+                                    <?= Html::encode(mb_substr($itemTitle, 0, 1, 'UTF-8') ?: 'P') ?>
+                                </span>
+                            <?php endif; ?>
                         </div>
 
                         <div class="product-item__info-box checkout-product__info">
@@ -219,10 +231,11 @@ $formatMoney = static function (mixed $amount, ?string $itemCurrency = null) use
 
                             <div class="checkout-product__meta">
                                 <span><?= Html::encode($formatMoney($itemPrice, $itemCurrency)) ?></span>
+
                                 <div class="checkout-qty" aria-label="<?= Html::encode($t('Quantity')) ?>">
                                     <form method="post"
                                           action="<?= Html::encode(Url::to(['checkout/update-item', 'hash' => $hash])) ?>"
-                                          class="checkout-qty__form">
+                                          class="checkout-qty__form checkout-qty__form--minus">
                                         <input type="hidden"
                                                name="<?= Html::encode($csrfParam) ?>"
                                                value="<?= Html::encode($csrfToken) ?>">
@@ -237,12 +250,12 @@ $formatMoney = static function (mixed $amount, ?string $itemCurrency = null) use
                                     </form>
 
                                     <span class="checkout-qty__value">
-        <?= Html::encode((string)$itemQty) ?>
-    </span>
+                                        <?= Html::encode((string)$itemQty) ?>
+                                    </span>
 
                                     <form method="post"
                                           action="<?= Html::encode(Url::to(['checkout/update-item', 'hash' => $hash])) ?>"
-                                          class="checkout-qty__form">
+                                          class="checkout-qty__form checkout-qty__form--plus">
                                         <input type="hidden"
                                                name="<?= Html::encode($csrfParam) ?>"
                                                value="<?= Html::encode($csrfToken) ?>">
@@ -258,11 +271,12 @@ $formatMoney = static function (mixed $amount, ?string $itemCurrency = null) use
                                     </form>
                                 </div>
 
-                                <?php if ($itemMaxQty > 0): ?>
-                                    <div class="checkout-stock-note">
-                                        <?= Html::encode($t('Available: {count}', ['count' => $itemMaxQty])) ?>
-                                    </div>
-                                <?php endif; ?>
+                                <div class="checkout-stock-note" <?= $itemMaxQty > 0 ? '' : 'hidden' ?>>
+                                    <?= Html::encode($t('Available:')) ?>
+                                    <span class="checkout-stock-note__count">
+                                        <?= Html::encode((string)$itemMaxQty) ?>
+                                    </span>
+                                </div>
                             </div>
                         </div>
 
@@ -304,6 +318,7 @@ $formatMoney = static function (mixed $amount, ?string $itemCurrency = null) use
             </div>
         </aside>
     </section>
+
     <div class="checkout-confirm-modal" id="checkoutConfirmModal" hidden>
         <div class="checkout-confirm-modal__backdrop" data-confirm-close></div>
 
