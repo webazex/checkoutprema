@@ -91,4 +91,10 @@ return [
     'Payment return' => 'Payment return',
     'Back to store' => 'Back to store',
     'Back to account' => 'Back to account',
+    'Cart was cleared.' => 'Cart was cleared.',
+    'Failed to clear cart.' => 'Failed to clear cart.',
+    'Item was removed from cart.' => 'Item was removed from cart.',
+    'Failed to remove item from cart.' => 'Failed to remove item from cart.',
+    'Invalid cart item id.' => 'Invalid cart item id.',
+    'Unsupported payment next action.' => 'Unsupported payment next action.',
 ];

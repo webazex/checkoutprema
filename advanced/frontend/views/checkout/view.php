@@ -140,14 +140,6 @@ $formatMoney = static function (mixed $amount, ?string $itemCurrency = null) use
                            autocomplete="address-level2">
                 </label>
 
-                <label class="order-form__label checkout-field" for="branch">
-                    <span><?= Html::encode($t('Select branch')) ?></span>
-                    <input id="branch"
-                           type="text"
-                           name="branch"
-                           autocomplete="street-address">
-                </label>
-
                 <div class="order-form__title checkout-section-title">
                     <h2 class="title__txt-h3">
                         <?= Html::encode($t('Payment')) ?>

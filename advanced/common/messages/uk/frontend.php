@@ -90,4 +90,10 @@ return [
     'Payment return' => 'Повернення з оплати',
     'Back to store' => 'До магазину',
     'Back to account' => 'В особистий кабінет',
+    'Cart was cleared.' => 'Кошик очищено.',
+    'Failed to clear cart.' => 'Не вдалося очистити кошик.',
+    'Item was removed from cart.' => 'Товар видалено з кошика.',
+    'Failed to remove item from cart.' => 'Не вдалося видалити товар з кошика.',
+    'Invalid cart item id.' => 'Некоректний ID товару в кошику.',
+    'Unsupported payment next action.' => 'Непідтримувана дія оплати.',
 ];

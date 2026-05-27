@@ -59,11 +59,11 @@ final class CheckoutController extends Controller
             $service = Yii::$container->get(CheckoutCartManageService::class);
             $service->clearByHash($hash);
 
-            Yii::$app->session->setFlash('success', 'Cart was cleared.');
+            Yii::$app->session->setFlash('success', Yii::t('frontend', 'Cart was cleared.'));
         } catch (DomainException $e) {
             Yii::$app->session->setFlash('error', $e->getMessage());
         } catch (\Throwable $e) {
-            Yii::$app->session->setFlash('error', 'Failed to clear cart.');
+            Yii::$app->session->setFlash('error', Yii::t('frontend', 'Failed to clear cart.'));
         }
 
         return $this->redirect(['checkout/view', 'hash' => $hash]);
@@ -75,18 +75,18 @@ final class CheckoutController extends Controller
 
         try {
             if ($itemId <= 0) {
-                throw new DomainException('Invalid cart item id.');
+                throw new DomainException(Yii::t('frontend', 'Invalid cart item id.'));
             }
 
             /** @var CheckoutCartManageService $service */
             $service = Yii::$container->get(CheckoutCartManageService::class);
             $service->removeItemByHashAndItemId($hash, $itemId);
 
-            Yii::$app->session->setFlash('success', 'Item was removed from cart.');
+            Yii::$app->session->setFlash('success', Yii::t('frontend', 'Item was removed from cart.'));
         } catch (DomainException $e) {
             Yii::$app->session->setFlash('error', $e->getMessage());
         } catch (\Throwable $e) {
-            Yii::$app->session->setFlash('error', 'Failed to remove item from cart.');
+            Yii::$app->session->setFlash('error', Yii::t('frontend', 'Failed to remove item from cart.'));
         }
 
         return $this->redirect(['checkout/view', 'hash' => $hash]);
@@ -112,7 +112,7 @@ final class CheckoutController extends Controller
 
             $nextAction = $result['payment']['nextAction'] ?? null;
             if (!$nextAction || ($nextAction['type'] ?? null) !== 'redirect_post') {
-                throw new ServerErrorHttpException('Unsupported payment next action.');
+                throw new ServerErrorHttpException(Yii::t('frontend', 'Unsupported payment next action.'));
             }
 
             return $this->render('payment_redirect', [
