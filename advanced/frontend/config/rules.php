@@ -26,6 +26,7 @@ return [
     'checkout/payment-return' => 'checkout/payment-return',
     'POST checkout/<hash:[a-zA-Z0-9_-]{16,128}>/clear' => 'checkout/clear',
     'POST checkout/<hash:[a-zA-Z0-9_-]{16,128}>/remove-item' => 'checkout/remove-item',
+    'POST checkout/<hash:[A-Za-z0-9_-]+>/update-item' => 'checkout/update-item',
 
     // Static/public pages zone.
     // Важно: это правило стоит после catalog/cart/checkout/customer,
