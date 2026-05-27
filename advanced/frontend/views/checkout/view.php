@@ -187,16 +187,16 @@ $formatMoney = static function (mixed $amount, ?string $itemCurrency = null) use
                     $itemTitle = (string)($item['title'] ?? '');
                     $itemSku = (string)($item['sku'] ?? '');
                     $itemQty = (int)($item['quantity'] ?? 0);
-                    $itemAvailableQty = (int)($item['availableQuantity'] ?? $item['available_quantity'] ?? 0);
-                    $itemMaxQty = $itemAvailableQty > 0 ? $itemAvailableQty : $itemQty;
+                    $itemAvailableQty = (int)($item['availableQuantity'] ?? 0);
+                    $itemMaxQty = max($itemAvailableQty, 0);
                     $canDecrease = $itemQty > 1;
-                    $canIncrease = $itemMaxQty <= 0 || $itemQty < $itemMaxQty;
+                    $canIncrease = $itemMaxQty > 0 && $itemQty < $itemMaxQty;
                     $itemPrice = $item['price'] ?? 0;
                     $itemSubtotal = $item['subtotal'] ?? 0;
                     $itemCurrency = (string)($item['currency'] ?? $currency);
                     ?>
 
-                    <article class="products__product-item checkout-product">
+                    <article class="products__product-item checkout-product" data-cart-item-id="<?= $itemId ?>">
                         <div class="product-item__thumb checkout-product__thumb" aria-hidden="true">
                             <span class="checkout-product__thumb-text">
                                 <?= Html::encode(mb_substr($itemTitle, 0, 1, 'UTF-8') ?: 'P') ?>

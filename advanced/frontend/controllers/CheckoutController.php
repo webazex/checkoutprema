@@ -95,8 +95,10 @@ final class CheckoutController extends Controller
 
     public function actionUpdateItem(string $hash): Response
     {
-        $itemId = (int)Yii::$app->request->post('itemId', 0);
-        $quantity = (int)Yii::$app->request->post('quantity', 0);
+        $request = Yii::$app->request;
+        $itemId = (int)$request->post('itemId', 0);
+        $quantity = (int)$request->post('quantity', 0);
+        $isAjax = $request->isAjax;
 
         try {
             if ($itemId <= 0) {
@@ -107,18 +109,52 @@ final class CheckoutController extends Controller
                 throw new DomainException(Yii::t('frontend', 'Invalid quantity.'));
             }
 
-            /** @var CheckoutCartManageService $service */
-            $service = Yii::$container->get(CheckoutCartManageService::class);
-            $service->updateItemQuantityByHashAndItemId($hash, $itemId, $quantity);
+            /** @var CheckoutCartManageService $manageService */
+            $manageService = Yii::$container->get(CheckoutCartManageService::class);
+            $manageService->updateItemQuantityByHashAndItemId($hash, $itemId, $quantity);
+
+            /** @var CheckoutCartViewService $viewService */
+            $viewService = Yii::$container->get(CheckoutCartViewService::class);
+            $cart = $viewService->getActiveCartByHash($hash)->toArray();
+
+            if ($isAjax) {
+                return $this->asJson([
+                    'success' => true,
+                    'message' => Yii::t('frontend', 'Cart was updated.'),
+                    'cart' => $cart,
+                ]);
+            }
 
             Yii::$app->session->setFlash('success', Yii::t('frontend', 'Cart was updated.'));
-        } catch (DomainException $e) {
-            Yii::$app->session->setFlash('error', $e->getMessage());
-        } catch (\Throwable $e) {
-            Yii::$app->session->setFlash('error', Yii::t('frontend', 'Failed to update cart.'));
-        }
 
-        return $this->redirect(['checkout/view', 'hash' => $hash]);
+            return $this->redirect(['checkout/view', 'hash' => $hash]);
+        } catch (DomainException $e) {
+            if ($isAjax) {
+                Yii::$app->response->statusCode = 422;
+
+                return $this->asJson([
+                    'success' => false,
+                    'message' => $e->getMessage(),
+                ]);
+            }
+
+            Yii::$app->session->setFlash('error', $e->getMessage());
+
+            return $this->redirect(['checkout/view', 'hash' => $hash]);
+        } catch (\Throwable $e) {
+            if ($isAjax) {
+                Yii::$app->response->statusCode = 500;
+
+                return $this->asJson([
+                    'success' => false,
+                    'message' => Yii::t('frontend', 'Failed to update cart.'),
+                ]);
+            }
+
+            Yii::$app->session->setFlash('error', Yii::t('frontend', 'Failed to update cart.'));
+
+            return $this->redirect(['checkout/view', 'hash' => $hash]);
+        }
     }
 
     public function actionSubmit(string $hash): Response|string
