@@ -114,4 +114,6 @@ return [
     'Confirm' => 'Confirm',
     'Close' => 'Close',
     'Available:' => 'Available:',
+    'Cart quantities were updated according to current stock. Please review your order.' =>
+        'Cart quantities were updated according to current stock. Please review your order.',
 ];

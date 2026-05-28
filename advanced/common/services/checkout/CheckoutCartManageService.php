@@ -47,6 +47,101 @@ final class CheckoutCartManageService
         });
     }
 
+    public function normalizeStockByHash(string $cartHash): array
+    {
+        $cart = $this->findActiveCartByHash($cartHash);
+
+        return Yii::$app->db->transaction(function () use ($cart): array {
+            $changes = [];
+
+            /** @var CartItemModel $item */
+            foreach ($cart->items as $item) {
+                if (!$item instanceof CartItemModel) {
+                    continue;
+                }
+
+                $product = $item->product;
+
+                if (!$product instanceof ProductModel || $product->getIsArchived()) {
+                    $changes[] = [
+                        'itemId' => (int)$item->id,
+                        'productId' => $item->product_id ? (int)$item->product_id : null,
+                        'title' => (string)$item->title,
+                        'oldQuantity' => (int)$item->quantity,
+                        'newQuantity' => 0,
+                        'availableQuantity' => 0,
+                        'action' => 'removed',
+                        'reason' => 'product_unavailable',
+                    ];
+
+                    if ($item->delete() === false) {
+                        throw new DomainException('Failed to delete unavailable cart item.');
+                    }
+
+                    continue;
+                }
+
+                $availableQuantity = max((int)$product->quantity, 0);
+                $oldQuantity = (int)$item->quantity;
+
+                if ($availableQuantity <= 0) {
+                    $changes[] = [
+                        'itemId' => (int)$item->id,
+                        'productId' => $item->product_id ? (int)$item->product_id : null,
+                        'title' => (string)$item->title,
+                        'oldQuantity' => $oldQuantity,
+                        'newQuantity' => 0,
+                        'availableQuantity' => 0,
+                        'action' => 'removed',
+                        'reason' => 'out_of_stock',
+                    ];
+
+                    if ($item->delete() === false) {
+                        throw new DomainException('Failed to delete out-of-stock cart item.');
+                    }
+
+                    continue;
+                }
+
+                $newQuantity = $oldQuantity;
+
+                if ($newQuantity < 1) {
+                    $newQuantity = 1;
+                }
+
+                if ($newQuantity > $availableQuantity) {
+                    $newQuantity = $availableQuantity;
+                }
+
+                if ($newQuantity !== $oldQuantity) {
+                    $item->quantity = $newQuantity;
+                    $item->subtotal = round((float)$item->price * $newQuantity, 2);
+
+                    if (!$item->save()) {
+                        throw new DomainException('Failed to update cart item quantity.');
+                    }
+
+                    $changes[] = [
+                        'itemId' => (int)$item->id,
+                        'productId' => $item->product_id ? (int)$item->product_id : null,
+                        'title' => (string)$item->title,
+                        'oldQuantity' => $oldQuantity,
+                        'newQuantity' => $newQuantity,
+                        'availableQuantity' => $availableQuantity,
+                        'action' => 'quantity_changed',
+                        'reason' => 'stock_limit',
+                    ];
+                }
+            }
+
+            if ($changes !== []) {
+                $this->refreshCartTotals($cart);
+            }
+
+            return $changes;
+        });
+    }
+
     private function findActiveCartByHash(string $cartHash): CartModel
     {
         $cart = CartModel::find()
@@ -54,7 +149,7 @@ final class CheckoutCartManageService
                 'hash' => $cartHash,
                 'status' => CartModel::STATUS_ACTIVE,
             ])
-            ->with('items')
+            ->with('items.product')
             ->one();
 
         if (!$cart instanceof CartModel) {

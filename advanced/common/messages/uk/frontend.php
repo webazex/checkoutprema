@@ -113,4 +113,6 @@ return [
     'Confirm' => 'Підтвердити',
     'Close' => 'Закрити',
     'Available:' => 'Доступно:',
+    'Cart quantities were updated according to current stock. Please review your order.' =>
+        'Кількість товарів у кошику оновлено відповідно до актуальних залишків. Перевірте замовлення.',
 ];

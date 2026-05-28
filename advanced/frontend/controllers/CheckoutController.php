@@ -159,13 +159,29 @@ final class CheckoutController extends Controller
 
     public function actionSubmit(string $hash): Response|string
     {
-        $payload = Yii::$app->request->post();
-        $payload['cartHash'] = $hash;
-
-        $callbackUrl = Yii::$app->request->hostInfo . '/api/v1/callbacks/payments/' . PaymentModel::PROVIDER_WAYFORPAY;
-        $defaultReturnUrl = Yii::$app->request->hostInfo . '/checkout/payment-return';
-
         try {
+            /** @var CheckoutCartManageService $cartManageService */
+            $cartManageService = Yii::$container->get(CheckoutCartManageService::class);
+            $stockChanges = $cartManageService->normalizeStockByHash($hash);
+
+            if ($stockChanges !== []) {
+                Yii::$app->session->setFlash(
+                    'error',
+                    Yii::t(
+                        'frontend',
+                        'Cart quantities were updated according to current stock. Please review your order.'
+                    )
+                );
+
+                return $this->redirect(['checkout/view', 'hash' => $hash]);
+            }
+
+            $payload = Yii::$app->request->post();
+            $payload['cartHash'] = $hash;
+
+            $callbackUrl = Yii::$app->request->hostInfo . '/api/v1/callbacks/payments/' . PaymentModel::PROVIDER_WAYFORPAY;
+            $defaultReturnUrl = Yii::$app->request->hostInfo . '/checkout/payment-return';
+
             /** @var CheckoutSubmitService $service */
             $service = Yii::$container->get(CheckoutSubmitService::class);
 
@@ -176,6 +192,7 @@ final class CheckoutController extends Controller
             );
 
             $nextAction = $result['payment']['nextAction'] ?? null;
+
             if (!$nextAction || ($nextAction['type'] ?? null) !== 'redirect_post') {
                 throw new ServerErrorHttpException(Yii::t('frontend', 'Unsupported payment next action.'));
             }
