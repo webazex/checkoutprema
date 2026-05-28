@@ -115,4 +115,11 @@ return [
     'Available:' => 'Доступно:',
     'Cart quantities were updated according to current stock. Please review your order.' =>
         'Кількість товарів у кошику оновлено відповідно до актуальних залишків. Перевірте замовлення.',
+    'Payment is being processed' => 'Оплата обробляється',
+    'Thank you. Your payment has been accepted for processing.' =>
+        'Дякуємо. Вашу оплату прийнято в обробку.',
+    'Payment confirmation may take a few minutes. After confirmation, your order will be transferred to the manager.' =>
+        'Підтвердження платежу може зайняти кілька хвилин. Після підтвердження замовлення буде передано менеджеру.',
+    'If you do not receive confirmation or the manager does not contact you, please contact us.' =>
+        'Якщо ви не отримаєте підтвердження або менеджер не звʼяжеться з вами, будь ласка, напишіть нам.',
 ];

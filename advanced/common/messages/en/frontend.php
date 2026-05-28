@@ -116,4 +116,11 @@ return [
     'Available:' => 'Available:',
     'Cart quantities were updated according to current stock. Please review your order.' =>
         'Cart quantities were updated according to current stock. Please review your order.',
+    'Payment is being processed' => 'Payment is being processed',
+    'Thank you. Your payment has been accepted for processing.' =>
+        'Thank you. Your payment has been accepted for processing.',
+    'Payment confirmation may take a few minutes. After confirmation, your order will be transferred to the manager.' =>
+        'Payment confirmation may take a few minutes. After confirmation, your order will be transferred to the manager.',
+    'If you do not receive confirmation or the manager does not contact you, please contact us.' =>
+        'If you do not receive confirmation or the manager does not contact you, please contact us.',
 ];

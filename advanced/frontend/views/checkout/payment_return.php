@@ -1,26 +1,43 @@
 <?php
 
 use yii\helpers\Html;
+use yii\helpers\Url;
 
-/** @var yii\web\View $this */
-/** @var array $query */
-/** @var array $post */
-/** @var string $method */
+/**
+ * @var array $query
+ * @var array $post
+ * @var string $method
+ */
 
-$this->title = 'Payment return';
-$dirtyOrderId = (!empty($query['orderReference'])) ? $query['orderReference'] : '';
-$amount = (!empty($query['amount'])) ? $query['amount'] : '';
-$email = (!empty($query['email'])) ? $query['email'] : '';
-$phone = (!empty($query['phone'])) ? $query['phone'] : '';
-$transactionStatus = (!empty($query['transactionStatus'])) ? $query['transactionStatus'] : '';
-$msgToClient = ($transactionStatus == 'Declined') ? '' : 'failure';
+$t = static fn(string $message, array $params = []): string => Yii::t('frontend', $message, $params);
+
+$this->title = $t('Payment return');
+
 ?>
-<div class="payment-return">
-    <h1><?= Yii::t('frontend', 'status_message'); ?></h1>
-    <a href="https://www.premabrand.com.ua/" class="payment-return__link link-to-front">
-        <span><?= Yii::t('frontend', 'link_to_front'); ?></span>
-    </a>
-    <a href="https://checkoutprema.biz.ua/customer/" class="payment-return__link link-to-pa">
-        <span><?= Yii::t('frontend', 'link_to_pa'); ?></span>
-    </a>
-</div>
+
+<section class="page-container payment-return-page">
+    <div class="payment-return-card">
+        <h1 class="title__txt-h2 payment-return-card__title">
+            <?= Html::encode($t('Payment is being processed')) ?>
+        </h1>
+
+        <p class="payment-return-card__text">
+            <?= Html::encode($t('Thank you. Your payment has been accepted for processing.')) ?>
+        </p>
+
+        <p class="payment-return-card__text">
+            <?= Html::encode($t('Payment confirmation may take a few minutes. After confirmation, your order will be transferred to the manager.')) ?>
+        </p>
+
+        <p class="payment-return-card__note">
+            <?= Html::encode($t('If you do not receive confirmation or the manager does not contact you, please contact us.')) ?>
+        </p>
+
+        <div class="payment-return-card__actions">
+            <a class="order-form__btn payment-return-card__btn"
+               href="<?= Html::encode(Url::to(['/catalog'])) ?>">
+                <?= Html::encode($t('Back to store')) ?>
+            </a>
+        </div>
+    </div>
+</section>
