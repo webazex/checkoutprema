@@ -4,34 +4,52 @@ use yii\helpers\Html;
 use yii\helpers\Url;
 
 /**
- * @var array $query
- * @var array $post
- * @var string $method
+ * @var array $context
  */
 
 $t = static fn(string $message, array $params = []): string => Yii::t('frontend', $message, $params);
 
-$this->title = $t('Payment return');
+$type = (string)($context['type'] ?? 'generic');
+$title = (string)($context['title'] ?? $t('Payment return'));
+$message = (string)($context['message'] ?? '');
+$note = $context['note'] ?? null;
+$orderId = $context['orderId'] ?? null;
+$paymentStatus = $context['paymentStatus'] ?? null;
+
+$this->title = $title;
 
 ?>
 
-<section class="page-container payment-return-page">
+<section class="page-container payment-return-page payment-return-page--<?= Html::encode($type) ?>">
     <div class="payment-return-card">
         <h1 class="title__txt-h2 payment-return-card__title">
-            <?= Html::encode($t('Payment is being processed')) ?>
+            <?= Html::encode($title) ?>
         </h1>
 
-        <p class="payment-return-card__text">
-            <?= Html::encode($t('Thank you. Your payment has been accepted for processing.')) ?>
-        </p>
+        <?php if ($message !== ''): ?>
+            <p class="payment-return-card__text">
+                <?= Html::encode($message) ?>
+            </p>
+        <?php endif; ?>
 
-        <p class="payment-return-card__text">
-            <?= Html::encode($t('Payment confirmation may take a few minutes. After confirmation, your order will be transferred to the manager.')) ?>
-        </p>
+        <?php if ($orderId): ?>
+            <p class="payment-return-card__meta">
+                <?= Html::encode($t('Order')) ?> #<?= Html::encode((string)$orderId) ?>
+            </p>
+        <?php endif; ?>
 
-        <p class="payment-return-card__note">
-            <?= Html::encode($t('If you do not receive confirmation or the manager does not contact you, please contact us.')) ?>
-        </p>
+        <?php if ($paymentStatus): ?>
+            <p class="payment-return-card__meta">
+                <?= Html::encode($t('Payment status')) ?>:
+                <?= Html::encode((string)$paymentStatus) ?>
+            </p>
+        <?php endif; ?>
+
+        <?php if (is_string($note) && trim($note) !== ''): ?>
+            <p class="payment-return-card__note">
+                <?= Html::encode($note) ?>
+            </p>
+        <?php endif; ?>
 
         <div class="payment-return-card__actions">
             <a class="order-form__btn payment-return-card__btn"

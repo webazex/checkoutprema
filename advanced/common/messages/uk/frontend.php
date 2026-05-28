@@ -122,4 +122,30 @@ return [
         'Підтвердження платежу може зайняти кілька хвилин. Після підтвердження замовлення буде передано менеджеру.',
     'If you do not receive confirmation or the manager does not contact you, please contact us.' =>
         'Якщо ви не отримаєте підтвердження або менеджер не звʼяжеться з вами, будь ласка, напишіть нам.',
+    'This page is used to return from payment. If you have just completed a payment, confirmation may take a few minutes.' =>
+        'Ця сторінка використовується для повернення з оплати. Якщо ви щойно завершили оплату, підтвердження може зайняти кілька хвилин.',
+
+    'If you opened this page directly, no active payment is attached to this view.' =>
+        'Якщо ви відкрили цю сторінку напряму, активний платіж не привʼязаний до цього перегляду.',
+
+    'Payment confirmation may take a few minutes.' =>
+        'Підтвердження платежу може зайняти кілька хвилин.',
+
+    'If the payment was completed successfully, the order will be processed after confirmation.' =>
+        'Якщо оплату було завершено успішно, замовлення буде оброблено після підтвердження.',
+
+    'Payment received' => 'Оплату отримано',
+
+    'Thank you. Your payment has been confirmed and the order is being processed.' =>
+        'Дякуємо. Вашу оплату підтверджено, замовлення обробляється.',
+
+    'The manager will process your order soon.' =>
+        'Менеджер скоро опрацює ваше замовлення.',
+
+    'Payment was not completed' => 'Оплату не завершено',
+
+    'The payment was not completed. Please try again or contact us.' =>
+        'Оплату не завершено. Спробуйте ще раз або звʼяжіться з нами.',
+
+    'Payment status' => 'Статус оплати',
 ];

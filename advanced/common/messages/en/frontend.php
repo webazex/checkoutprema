@@ -123,4 +123,30 @@ return [
         'Payment confirmation may take a few minutes. After confirmation, your order will be transferred to the manager.',
     'If you do not receive confirmation or the manager does not contact you, please contact us.' =>
         'If you do not receive confirmation or the manager does not contact you, please contact us.',
+    'This page is used to return from payment. If you have just completed a payment, confirmation may take a few minutes.' =>
+        'This page is used to return from payment. If you have just completed a payment, confirmation may take a few minutes.',
+
+    'If you opened this page directly, no active payment is attached to this view.' =>
+        'If you opened this page directly, no active payment is attached to this view.',
+
+    'Payment confirmation may take a few minutes.' =>
+        'Payment confirmation may take a few minutes.',
+
+    'If the payment was completed successfully, the order will be processed after confirmation.' =>
+        'If the payment was completed successfully, the order will be processed after confirmation.',
+
+    'Payment received' => 'Payment received',
+
+    'Thank you. Your payment has been confirmed and the order is being processed.' =>
+        'Thank you. Your payment has been confirmed and the order is being processed.',
+
+    'The manager will process your order soon.' =>
+        'The manager will process your order soon.',
+
+    'Payment was not completed' => 'Payment was not completed',
+
+    'The payment was not completed. Please try again or contact us.' =>
+        'The payment was not completed. Please try again or contact us.',
+
+    'Payment status' => 'Payment status',
 ];

@@ -214,9 +214,91 @@ final class CheckoutController extends Controller
     public function actionPaymentReturn(): string
     {
         return $this->render('payment_return', [
-            'query' => Yii::$app->request->get(),
-            'post' => Yii::$app->request->post(),
-            'method' => Yii::$app->request->method,
+            'context' => $this->buildPaymentReturnContext(
+                Yii::$app->request->get(),
+                Yii::$app->request->post(),
+            ),
         ]);
+    }
+
+    /**
+     * @param array<string, mixed> $query
+     * @param array<string, mixed> $post
+     * @return array<string, mixed>
+     */
+    private function buildPaymentReturnContext(array $query, array $post): array
+    {
+        $orderReference = trim((string)(
+            $post['orderReference']
+            ?? $query['orderReference']
+            ?? $post['order_reference']
+            ?? $query['order_reference']
+            ?? ''
+        ));
+
+        if ($orderReference === '') {
+            return [
+                'type' => 'generic',
+                'title' => Yii::t('frontend', 'Payment return'),
+                'message' => Yii::t('frontend', 'This page is used to return from payment. If you have just completed a payment, confirmation may take a few minutes.'),
+                'note' => Yii::t('frontend', 'If you opened this page directly, no active payment is attached to this view.'),
+                'orderId' => null,
+                'paymentStatus' => null,
+            ];
+        }
+
+        /** @var PaymentModel|null $payment */
+        $payment = PaymentModel::find()
+            ->with('order')
+            ->where([
+                'provider' => PaymentModel::PROVIDER_WAYFORPAY,
+                'external_order_id' => $orderReference,
+            ])
+            ->orderBy(['id' => SORT_DESC])
+            ->one();
+
+        if (!$payment instanceof PaymentModel) {
+            return [
+                'type' => 'generic',
+                'title' => Yii::t('frontend', 'Payment return'),
+                'message' => Yii::t('frontend', 'Payment confirmation may take a few minutes.'),
+                'note' => Yii::t('frontend', 'If the payment was completed successfully, the order will be processed after confirmation.'),
+                'orderId' => null,
+                'paymentStatus' => null,
+            ];
+        }
+
+        $orderId = $payment->order ? (int)$payment->order->id : null;
+
+        if ($payment->status === PaymentModel::STATUS_PAID) {
+            return [
+                'type' => 'paid',
+                'title' => Yii::t('frontend', 'Payment received'),
+                'message' => Yii::t('frontend', 'Thank you. Your payment has been confirmed and the order is being processed.'),
+                'note' => Yii::t('frontend', 'The manager will process your order soon.'),
+                'orderId' => $orderId,
+                'paymentStatus' => (string)$payment->status,
+            ];
+        }
+
+        if ($payment->getIsFailed()) {
+            return [
+                'type' => 'failed',
+                'title' => Yii::t('frontend', 'Payment was not completed'),
+                'message' => Yii::t('frontend', 'The payment was not completed. Please try again or contact us.'),
+                'note' => $payment->error_message ?: null,
+                'orderId' => $orderId,
+                'paymentStatus' => (string)$payment->status,
+            ];
+        }
+
+        return [
+            'type' => 'processing',
+            'title' => Yii::t('frontend', 'Payment is being processed'),
+            'message' => Yii::t('frontend', 'Thank you. Your payment has been accepted for processing.'),
+            'note' => Yii::t('frontend', 'Payment confirmation may take a few minutes. After confirmation, your order will be transferred to the manager.'),
+            'orderId' => $orderId,
+            'paymentStatus' => (string)$payment->status,
+        ];
     }
 }
