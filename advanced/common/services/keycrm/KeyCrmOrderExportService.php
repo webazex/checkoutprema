@@ -12,6 +12,7 @@ use DomainException;
 use RuntimeException;
 use Yii;
 use yii\helpers\ArrayHelper;
+use common\models\meta\MetaModel;
 
 final class KeyCrmOrderExportService
 {
@@ -81,6 +82,7 @@ final class KeyCrmOrderExportService
         }
 
         $buyer = $this->buildBuyer($order);
+        $shipping = $this->buildShipping($order);
         $products = $this->buildProducts($order);
         $payments = $this->buildPayments($order);
 
@@ -90,11 +92,64 @@ final class KeyCrmOrderExportService
             'products' => $products,
         ];
 
+        if ($shipping !== []) {
+            $payload['shipping'] = $shipping;
+        }
+
         if ($payments !== []) {
             $payload['payments'] = $payments;
         }
 
         return $payload;
+    }
+
+    /**
+     * @return array<string, mixed>
+     */
+    private function buildShipping(OrderModel $order): array
+    {
+        $meta = $this->readOrderMetaValues($order, [
+            'delivery.region',
+            'delivery.city',
+            'delivery.branch',
+        ]);
+
+        $region = $this->nullableString($meta['delivery.region'] ?? null);
+        $city = $this->nullableString($meta['delivery.city'] ?? null);
+        $receivePoint = $this->nullableString($meta['delivery.branch'] ?? null);
+
+        if ($region === null && $city === null && $receivePoint === null) {
+            return [];
+        }
+
+        $shipping = [
+            'shipping_address_country' => 'Ukraine',
+        ];
+
+        if ($region !== null) {
+            $shipping['shipping_address_region'] = $region;
+        }
+
+        if ($city !== null) {
+            $shipping['shipping_address_city'] = $city;
+        }
+
+        if ($receivePoint !== null) {
+            $shipping['shipping_receive_point'] = $receivePoint;
+        }
+
+        $recipientFullName = $this->nullableString($order->getCustomerFullName());
+        $recipientPhone = $this->nullableString($order->customer_phone ?: $order->customer?->phone);
+
+        if ($recipientFullName !== null) {
+            $shipping['recipient_full_name'] = $recipientFullName;
+        }
+
+        if ($recipientPhone !== null) {
+            $shipping['recipient_phone'] = $recipientPhone;
+        }
+
+        return $shipping;
     }
 
     private function buildBuyer(OrderModel $order): array
@@ -221,5 +276,30 @@ final class KeyCrmOrderExportService
         $value = is_string($value) ? trim($value) : null;
 
         return $value !== '' ? $value : null;
+    }
+
+    /**
+     * @param string[] $keys
+     * @return array<string, string|null>
+     */
+    private function readOrderMetaValues(OrderModel $order, array $keys): array
+    {
+        if (!$order->id || $keys === []) {
+            return [];
+        }
+
+        $result = [];
+
+        /** @var MetaModel[] $rows */
+        $rows = MetaModel::find()
+            ->forEntity(MetaModel::ENTITY_ORDER, (int)$order->id)
+            ->andWhere(['key' => $keys])
+            ->all();
+
+        foreach ($rows as $row) {
+            $result[(string)$row->key] = $this->nullableString($row->value);
+        }
+
+        return $result;
     }
 }
