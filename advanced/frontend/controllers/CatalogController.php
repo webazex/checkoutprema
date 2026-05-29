@@ -36,7 +36,7 @@ final class CatalogController extends Controller
         );
 
         $breadcrumbs = [
-            ['label' => 'Головна', 'url' => Url::to(['/entry/index'], true)],
+            ['label' => 'Головна', 'url' => Url::to(['/site/index'], true)],
             ['label' => 'Каталог', 'url' => $canonicalUrl],
         ];
 
