@@ -279,15 +279,7 @@ final class WayForPayGateway implements PaymentGatewayInterface
 
     private function mapStatus(?string $externalStatus): string
     {
-        return match ($externalStatus) {
-            'Approved' => PaymentModel::STATUS_PAID,
-            'Authorized', 'WaitingAuthComplete' => PaymentModel::STATUS_AUTHORIZED,
-            'Pending', 'InProcessing', 'CreatedAwaiting3DS', 'RefundInProcessing' => PaymentModel::STATUS_PENDING,
-            'Refunded' => PaymentModel::STATUS_REFUNDED,
-            'Voided', 'Reversed' => PaymentModel::STATUS_CANCELLED,
-            'Declined', 'Expired', 'Failed' => PaymentModel::STATUS_FAILED,
-            default => PaymentModel::STATUS_PENDING,
-        };
+        return WayForPayStatusDictionary::toInternalStatus($externalStatus);
     }
 
     private function buildProviderErrorMessage(array $payload): ?string

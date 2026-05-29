@@ -34,7 +34,8 @@ $this->title = $title;
 
         <?php if ($orderId): ?>
             <p class="payment-return-card__meta">
-                <?= Html::encode($t('Order')) ?> #<?= Html::encode((string)$orderId) ?>
+                <?= Html::encode($t('Order number')) ?>:
+                <?= Html::encode((string)$orderId) ?>
             </p>
         <?php endif; ?>
 

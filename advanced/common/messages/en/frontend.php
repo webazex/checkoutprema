@@ -149,4 +149,14 @@ return [
         'The payment was not completed. Please try again or contact us.',
 
     'Payment status' => 'Payment status',
+    'Processing' => 'Processing',
+    'Authorized' => 'Authorized',
+    'Paid' => 'Paid',
+    'Failed' => 'Failed',
+    'Cancelled' => 'Cancelled',
+    'Refunded' => 'Refunded',
+
+    'Order number' => 'Order number',
+    'Site order number' => 'Site order number',
+    'Site order identifier' => 'Site order identifier',
 ];

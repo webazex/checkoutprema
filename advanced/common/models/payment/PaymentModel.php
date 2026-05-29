@@ -47,6 +47,8 @@ class PaymentModel extends BaseModel
         self::PROVIDER_LEGACY,
     ];
 
+
+
     public const STATUSES = [
         self::STATUS_NEW,
         self::STATUS_PENDING,
@@ -72,6 +74,22 @@ class PaymentModel extends BaseModel
         self::STATUS_FAILED,
         self::STATUS_CANCELLED,
     ];
+
+    public const STATUS_LABEL_KEYS = [
+        self::STATUS_PENDING => 'Processing',
+        self::STATUS_AUTHORIZED => 'Authorized',
+        self::STATUS_PAID => 'Paid',
+        self::STATUS_FAILED => 'Failed',
+        self::STATUS_CANCELLED => 'Cancelled',
+        self::STATUS_REFUNDED => 'Refunded',
+    ];
+
+    public static function getStatusLabelKey(?string $status): string
+    {
+        $status = trim((string)$status);
+
+        return self::STATUS_LABEL_KEYS[$status] ?? 'Processing';
+    }
 
     public static function tableName(): string
     {

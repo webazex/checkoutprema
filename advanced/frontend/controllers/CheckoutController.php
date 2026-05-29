@@ -277,7 +277,7 @@ final class CheckoutController extends Controller
                 'message' => Yii::t('frontend', 'Thank you. Your payment has been confirmed and the order is being processed.'),
                 'note' => Yii::t('frontend', 'The manager will process your order soon.'),
                 'orderId' => $orderId,
-                'paymentStatus' => (string)$payment->status,
+                'paymentStatus' => $this->getPaymentStatusLabel((string)$payment->status),
             ];
         }
 
@@ -288,7 +288,7 @@ final class CheckoutController extends Controller
                 'message' => Yii::t('frontend', 'The payment was not completed. Please try again or contact us.'),
                 'note' => $payment->error_message ?: null,
                 'orderId' => $orderId,
-                'paymentStatus' => (string)$payment->status,
+                'paymentStatus' => $this->getPaymentStatusLabel((string)$payment->status),
             ];
         }
 
@@ -298,7 +298,18 @@ final class CheckoutController extends Controller
             'message' => Yii::t('frontend', 'Thank you. Your payment has been accepted for processing.'),
             'note' => Yii::t('frontend', 'Payment confirmation may take a few minutes. After confirmation, your order will be transferred to the manager.'),
             'orderId' => $orderId,
-            'paymentStatus' => (string)$payment->status,
+            'paymentStatus' => $this->getPaymentStatusLabel((string)$payment->status),
         ];
+    }
+
+    private function getPaymentStatusLabel(?string $status): ?string
+    {
+        $status = trim((string)$status);
+
+        if ($status === '') {
+            return null;
+        }
+
+        return Yii::t('frontend', PaymentModel::getStatusLabelKey($status));
     }
 }
