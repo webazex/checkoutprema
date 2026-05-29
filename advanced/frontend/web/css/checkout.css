@@ -137,7 +137,6 @@
 
 @media (max-width: 640px) {
     .checkout-confirm-modal {
-        align-items: flex-end;
         padding: 16px;
     }
 
