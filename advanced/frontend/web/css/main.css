@@ -591,6 +591,7 @@ label.order-form__label[for='fio'] > span, label.order-form__label[for='mail'] {
     flex-direction: column;
     align-items: flex-end;
     justify-content: flex-start;
+    grid-area: unset;
 }
 
 .checkout-remove-form {
@@ -689,6 +690,7 @@ label.order-form__label[for='fio'] > span, label.order-form__label[for='mail'] {
         align-items: flex-start;
         min-width: 0;
         margin-top: 8px;
+        grid-area: close;
     }
 
     .checkout-product__subtotal {
@@ -1231,6 +1233,9 @@ label.order-form__label[for='fio'] > span, label.order-form__label[for='mail'] {
     top: calc(100% + 8px);
     left: 0;
 }
+.catalog-category-menu__submenu li.catalog-category-menu__item {
+    list-style: none;
+}
 
 .catalog-category-menu__item--has-children:hover > .catalog-category-menu__submenu,
 .catalog-category-menu__item.is-open > .catalog-category-menu__submenu,
@@ -1548,9 +1553,9 @@ label.order-form__label[for='fio'] > span, label.order-form__label[for='mail'] {
         text-align: center;
     }
     .product-item__remove-icon {
-        width: 150px;
-        height: 50px;
-        margin: 10px auto;
+        width: 55px;
+        height: 55px;
+        margin: unset;
     }
     .product-item__remove-icon > svg {
         width: 100%;
