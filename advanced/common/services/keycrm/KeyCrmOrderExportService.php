@@ -16,9 +16,27 @@ use common\models\meta\MetaModel;
 
 final class KeyCrmOrderExportService
 {
+    private const KEYCRM_FIELD_SITE_ORDER_NUMBER = 'OR_1003';
+    private const KEYCRM_FIELD_SITE_ORDER_IDENTIFIER = 'OR_1005';
     public function __construct(
         private readonly KeyCrmApiClient $apiClient,
-    ) {
+    ) {}
+
+    /**
+     * @return array<int, array{uuid: string, value: string}>
+     */
+    private function buildCustomFields(OrderModel $order): array
+    {
+        return [
+            [
+                'uuid' => self::KEYCRM_FIELD_SITE_ORDER_NUMBER,
+                'value' => (string)$order->id,
+            ],
+            [
+                'uuid' => self::KEYCRM_FIELD_SITE_ORDER_IDENTIFIER,
+                'value' => (string)$order->hash,
+            ],
+        ];
     }
 
     public function export(OrderModel $order): OrderModel
@@ -85,6 +103,7 @@ final class KeyCrmOrderExportService
         $shipping = $this->buildShipping($order);
         $products = $this->buildProducts($order);
         $payments = $this->buildPayments($order);
+        $customFields = $this->buildCustomFields($order);
 
         $payload = [
             'source_id' => $sourceId,
@@ -94,6 +113,10 @@ final class KeyCrmOrderExportService
 
         if ($shipping !== []) {
             $payload['shipping'] = $shipping;
+        }
+
+        if ($customFields !== []) {
+            $payload['custom_fields'] = $customFields;
         }
 
         if ($payments !== []) {
@@ -239,7 +262,7 @@ final class KeyCrmOrderExportService
         $payment = [
             'amount' => (float)$order->total_amount,
             'status' => 'paid',
-            'description' => sprintf('Order %s paid on CheckoutPrema', (string)$order->hash),
+            'description' => sprintf('Оплата замовлення з сайту #%d', (int)$order->id),
         ];
 
         if ($paymentMethodId !== null && $paymentMethodId !== '') {
