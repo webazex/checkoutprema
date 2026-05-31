@@ -106,7 +106,7 @@ header, footer, main, section {
 .menu__item:last-child {
     margin-right: unset;
 }
-.link-menu__menu-txt::before {
+.menu__link-text::before {
     position: absolute;
     content: '';
     width: 0;
@@ -118,11 +118,11 @@ header, footer, main, section {
 .menu__item.menu__item--parent {
     position: static;
 }
-.menu__item:hover > a.item__link-menu > span.link-menu__menu-txt::before {
+.menu__item:hover > a.menu__link > span.menu__link-text::before {
     width: 100%;
     transition: width 0.5s ease-in-out;
 }
-.menu__submenu:hover > a.menu-item__link-menu > span.link-menu__menu-txt::before {
+.menu__submenu:hover > a.menu-item__link-menu > span.menu__link-text::before {
     width: 100%;
     transition: width 0.5s ease-in-out;
 }
@@ -132,12 +132,12 @@ header, footer, main, section {
     transform: translateY(0);
 }
 .menu__item.menu__item--parent:hover >
-.item__link-menu > span.link-menu__arrow > svg {
+.menu__link  > span.link-menu__arrow > svg {
     transition: all 0.5s ease-in-out;
     transform: rotate(180deg);
 }
 
-.item__link-menu {
+.menu__link  {
     width: 100%;
     height: 100%;
     display: flex;
@@ -150,7 +150,7 @@ header, footer, main, section {
     height: 15px;
     transition: all 0.5s ease-in-out;
 }
-.link-menu__menu-txt {
+.menu__link-text {
     color: var(--txt-color);
     text-decoration: none;
 }
@@ -174,7 +174,7 @@ header, footer, main, section {
 .menu-item__link-menu {
     text-decoration: none;
 }
-.submenu__menu-item .link-menu__menu-txt {
+.submenu__menu-item .menu__link-text {
     text-decoration: none;
 }
 .header__btns {
@@ -1477,7 +1477,7 @@ label.order-form__label[for='fio'] > span, label.order-form__label[for='mail'] {
         display: none;
         opacity: 1;
     }
-    .menu__item.parent-item:hover > .item__link-menu > span.link-menu__arrow > svg {
+    .menu__item.parent-item:hover > .menu__link > span.link-menu__arrow > svg {
 
     }
     .item__submenu {
@@ -1488,10 +1488,10 @@ label.order-form__label[for='fio'] > span, label.order-form__label[for='mail'] {
         border-bottom-left-radius: 0;
         border-bottom-right-radius: 0;
     }
-    .item__link-menu {
+    .menu__link {
         margin: 15px 0;
     }
-    .item__link-menu:last-child {
+    .menu__link:last-child {
         margin-bottom: 0;
     }
     .price-box__price-block {
