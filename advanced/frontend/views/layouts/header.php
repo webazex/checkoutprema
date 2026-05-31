@@ -31,58 +31,10 @@ use yii\bootstrap5\Html;
 
                 </div>
                 <div class="header__menu">
-                    <div class="menu__item">
-                        <a href="" class="item__link-menu">
-                            <span class="link-menu__menu-txt">Про нас</span>
-                        </a>
-                    </div>
-                    <div class="menu__item parent-item">
-                        <a href="" class="item__link-menu">
-                            <span class="link-menu__menu-txt">Каталог</span>
-                            <span class="link-menu__arrow">
-                                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                                  <path d="M18 9L12 15L6 9" stroke="#222222" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
-                                </svg>
-                        </span>
-                        </a>
-                        <div class="item__submenu">
-                            <div class="submenu__menu-item">
-                                <a href="" class="menu-item__link-menu">
-                                    <span class="link-menu__menu-txt">Всі продукти</span>
-                                </a>
-                            </div>
-                            <div class="submenu__menu-item">
-                                <a href="" class="menu-item__link-menu">
-                                    <span class="link-menu__menu-txt">Категорія 3</span>
-                                </a>
-                            </div>
-                            <div class="submenu__menu-item">
-                                <a href="" class="menu-item__link-menu">
-                                    <span class="link-menu__menu-txt">Категорія 4</span>
-                                </a>
-                            </div>
-                            <div class="submenu__menu-item">
-                                <a href="" class="menu-item__link-menu">
-                                    <span class="link-menu__menu-txt">Категорія 1</span>
-                                </a>
-                            </div>
-                            <div class="submenu__menu-item">
-                                <a href="" class="menu-item__link-menu">
-                                    <span class="link-menu__menu-txt">Категорія 2</span>
-                                </a>
-                            </div>
-                        </div>
-                    </div>
-                    <div class="menu__item">
-                        <a href="" class="item__link-menu">
-                            <span class="link-menu__menu-txt">Бестселери</span>
-                        </a>
-                    </div>
-                    <div class="menu__item">
-                        <a href="" class="item__link-menu">
-                            <span class="link-menu__menu-txt">Контакти</span>
-                        </a>
-                    </div>
+                    <?= $this->render('_nav_tree', [
+                            'items' => $headerTree ?? [],
+                            'level' => 0,
+                    ]) ?>
                 </div>
                 <div class="header__btns">
                     <a href="" class="btns__profile">

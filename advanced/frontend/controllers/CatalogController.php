@@ -13,6 +13,7 @@ use yii\helpers\Url;
 use yii\web\Controller;
 use yii\web\NotFoundHttpException;
 use yii\web\View;
+use frontend\services\navigation\BreadcrumbsProvider;
 
 final class CatalogController extends Controller
 {
@@ -35,10 +36,7 @@ final class CatalogController extends Controller
             ogImage: $this->getFallbackOgImage($products)
         );
 
-        $breadcrumbs = [
-            ['label' => 'Головна', 'url' => Url::to(['/site/index'], true)],
-            ['label' => 'Каталог', 'url' => $canonicalUrl],
-        ];
+        $breadcrumbs = $this->breadcrumbsProvider()->forCatalogIndex(true);
 
         return $this->render('index', [
             'categoryTree' => $categoryTree,
@@ -148,12 +146,7 @@ final class CatalogController extends Controller
             ogType: 'product'
         );
 
-        $breadcrumbs = [
-            ['label' => 'Головна', 'url' => Url::to(['/site/index'], true)],
-            ['label' => 'Каталог', 'url' => Url::to(['/catalog/index'], true)],
-            ['label' => $category->name, 'url' => Url::to(['/catalog/category', 'categorySlug' => $category->slug], true)],
-            ['label' => $product->name, 'url' => $canonicalUrl],
-        ];
+        $breadcrumbs = $this->breadcrumbsProvider()->forProduct($category, $product, true);
 
         return $this->render('product', [
             'category' => $category,
@@ -386,5 +379,10 @@ final class CatalogController extends Controller
     private function limitText(string $value, int $limit): string
     {
         return StringHelper::truncate($this->plainText($value), $limit, '');
+    }
+
+    private function breadcrumbsProvider(): BreadcrumbsProvider
+    {
+        return new BreadcrumbsProvider();
     }
 }
