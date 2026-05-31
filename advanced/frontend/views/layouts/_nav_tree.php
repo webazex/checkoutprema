@@ -33,7 +33,10 @@ $level ??= 0;
             </span>
 
             <?php if ($hasChildren): ?>
-                <span class="menu__link-arrow" aria-hidden="true">⌄</span>
+                <div class="menu__triangle-box" aria-hidden="true">
+                    <span></span>
+                    <span></span>
+                </div>
             <?php endif; ?>
         </a>
 
