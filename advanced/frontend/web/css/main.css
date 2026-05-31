@@ -154,6 +154,30 @@ header, footer, main, section {
     color: var(--txt-color);
     text-decoration: none;
 }
+.menu__triangle-box {
+    width: 20px;
+    height: 20px;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+}
+.menu__triangle-box > span {
+    position: absolute;
+    width: 100%;
+    height: 3px;
+    display: block;
+    background-color: var(--txt-color);
+}
+.menu__triangle-box > span:first-child {
+    transform: rotate(45deg);
+    top: 0;
+    left: 0;
+}
+.menu__triangle-box > span:last-child {
+    transform: rotate(-45deg);
+    top: 0;
+    right: 0;
+}
 .menu__submenu {
     position: absolute;
     top: 100%; /* Под меню */
