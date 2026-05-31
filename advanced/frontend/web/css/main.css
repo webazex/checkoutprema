@@ -99,6 +99,9 @@ header, footer, main, section {
 }
 .menu__item {
     margin-right: 15px;
+    display: flex;
+    justify-content: center;
+    align-items: center;
 }
 .menu__item:last-child {
     margin-right: unset;
@@ -112,23 +115,23 @@ header, footer, main, section {
     background-color: var(--txt-color);
     transition: width 0.1s ease-in-out;
 }
-.menu__item.parent-item {
+.menu__item.menu__item--parent {
     position: static;
 }
 .menu__item:hover > a.item__link-menu > span.link-menu__menu-txt::before {
     width: 100%;
     transition: width 0.5s ease-in-out;
 }
-.submenu__menu-item:hover > a.menu-item__link-menu > span.link-menu__menu-txt::before {
+.menu__submenu:hover > a.menu-item__link-menu > span.link-menu__menu-txt::before {
     width: 100%;
     transition: width 0.5s ease-in-out;
 }
-.menu__item.parent-item:hover > .item__submenu {
+.menu__item.menu__item--parent:hover > .menu__submenu {
     display: grid;
     opacity: 1;
     transform: translateY(0);
 }
-.menu__item.parent-item:hover >
+.menu__item.menu__item--parent:hover >
 .item__link-menu > span.link-menu__arrow > svg {
     transition: all 0.5s ease-in-out;
     transform: rotate(180deg);
@@ -937,7 +940,7 @@ label.order-form__label[for='fio'] > span, label.order-form__label[for='mail'] {
     min-height: 42px;
     padding: 10px 18px;
     border: 0;
-    border-radius: 999px;
+    border-radius: 15px;
     cursor: pointer;
 }
 
