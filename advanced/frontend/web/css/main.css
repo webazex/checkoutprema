@@ -132,7 +132,7 @@ header, footer, main, section {
     transform: translateY(0);
 }
 .menu__item.menu__item--parent:hover >
-.menu__link  > span.link-menu__arrow > svg {
+.menu__link  > span.menu__link-arrow {
     transition: all 0.5s ease-in-out;
     transform: rotate(180deg);
 }
@@ -145,7 +145,7 @@ header, footer, main, section {
     align-items: center;
     text-decoration: none;
 }
-.link-menu__arrow > svg {
+.menu__link-arrow {
     width: 20px;
     height: 15px;
     transition: all 0.5s ease-in-out;
@@ -1477,7 +1477,7 @@ label.order-form__label[for='fio'] > span, label.order-form__label[for='mail'] {
         display: none;
         opacity: 1;
     }
-    .menu__item.parent-item:hover > .menu__link > span.link-menu__arrow > svg {
+    .menu__item.parent-item:hover > .menu__link > span.menu__link-arrow {
 
     }
     .item__submenu {
