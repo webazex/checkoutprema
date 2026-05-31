@@ -154,7 +154,7 @@ header, footer, main, section {
     color: var(--txt-color);
     text-decoration: none;
 }
-.item__submenu {
+.menu__submenu {
     position: absolute;
     top: 100%; /* Под меню */
     left: 0;   /* Слева от .header__menu */
