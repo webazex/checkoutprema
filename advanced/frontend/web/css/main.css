@@ -170,13 +170,13 @@ header, footer, main, section {
 }
 .menu__triangle-box > span:first-child {
     transform: rotate(45deg);
-    top: 0;
     left: 0;
+    transform-origin: right;
 }
 .menu__triangle-box > span:last-child {
     transform: rotate(-45deg);
-    top: 0;
     right: 0;
+    transform-origin: left;
 }
 .menu__submenu {
     position: absolute;
