@@ -36,7 +36,7 @@ final class CatalogController extends Controller
             ogImage: $this->getFallbackOgImage($products)
         );
 
-        $breadcrumbs = $this->breadcrumbsProvider()->forCatalogCategory($category, true);
+        $breadcrumbs = $this->breadcrumbsProvider()->forCatalogCategory(true);
 
         return $this->render('index', [
             'categoryTree' => $categoryTree,
@@ -80,11 +80,7 @@ final class CatalogController extends Controller
             ogImage: $category->thumbnail_url ?: $this->getFallbackOgImage($products)
         );
 
-        $breadcrumbs = [
-            ['label' => 'Головна', 'url' => Url::to(['/site/index'], true)],
-            ['label' => 'Каталог', 'url' => Url::to(['/catalog/index'], true)],
-            ['label' => $category->name, 'url' => $canonicalUrl],
-        ];
+        $breadcrumbs = $this->breadcrumbsProvider()->forCatalogCategory($category, true);
 
         return $this->render('category', [
             'category' => $category,
