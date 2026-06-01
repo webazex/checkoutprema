@@ -131,17 +131,17 @@ header, footer, main, section {
     opacity: 1;
     transform: translateY(0);
 }
-.menu__item.menu__item--parent:hover a.menu__link .menu__triangle-box  span {
+.menu__item.menu__item--parent:hover > a.menu__link .menu__triangle-box  span {
     transition: all 0.5s ease-in-out;
     width: 100%;
     transform-origin: center;
     right: unset;
     left: unset;
 }
-.menu__item.menu__item--parent:hover  .menu__triangle-box  span:first-child {
+.menu__item.menu__item--parent:hover > a.menu__link .menu__triangle-box  span:first-child {
     transform: rotate(-45deg);
 }
-.menu__item.menu__item--parent:hover .menu__triangle-box  span:last-child {
+.menu__item.menu__item--parent:hover > a.menu__link .menu__triangle-box  span:last-child {
     transform: rotate(45deg);
 }
 
