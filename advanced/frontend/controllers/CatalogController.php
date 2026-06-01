@@ -36,7 +36,7 @@ final class CatalogController extends Controller
             ogImage: $this->getFallbackOgImage($products)
         );
 
-        $breadcrumbs = $this->breadcrumbsProvider()->forCatalogIndex(true);
+        $breadcrumbs = $this->breadcrumbsProvider()->forCatalogCategory($category, true);
 
         return $this->render('index', [
             'categoryTree' => $categoryTree,
