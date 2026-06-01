@@ -57,6 +57,7 @@ return [
     'Payment' => 'Оплата',
     'Full prepayment' => 'Повна передплата',
     'Place order' => 'Оформити замовлення',
+    'Cart is empty' => 'Кошик порожній',
 
     'In cart' => 'В кошику',
     'Product' => 'Товар',

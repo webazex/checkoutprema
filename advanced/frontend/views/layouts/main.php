@@ -4,13 +4,16 @@
 /** @var string $content */
 use frontend\assets\AppAsset;
 use frontend\services\navigation\NavigationProvider;
+use frontend\services\cart\ActiveCartProvider;
 
 AppAsset::register($this);
 $navigationProvider = new NavigationProvider();
-$this->beginPage(); 
+$this->beginPage();
+$cartState = (new ActiveCartProvider())->getState();
 echo $this->render('header',
         [
-                'headerTree' => $navigationProvider->getHeaderTree(),
+            'headerTree' => $navigationProvider->getHeaderTree(),
+            'cartState' => $cartState,
         ]
 );?>
 <main>

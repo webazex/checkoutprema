@@ -58,6 +58,7 @@ return [
     'Payment' => 'Payment',
     'Full prepayment' => 'Full prepayment',
     'Place order' => 'Place order',
+    'Cart is empty' => 'Cart is empty',
 
     'In cart' => 'In cart',
     'Product' => 'Product',

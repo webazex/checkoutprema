@@ -64,12 +64,77 @@ $(function () {
         }
     }
 
-    function updateCartCounters(data) {
+    function getCartItemsCount(data) {
         if (!data || typeof data.itemsCount === 'undefined') {
+            return null;
+        }
+
+        var count = parseInt(data.itemsCount, 10);
+
+        return isNaN(count) ? 0 : Math.max(0, count);
+    }
+
+    function updateCartCounters(data) {
+        var count = getCartItemsCount(data);
+
+        if (count === null) {
             return;
         }
 
-        $('.js-cart-count, [data-cart-count]').text(data.itemsCount);
+        $('.js-cart-count, [data-cart-count]').text(count);
+    }
+
+    function updateCartLinks(data) {
+        if (!data || !data.checkoutUrl) {
+            return;
+        }
+
+        $('.js-cart-link, .js-cart-side-action').attr('href', data.checkoutUrl);
+    }
+
+    function updateCartSideBox(data) {
+        var count = getCartItemsCount(data);
+
+        if (count === null) {
+            return;
+        }
+
+        var isActive = count > 0;
+        var $box = $('#cart-side-box');
+        var $action = $('.js-cart-side-action');
+
+        if (!$box.length || !$action.length) {
+            return;
+        }
+
+        var activeText = $action.data('active-text') || 'Оформити замовлення';
+        var emptyText = $action.data('empty-text') || 'Кошик порожній';
+
+        $box
+            .toggleClass('cart-side-box--active', isActive)
+            .toggleClass('cart-side-box--empty', !isActive)
+            .toggleClass('cart-side-box--pulse', isActive);
+
+        $action
+            .toggleClass('is-disabled', !isActive)
+            .attr('aria-disabled', isActive ? 'false' : 'true')
+            .attr('tabindex', isActive ? '0' : '-1');
+
+        $('.js-cart-side-text').text(isActive ? activeText : emptyText);
+
+        if (isActive && data.checkoutUrl) {
+            $action.attr('href', data.checkoutUrl);
+        }
+
+        window.setTimeout(function () {
+            $box.removeClass('cart-side-box--pulse');
+        }, 700);
+    }
+
+    function updateCartUi(data) {
+        updateCartCounters(data);
+        updateCartLinks(data);
+        updateCartSideBox(data);
     }
 
     $(document).on('submit', FORM_SELECTOR, function (event) {
@@ -99,7 +164,7 @@ $(function () {
                 }
 
                 showToast(data.message || 'Товар додано до кошика.', 'success');
-                updateCartCounters(data);
+                updateCartUi(data);
 
                 $(document).trigger('catalog:cart-updated', [data]);
             },
@@ -116,6 +181,10 @@ $(function () {
                 setButtonLoading($button, false);
             }
         });
+    });
+
+    $(document).on('click', '.js-cart-side-action.is-disabled', function (event) {
+        event.preventDefault();
     });
 
     $(document).on('click', '.js-category-collapse-toggle', function (event) {
