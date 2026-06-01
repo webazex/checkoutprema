@@ -3,6 +3,7 @@
 use common\models\catalog\CatalogCategoryModel;
 use common\models\product\ProductModel;
 use yii\helpers\Html;
+use common\models\meta\MetaModel;
 
 /** @var CatalogCategoryModel $category */
 /** @var ProductModel $product */
@@ -18,6 +19,134 @@ echo $this->render('_schema', [
 
 $price = number_format((float)$product->price, 0, '.', ' ') . ' ' . Html::encode($product->currency ?: 'UAH');
 $alt = trim($product->name . ', ' . $category->name);
+$t = static fn(string $message, array $params = []): string => Yii::t('frontend', $message, $params);
+
+$meta = MetaModel::getEntityTextValues(MetaModel::ENTITY_PRODUCT, (int)$product->id, [
+        'keycrm.custom.CT_1001',
+        'keycrm.custom.ct_1001',
+        'keycrm.custom.forma',
+        'keycrm.custom.CT_1002',
+        'keycrm.custom.ct_1002',
+        'keycrm.custom.material',
+        'keycrm.custom.material-tovaru',
+]);
+
+$pickMeta = static function (array $keys) use ($meta): ?string {
+    foreach ($keys as $key) {
+        $value = $meta[$key] ?? null;
+
+        if ($value !== null && trim((string)$value) !== '') {
+            return trim((string)$value);
+        }
+    }
+
+    return null;
+};
+
+$characteristics = [];
+
+$addCharacteristic = static function (string $label, mixed $value) use (&$characteristics): void {
+    if ($value === null) {
+        return;
+    }
+
+    $value = trim((string)$value);
+
+    if ($value === '') {
+        return;
+    }
+
+    $characteristics[] = [
+            'label' => $label,
+            'value' => $value,
+    ];
+};
+
+$formatWeight = static function (mixed $value): ?string {
+    if ($value === null || $value === '') {
+        return null;
+    }
+
+    $kg = (float)$value;
+
+    if ($kg <= 0) {
+        return null;
+    }
+
+    if ($kg < 1) {
+        return (string)((int)round($kg * 1000)) . ' г';
+    }
+
+    $formatted = number_format($kg, 3, '.', ' ');
+    $formatted = rtrim(rtrim($formatted, '0'), '.');
+
+    return $formatted . ' кг';
+};
+
+$formatSize = static function (?int $length, ?int $width, ?int $height): ?string {
+    $parts = [];
+
+    foreach ([$length, $width, $height] as $value) {
+        $value = (int)$value;
+
+        if ($value <= 0) {
+            continue;
+        }
+
+        $cm = $value / 10;
+        $precision = $value % 10 === 0 ? 0 : 1;
+        $parts[] = number_format($cm, $precision, '.', ' ');
+    }
+
+    if ($parts === []) {
+        return null;
+    }
+
+    return implode(' × ', $parts) . ' см';
+};
+
+$formValue = $pickMeta([
+        'keycrm.custom.CT_1001',
+        'keycrm.custom.ct_1001',
+        'keycrm.custom.forma',
+]);
+
+$materialValue = $pickMeta([
+        'keycrm.custom.CT_1002',
+        'keycrm.custom.ct_1002',
+        'keycrm.custom.material',
+        'keycrm.custom.material-tovaru',
+]);
+
+$addCharacteristic($t('SKU'), $product->sku);
+$addCharacteristic($t('Barcode'), $product->barcode);
+$addCharacteristic($t('Form'), $formValue);
+$addCharacteristic($t('Material'), $materialValue);
+$addCharacteristic($t('Weight'), $formatWeight($product->weight_kg));
+$addCharacteristic($t('Size'), $formatSize(
+        $product->length_mm !== null ? (int)$product->length_mm : null,
+        $product->width_mm !== null ? (int)$product->width_mm : null,
+        $product->height_mm !== null ? (int)$product->height_mm : null,
+));
+
+$descriptionHtml = !empty($product->description)
+        ? (string)$product->description
+        : '<p>' . Html::encode($t('Product description is being prepared.')) . '</p>';
+
+$accordionItems = [
+        [
+                'title' => $t('Description'),
+                'type' => 'html',
+                'content' => $descriptionHtml,
+                'open' => true,
+        ],
+        [
+                'title' => $t('Characteristics'),
+                'type' => 'table',
+                'rows' => $characteristics,
+                'open' => false,
+        ],
+];
 ?>
 
 <article class="product-page">

@@ -7,6 +7,7 @@ namespace common\services\keycrm;
 use common\integrations\keycrm\KeyCrmApiClient;
 use common\integrations\keycrm\dto\KeyCrmProductDto;
 use common\integrations\keycrm\mappers\KeyCrmProductMapper;
+use common\models\meta\MetaModel;
 use common\models\product\ProductExternalMapModel;
 use common\models\product\ProductModel;
 use DomainException;
@@ -15,6 +16,7 @@ use yii\helpers\Json;
 
 final class KeyCrmProductImportService
 {
+    private const PRODUCT_CUSTOM_FIELD_META_PREFIX = 'keycrm.custom.';
     public function __construct(
         private readonly KeyCrmApiClient $apiClient,
         private readonly KeyCrmProductMapper $productMapper,
@@ -249,6 +251,7 @@ final class KeyCrmProductImportService
                 'Failed to save product: ' . Json::encode($product->errors)
             );
         }
+        $this->syncProductCustomFields($product, $dto);
 
         if (!$mapping instanceof ProductExternalMapModel) {
             $mapping = new ProductExternalMapModel();
@@ -340,11 +343,192 @@ final class KeyCrmProductImportService
         $product->category_external_id = $dto->categoryId !== null ? (string) $dto->categoryId : null;
         $product->is_archived = $dto->isArchived ? 1 : 0;
 
-        // До подтверждения единиц измерения KeyCRM не трогаем локальные поля веса/размеров.
-        // $product->weight_kg = ...
-        // $product->length_mm = ...
-        // $product->width_mm = ...
-        // $product->height_mm = ...
+        // KeyCRM UI: вес — граммы, размеры — сантиметры.
+        // Локально: weight_kg и *_mm.
+        $product->weight_kg = $this->gramsToKilograms($dto->weight);
+        $product->length_mm = $this->centimetersToMillimeters($dto->length);
+        $product->width_mm = $this->centimetersToMillimeters($dto->width);
+        $product->height_mm = $this->centimetersToMillimeters($dto->height);
+    }
+
+    private function syncProductCustomFields(ProductModel $product, KeyCrmProductDto $dto): void
+    {
+        if (!$product->id || $dto->customFields === []) {
+            return;
+        }
+
+        foreach ($dto->customFields as $fieldKey => $field) {
+            $code = null;
+            $value = null;
+
+            if (is_array($field)) {
+                $code = $this->extractCustomFieldCode($field, $fieldKey);
+                $value = $this->extractCustomFieldValue($field);
+            } else {
+                $code = $this->normalizeCustomFieldCode((string)$fieldKey);
+                $value = $this->stringifyCustomFieldValue($field);
+            }
+
+            if ($code === null || $code === '') {
+                continue;
+            }
+
+            $metaKey = substr(self::PRODUCT_CUSTOM_FIELD_META_PREFIX . $code, 0, 128);
+
+            MetaModel::upsertText(
+                MetaModel::ENTITY_PRODUCT,
+                (int)$product->id,
+                $metaKey,
+                $value
+            );
+        }
+    }
+
+    private function extractCustomFieldCode(array $field, int|string|null $fallbackKey = null): ?string
+    {
+        foreach ([
+                     'code',
+                     'key',
+                     'uuid',
+                     'id',
+                     'name',
+                     'title',
+                     'label',
+                     'field_name',
+                     'field_label',
+                 ] as $key) {
+            if (array_key_exists($key, $field)) {
+                $code = $this->normalizeCustomFieldCode((string)$field[$key]);
+
+                if ($code !== null) {
+                    return $code;
+                }
+            }
+        }
+
+        foreach ([
+                     ['field', 'code'],
+                     ['field', 'key'],
+                     ['field', 'uuid'],
+                     ['field', 'id'],
+                     ['field', 'name'],
+                     ['custom_field', 'code'],
+                     ['custom_field', 'key'],
+                     ['custom_field', 'uuid'],
+                     ['custom_field', 'id'],
+                     ['custom_field', 'name'],
+                 ] as [$parentKey, $childKey]) {
+            if (
+                isset($field[$parentKey])
+                && is_array($field[$parentKey])
+                && array_key_exists($childKey, $field[$parentKey])
+            ) {
+                $code = $this->normalizeCustomFieldCode((string)$field[$parentKey][$childKey]);
+
+                if ($code !== null) {
+                    return $code;
+                }
+            }
+        }
+
+        if ($fallbackKey !== null && !is_int($fallbackKey)) {
+            return $this->normalizeCustomFieldCode((string)$fallbackKey);
+        }
+
+        return null;
+    }
+
+    private function extractCustomFieldValue(array $field): ?string
+    {
+        foreach ([
+                     'value',
+                     'values',
+                     'data',
+                     'field_value',
+                     'field_values',
+                     'selected',
+                     'selected_value',
+                     'selected_values',
+                 ] as $key) {
+            if (array_key_exists($key, $field)) {
+                return $this->stringifyCustomFieldValue($field[$key]);
+            }
+        }
+
+        return null;
+    }
+
+    private function normalizeCustomFieldCode(string $value): ?string
+    {
+        $value = trim($value);
+
+        if ($value === '') {
+            return null;
+        }
+
+        // CT_1001 / CT_1002 сохраняем как есть.
+        if (preg_match('/^[A-Za-z0-9_-]+$/', $value)) {
+            return $value;
+        }
+
+        $slug = Inflector::slug($value);
+
+        return $slug !== '' ? $slug : null;
+    }
+
+    private function stringifyCustomFieldValue(mixed $value): ?string
+    {
+        if ($value === null || $value === '') {
+            return null;
+        }
+
+        if (is_scalar($value)) {
+            $result = trim((string)$value);
+
+            return $result !== '' ? $result : null;
+        }
+
+        if (is_array($value)) {
+            foreach (['value', 'name', 'title', 'label'] as $key) {
+                if (array_key_exists($key, $value)) {
+                    return $this->stringifyCustomFieldValue($value[$key]);
+                }
+            }
+
+            $parts = [];
+
+            foreach ($value as $item) {
+                $part = $this->stringifyCustomFieldValue($item);
+
+                if ($part !== null) {
+                    $parts[] = $part;
+                }
+            }
+
+            $result = trim(implode(', ', array_unique($parts)));
+
+            return $result !== '' ? $result : null;
+        }
+
+        return null;
+    }
+
+    private function gramsToKilograms(?float $value): ?float
+    {
+        if ($value === null || $value <= 0) {
+            return null;
+        }
+
+        return round($value / 1000, 3);
+    }
+
+    private function centimetersToMillimeters(?float $value): ?int
+    {
+        if ($value === null || $value <= 0) {
+            return null;
+        }
+
+        return (int)round($value * 10);
     }
 
     private function makeUniqueSlug(KeyCrmProductDto $dto): string

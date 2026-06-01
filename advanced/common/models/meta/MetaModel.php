@@ -56,4 +56,30 @@ final class MetaModel extends BaseModel
         $meta->value_decimal = null;
         $meta->save(false);
     }
+
+    /**
+     * @param string[] $keys
+     * @return array<string, string|null>
+     */
+    public static function getEntityTextValues(string $entityType, int $entityId, array $keys): array
+    {
+        if ($entityId < 1 || $keys === []) {
+            return [];
+        }
+
+        /** @var self[] $rows */
+        $rows = static::find()
+            ->forEntity($entityType, $entityId)
+            ->andWhere(['key' => $keys])
+            ->all();
+
+        $result = [];
+
+        foreach ($rows as $row) {
+            $value = $row->value !== null ? trim((string)$row->value) : null;
+            $result[(string)$row->key] = $value !== '' ? $value : null;
+        }
+
+        return $result;
+    }
 }
