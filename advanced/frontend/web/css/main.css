@@ -257,7 +257,6 @@ header, footer, main, section {
 .btns__cart .cart__count {
     min-width: 18px;
     height: 18px;
-    margin-left: 5px;
     padding: 0 5px;
     display: inline-flex;
     justify-content: center;
