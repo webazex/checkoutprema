@@ -1094,7 +1094,7 @@ label.order-form__label[for='fio'] > span, label.order-form__label[for='mail'] {
 
 .card-side-box__btn.checkout-btn.order-form__btn span {
     font-size: 0.63rem;
-    color: var(--txt-color);
+    color: white;
     font-weight: 500;
     line-height: 1.15;
 }
