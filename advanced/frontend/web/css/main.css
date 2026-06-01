@@ -1048,6 +1048,9 @@ label.order-form__label[for='fio'] > span, label.order-form__label[for='mail'] {
 .catalog-page__header h1,
 .product-hero h1 {
     margin: 0 0 16px;
+    font-family: "Unbounded", sans-serif;
+    font-size: 1rem;
+    font-weight: 500;
 }
 
 .catalog-page__seo-text {
@@ -1405,6 +1408,8 @@ label.order-form__label[for='fio'] > span, label.order-form__label[for='mail'] {
 .catalog-category-menu__label {
     flex: 1 1 auto;
     min-width: 0;
+    font-family: "Unbounded", sans-serif;
+    font-weight: 400;
 }
 
 .catalog-category-menu__arrow {
