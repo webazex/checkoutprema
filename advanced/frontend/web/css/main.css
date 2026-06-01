@@ -99,6 +99,7 @@ header, footer, main, section {
 }
 .menu__item {
     margin-right: 15px;
+    position: relative;
     display: flex;
     justify-content: center;
     align-items: center;
@@ -115,7 +116,7 @@ header, footer, main, section {
     background-color: var(--txt-color);
     transition: width 0.1s ease-in-out;
 }
-.menu__item.menu__item--parent {
+.header__menu > .menu__item.menu__item--parent {
     position: static;
 }
 .menu__item:hover > a.menu__link > span.menu__link-text::before {
@@ -126,22 +127,26 @@ header, footer, main, section {
     width: 100%;
     transition: width 0.5s ease-in-out;
 }
-.menu__item.menu__item--parent:hover > .menu__submenu {
+.menu__item.menu__item--parent:hover > .menu__submenu,
+.menu__item.menu__item--parent:focus-within > .menu__submenu {
     display: grid;
     opacity: 1;
     transform: translateY(0);
 }
-.menu__item.menu__item--parent:hover > a.menu__link .menu__triangle-box  span {
+.menu__item.menu__item--parent:hover > a.menu__link .menu__triangle-box  span,
+.menu__item.menu__item--parent:focus-within > a.menu__link .menu__triangle-box  span {
     transition: all 0.5s ease-in-out;
     width: 100%;
     transform-origin: center;
     right: unset;
     left: unset;
 }
-.menu__item.menu__item--parent:hover > a.menu__link .menu__triangle-box  span:first-child {
+.menu__item.menu__item--parent:hover > a.menu__link .menu__triangle-box  span:first-child,
+.menu__item.menu__item--parent:focus-within > a.menu__link .menu__triangle-box  span:first-child {
     transform: rotate(-45deg);
 }
-.menu__item.menu__item--parent:hover > a.menu__link .menu__triangle-box  span:last-child {
+.menu__item.menu__item--parent:hover > a.menu__link .menu__triangle-box  span:last-child,
+.menu__item.menu__item--parent:focus-within > a.menu__link .menu__triangle-box  span:last-child {
     transform: rotate(45deg);
 }
 
@@ -201,6 +206,13 @@ header, footer, main, section {
     opacity: 0;
     transform: translateY(-10px);
     z-index: 2;
+}
+.menu__submenu .menu__submenu {
+    width: max-content;
+    min-width: 220px;
+    max-width: calc(100vw - 40px);
+    grid-template-columns: 1fr;
+    z-index: 3;
 }
 .menu__submenu .menu__item--parent:hover {
     transition: all 0.3s ease-in-out;
