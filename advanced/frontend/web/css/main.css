@@ -245,6 +245,7 @@ header, footer, main, section {
     justify-content: space-between;
     align-items: stretch;
     margin-left: 15px;
+    color: var(--txt-color);
 }
 .btns__profile > svg, .btns__cart > svg{
     width: 100%;
