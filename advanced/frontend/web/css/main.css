@@ -246,6 +246,7 @@ header, footer, main, section {
     align-items: stretch;
     margin-left: 15px;
     color: var(--txt-color);
+    text-decoration: none;
 }
 .btns__profile > svg, .btns__cart > svg{
     width: 100%;
@@ -988,7 +989,15 @@ label.order-form__label[for='fio'] > span, label.order-form__label[for='mail'] {
     font-weight: 300;
     text-decoration: underline;
 }
-
+.cart-side-box {
+    position: fixed;
+    bottom: 10px;
+    right: 10px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    z-index: 99;
+}
 .catalog-page,
 .product-page {
     padding: 32px 0 64px;

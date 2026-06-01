@@ -45,4 +45,5 @@ echo $this->render('_schema', [
             <?php endforeach; ?>
         </section>
     <?php endif; ?>
+    <?=$this->render('__cart-side-box'); ?>
 </section>

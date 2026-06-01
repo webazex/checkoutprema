@@ -39,4 +39,5 @@ echo $this->render('_schema', [
             <?= $this->render('_product_card', ['product' => $product]) ?>
         <?php endforeach; ?>
     </section>
+    <?=$this->render('__cart-side-box'); ?>
 </section>

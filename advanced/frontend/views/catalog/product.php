@@ -146,3 +146,4 @@ $alt = trim($product->name . ', ' . $category->name);
         </section>
     <?php endif; ?>
 </article>
+<?=$this->render('__cart-side-box'); ?>
