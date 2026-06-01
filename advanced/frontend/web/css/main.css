@@ -252,7 +252,7 @@ header, footer, main, section {
     height: 100%;
     color: var(--txt-color);
 }
-.btns__cart > svg span.cart__count {
+.btns__cart svg span.cart__count {
     margin-left: 5px;
     color: var(--txt-color);
 }
