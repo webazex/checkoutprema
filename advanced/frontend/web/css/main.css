@@ -208,7 +208,7 @@ header, footer, main, section {
     z-index: 2;
 }
 .menu__submenu .menu__submenu {
-    width: max-content;
+    width: fit-content;
     min-width: 220px;
     max-width: calc(100vw - 40px);
     grid-template-columns: 1fr;
