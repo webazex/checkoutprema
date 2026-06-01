@@ -992,6 +992,7 @@ label.order-form__label[for='fio'] > span, label.order-form__label[for='mail'] {
 .cart-side-box {
     position: fixed;
     max-width: 100px;
+    padding: 5px;
     width: 100%;
     bottom: 10px;
     right: 10px;
@@ -1000,6 +1001,13 @@ label.order-form__label[for='fio'] > span, label.order-form__label[for='mail'] {
     justify-content: space-between;
     align-items: center;
     z-index: 99;
+    cursor: pointer;
+}
+.cart-side-box__header-block {
+    width: 100%;
+    display: flex;
+    justify-content: center;
+    align-items: center;
 }
 .card-side-box__btn.checkout-btn.order-form__btn {
     width: 100%;
@@ -1007,7 +1015,7 @@ label.order-form__label[for='fio'] > span, label.order-form__label[for='mail'] {
     border: none;
 }
 .card-side-box__btn.checkout-btn.order-form__btn span {
-    font-size: 0.75rem;
+    font-size: 0.65rem;
     color: var(--txt-color);
 }
 .catalog-page,
