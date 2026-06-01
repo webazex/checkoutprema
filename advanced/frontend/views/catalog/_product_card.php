@@ -81,7 +81,9 @@ $alt = trim($product->name . ($category instanceof CatalogCategoryModel ? ', ' .
                 <?= Html::endForm() ?>
             </div>
         <?php else: ?>
-            <div class="catalog-card__unavailable">Немає в наявності</div>
+            <div class="catalog-card__unavailable">
+                <?= Html::encode(Yii::t('frontend', 'Product is out of stock.')) ?>
+            </div>
         <?php endif; ?>
     </div>
 </article>

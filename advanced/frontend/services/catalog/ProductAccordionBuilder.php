@@ -77,7 +77,6 @@ final class ProductAccordionBuilder
 
         $rows = [];
 
-        $this->addRow($rows, Yii::t('frontend', 'SKU'), $product->sku);
         $this->addRow($rows, Yii::t('frontend', 'Barcode'), $product->barcode);
         $this->addRow($rows, Yii::t('frontend', 'Form'), $this->pickMetaValue($meta, self::META_FORM_KEYS));
         $this->addRow($rows, Yii::t('frontend', 'Material'), $this->pickMetaValue($meta, self::META_MATERIAL_KEYS));

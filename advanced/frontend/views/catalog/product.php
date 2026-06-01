@@ -53,6 +53,17 @@ $accordionItems = (new ProductAccordionBuilder())->build($product);
 
             <h1><?= Html::encode($product->name) ?></h1>
 
+            <?php if (!empty($product->sku)): ?>
+                <div class="product-hero__sku">
+                    <span class="product-hero__sku-label">
+                        <?= Html::encode(Yii::t('frontend', 'SKU')) ?>
+                    </span>
+                                <span class="product-hero__sku-value">
+                        <?= Html::encode($product->sku) ?>
+                    </span>
+                </div>
+            <?php endif; ?>
+
             <div class="product-hero__price">
                 <?= $price ?>
             </div>
@@ -66,7 +77,7 @@ $accordionItems = (new ProductAccordionBuilder())->build($product);
                     <?= Html::hiddenInput('product_id', (int)$product->id) ?>
                     <?= Html::hiddenInput('qty', 1) ?>
                     <button class="product-hero__button product-hero__button--secondary" type="submit">
-                        Додати в кошик
+                        <?= Html::encode(Yii::t('frontend', 'Add to cart')) ?>
                     </button>
                     <?= Html::endForm() ?>
 
@@ -76,12 +87,14 @@ $accordionItems = (new ProductAccordionBuilder())->build($product);
                     <?= Html::hiddenInput('product_id', (int)$product->id) ?>
                     <?= Html::hiddenInput('qty', 1) ?>
                     <button class="product-hero__button product-hero__button--primary" type="submit">
-                        Купити зараз
+                        <?= Html::encode(Yii::t('frontend', 'Buy now')) ?>
                     </button>
                     <?= Html::endForm() ?>
                 </div>
             <?php else: ?>
-                <div class="product-hero__unavailable">Немає в наявності</div>
+                <div class="product-hero__unavailable">
+                    <?= Html::encode(Yii::t('frontend', 'Product is out of stock.')) ?>
+                </div>
             <?php endif; ?>
 
             <?= $this->render('_product_accordion', [
@@ -94,7 +107,7 @@ $accordionItems = (new ProductAccordionBuilder())->build($product);
 
     <?php if ($relatedProducts !== []): ?>
         <section class="related-products">
-            <h2>Схожі товари</h2>
+            <h2><?= Html::encode(Yii::t('frontend', 'Related products')) ?></h2>
 
             <div class="catalog-grid">
                 <?php foreach ($relatedProducts as $relatedProduct): ?>
