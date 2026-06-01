@@ -1364,11 +1364,14 @@ label.order-form__label[for='fio'] > span, label.order-form__label[for='mail'] {
 .catalog-card__button--secondary,
 .product-hero__button--secondary {
     background: transparent;
-    color: var(--txt-color);
+    color: var(--btn-color);
     border-radius: 15px;
 }
 .product-hero__button--secondary {
     background-color: var(--btn-color);
+}
+button.catalog-card__button.catalog-card__button--primary {
+    background: var(--btn-green-color);
 }
 .product-hero__button--primary {
     background-color: var(--btn-green-color);
