@@ -132,9 +132,19 @@ header, footer, main, section {
     transform: translateY(0);
 }
 .menu__item.menu__item--parent:hover >
-.menu__link  > span.menu__link-arrow {
+.menu__triangle-box  span {
     transition: all 0.5s ease-in-out;
-    transform: rotate(180deg);
+    width: 100%;
+    transform-origin: center;
+    right: unset;
+    left: unset;
+}
+.menu__item.menu__item--parent:hover >
+.menu__triangle-box  span:first-child {
+    transform: rotate(-45deg);
+}
+.menu__triangle-box  span:last-child {
+    transform: rotate(45deg);
 }
 
 .menu__link  {
