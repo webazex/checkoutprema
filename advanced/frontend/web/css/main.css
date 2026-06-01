@@ -1270,13 +1270,6 @@ label.order-form__label[for='fio'] > span, label.order-form__label[for='mail'] {
     background-color: var(--btn-green-color);
 }
 
-.catalog-card__button--primary,
-.product-hero__button--primary {
-    background: var(--secondary-color, #222);
-    color: var(--txt-color, #fff);
-    border: 1px solid var(--secondary-color, #222);
-}
-
 .catalog-toast-container {
     position: fixed;
     right: 24px;
