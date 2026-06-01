@@ -1363,9 +1363,9 @@ label.order-form__label[for='fio'] > span, label.order-form__label[for='mail'] {
 
 .catalog-card__button--secondary,
 .product-hero__button--secondary {
-    background: transparent;
-    color: var(--btn-color);
+    background-color: var(--btn-color);
     border-radius: 15px;
+    color: var(--txt-color);
 }
 .product-hero__button--secondary {
     background-color: var(--btn-color);
