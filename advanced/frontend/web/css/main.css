@@ -1184,7 +1184,7 @@ label.order-form__label[for='fio'] > span, label.order-form__label[for='mail'] {
 .catalog-grid {
     display: grid;
     grid-template-columns: repeat(auto-fill, minmax(230px, 1fr));
-    row-gap: 40px;
+    row-gap: 100px;
     column-gap: 24px;
 }
 
