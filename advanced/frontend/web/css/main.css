@@ -234,15 +234,21 @@ header, footer, main, section {
     justify-content: flex-start;
     align-items: center;
 }
-.btns__profile {
+.btns__profile, .btns__cart {
     width: 25px;
     height: 25px;
     display: block;
 }
-.btns__profile > svg{
+.btns__cart {
+    margin-left: 15px;
+}
+.btns__profile > svg, .btns__cart > svg{
     width: 100%;
     height: 100%;
     color: var(--txt-color);
+}
+.btns__cart > svg span.cart__count {
+    margin-left: 5px;
 }
 /* ──────────────────────────────────────────────── */
 /* cart */
