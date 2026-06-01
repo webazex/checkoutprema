@@ -256,6 +256,105 @@ header, footer, main, section {
     margin-left: 5px;
     color: var(--txt-color);
 }
+/* ================= Header menu: desktop nested submenu fix ================= */
+
+/* Первый уровень: mega-menu под пунктом "Каталог" */
+.header__menu > .menu__item.menu__item--parent {
+    position: static;
+}
+
+.header__menu > .menu__item.menu__item--parent > .menu__submenu {
+    position: absolute;
+    top: 100%;
+    left: 0;
+    width: 100%;
+    grid-template-columns: repeat(2, 1fr);
+    z-index: 20;
+}
+
+/* Все вложенные parent-items внутри dropdown должны быть нормальным containing block */
+.header__menu .menu__submenu .menu__item.menu__item--parent {
+    position: relative;
+}
+
+/* Вложенные submenu: НЕ растягивать на всю ширину mega-menu */
+.header__menu .menu__submenu .menu__item.menu__item--parent > .menu__submenu {
+    position: absolute;
+    top: calc(100% + 10px);
+    left: 0;
+
+    width: max-content;
+    min-width: 220px;
+    max-width: 320px;
+
+    grid-template-columns: 1fr;
+    gap: 0;
+
+    padding: 12px 15px 15px;
+    z-index: 30;
+
+    border-radius: 0 0 var(--border-radius) var(--border-radius);
+
+    transform: translateY(-6px);
+}
+
+/* Открытие — hover/focus/class, один механизм для любого уровня */
+.header__menu .menu__item.menu__item--parent:hover > .menu__submenu,
+.header__menu .menu__item.menu__item--parent:focus-within > .menu__submenu,
+.header__menu .menu__item.menu__item--parent.menu__item--open > .menu__submenu {
+    display: grid;
+    opacity: 1;
+    visibility: visible;
+    pointer-events: auto;
+    transform: translateY(0);
+}
+
+/* Закрытое состояние */
+.header__menu .menu__submenu {
+    visibility: hidden;
+    pointer-events: none;
+}
+
+/* Но display:none у тебя уже используется, поэтому visibility/pointer тут как страховка */
+.header__menu .menu__item.menu__item--parent:hover > .menu__submenu,
+.header__menu .menu__item.menu__item--parent:focus-within > .menu__submenu,
+.header__menu .menu__item.menu__item--parent.menu__item--open > .menu__submenu {
+    visibility: visible;
+}
+
+/* Hover bridge: удерживает hover при проходе от Test к Subtest */
+@media (hover: hover) and (pointer: fine) {
+    .header__menu .menu__submenu .menu__item.menu__item--parent::after {
+        content: "";
+        position: absolute;
+        top: 100%;
+        left: 0;
+        width: 100%;
+        height: 12px;
+        display: block;
+    }
+}
+.menu__item.menu__item--parent:hover > a.menu__link .menu__triangle-box span,
+.menu__item.menu__item--parent:focus-within > a.menu__link .menu__triangle-box span,
+.menu__item.menu__item--parent.menu__item--open > a.menu__link .menu__triangle-box span {
+    transition: all 0.5s ease-in-out;
+    width: 100%;
+    transform-origin: center;
+    right: unset;
+    left: unset;
+}
+
+.menu__item.menu__item--parent:hover > a.menu__link .menu__triangle-box span:first-child,
+.menu__item.menu__item--parent:focus-within > a.menu__link .menu__triangle-box span:first-child,
+.menu__item.menu__item--parent.menu__item--open > a.menu__link .menu__triangle-box span:first-child {
+    transform: rotate(-45deg);
+}
+
+.menu__item.menu__item--parent:hover > a.menu__link .menu__triangle-box span:last-child,
+.menu__item.menu__item--parent:focus-within > a.menu__link .menu__triangle-box span:last-child,
+.menu__item.menu__item--parent.menu__item--open > a.menu__link .menu__triangle-box span:last-child {
+    transform: rotate(45deg);
+}
 /* ──────────────────────────────────────────────── */
 /* cart */
 /* ──────────────────────────────────────────────── */
