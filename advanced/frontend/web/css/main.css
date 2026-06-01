@@ -1072,7 +1072,7 @@ label.order-form__label[for='fio'] > span, label.order-form__label[for='mail'] {
     align-items: center;
     border-radius: 999px;
     background: var(--txt-color);
-    color: var(--bg-color);
+    color: white;
     font-size: 0.68rem;
     line-height: 1;
     font-weight: 600;
