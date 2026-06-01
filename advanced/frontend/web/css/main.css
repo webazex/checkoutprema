@@ -5,6 +5,7 @@
     --main-color: #ACACAC;
     --secondary-color: #F7F5EF;
     --btn-color: #FFCFE7;
+    --btn-green-color: #DAE67A;
     --border-radius: 20px;
     --cart-padding: 59px;
 }
@@ -1259,7 +1260,14 @@ label.order-form__label[for='fio'] > span, label.order-form__label[for='mail'] {
 .product-hero__button--secondary {
     background: transparent;
     border: 1px solid currentColor;
-    color: inherit;
+    color: var(--txt-color);
+    border-radius: 15px;
+}
+.product-hero__button--secondary {
+    background-color: var(--btn-color);
+}
+.product-hero__button--primary {
+    background-color: var(--btn-green-color);
 }
 
 .catalog-card__button--primary,
