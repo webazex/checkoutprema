@@ -80,6 +80,8 @@ return [
     'Total' => 'Total',
     'UAH' => 'UAH',
     'Remove item' => 'Remove item',
+    'To cart' => 'To cart',
+    'Buy' => 'Buy',
 
     'Your cart is empty :(' => 'Your cart is empty :(',
     'Go to catalog' => 'Go to catalog',

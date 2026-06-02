@@ -23,28 +23,30 @@ $alt = trim($product->name . ($category instanceof CatalogCategoryModel ? ', ' .
 ?>
 
 <article class="catalog-card">
-    <?php if ($productUrl !== null): ?>
-    <a class="catalog-card__image-link" href="<?= Html::encode($productUrl) ?>">
-        <?php endif; ?>
-
-        <?php if (!empty($product->thumbnail_url)): ?>
-            <img
-                    class="catalog-card__image"
-                    src="<?= Html::encode($product->thumbnail_url) ?>"
-                    alt="<?= Html::encode($alt) ?>"
-                    loading="lazy"
-                    width="420"
-                    height="420"
-            >
-        <?php else: ?>
-            <div class="catalog-card__image catalog-card__image--empty">
-                <?= Html::encode($product->name) ?>
-            </div>
-        <?php endif; ?>
-
+    <div class="catalog-card__media">
         <?php if ($productUrl !== null): ?>
-    </a>
-<?php endif; ?>
+        <a class="catalog-card__image-link" href="<?= Html::encode($productUrl) ?>">
+            <?php endif; ?>
+
+            <?php if (!empty($product->thumbnail_url)): ?>
+                <img
+                        class="catalog-card__image"
+                        src="<?= Html::encode($product->thumbnail_url) ?>"
+                        alt="<?= Html::encode($alt) ?>"
+                        loading="lazy"
+                        width="420"
+                        height="420"
+                >
+            <?php else: ?>
+                <div class="catalog-card__image catalog-card__image--empty">
+                    <?= Html::encode($product->name) ?>
+                </div>
+            <?php endif; ?>
+
+            <?php if ($productUrl !== null): ?>
+        </a>
+    <?php endif; ?>
+    </div>
 
     <div class="catalog-card__body">
         <h2 class="catalog-card__title">
@@ -66,7 +68,7 @@ $alt = trim($product->name . ($category instanceof CatalogCategoryModel ? ', ' .
                 <?= Html::hiddenInput('product_id', (int)$product->id) ?>
                 <?= Html::hiddenInput('qty', 1) ?>
                 <button class="catalog-card__button catalog-card__button--secondary" type="submit">
-                    В кошик
+                    <?= Html::encode(Yii::t('frontend', 'To cart')) ?>
                 </button>
                 <?= Html::endForm() ?>
 
@@ -76,7 +78,7 @@ $alt = trim($product->name . ($category instanceof CatalogCategoryModel ? ', ' .
                 <?= Html::hiddenInput('product_id', (int)$product->id) ?>
                 <?= Html::hiddenInput('qty', 1) ?>
                 <button class="catalog-card__button catalog-card__button--primary" type="submit">
-                    Купити
+                    <?= Html::encode(Yii::t('frontend', 'Buy')) ?>
                 </button>
                 <?= Html::endForm() ?>
             </div>

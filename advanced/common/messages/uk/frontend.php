@@ -79,6 +79,8 @@ return [
     'Total' => 'Разом',
     'UAH' => 'грн.',
     'Remove item' => 'Видалити товар',
+    'To cart' => 'В кошик',
+    'Buy' => 'Купити',
 
     'Your cart is empty :(' => 'Кошик поки що пустий :(',
     'Go to catalog' => 'Перейти в каталог',
