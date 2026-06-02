@@ -42,27 +42,30 @@ return [
 
     'footer' => [
         'page.delivery' => [
-            'type' => 'page',
+            'type' => 'external',
             'label' => 'Доставка та оплата',
-            'route' => ['/site/page', 'slug' => 'delivery'],
-            'visible' => false,
-            'breadcrumbs' => true,
+            'url' => 'https://www.premabrand.com.ua/blank-1',
+            'visible' => true,
+            'target' => '_blank',
+            'breadcrumbs' => false,
         ],
 
         'page.privacy' => [
-            'type' => 'page',
+            'type' => 'external',
             'label' => 'Політика конфіденційності',
-            'route' => ['/site/page', 'slug' => 'privacy'],
-            'visible' => false,
-            'breadcrumbs' => true,
+            'url' => 'https://www.premabrand.com.ua/blank-3',
+            'visible' => true,
+            'breadcrumbs' => false,
+            'target' => '_blank',
         ],
 
         'page.terms' => [
-            'type' => 'page',
+            'type' => 'external',
             'label' => 'Публічна оферта',
-            'route' => ['/site/page', 'slug' => 'terms'],
+            'url' => 'https://www.premabrand.com.ua/blank-2',
             'visible' => false,
-            'breadcrumbs' => true,
+            'breadcrumbs' => false,
+            'target' => '_blank',
         ],
     ],
 ];
