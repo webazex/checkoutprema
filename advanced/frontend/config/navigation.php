@@ -2,11 +2,12 @@
 return [
     'header' => [
         'page.about' => [
-            'type' => 'page',
+            'type' => 'external',
             'label' => 'Про нас',
-            'route' => ['/site/about'],
+            'url' => 'https://www.premabrand.com.ua/blank',
             'visible' => true,
-            'breadcrumbs' => true,
+            'target' => '_blank',
+            'breadcrumbs' => false,
         ],
 
         'catalog' => [
@@ -18,20 +19,13 @@ return [
             'childrenProvider' => 'catalogCategories',
         ],
 
-        'page.bestsellers' => [
-            'type' => 'page',
-            'label' => 'Бестселери',
-            'route' => ['/catalog/index'],
-            'visible' => true,
-            'breadcrumbs' => true,
-        ],
-
         'page.contacts' => [
-            'type' => 'page',
+            'type' => 'external',
             'label' => 'Контакти',
-            'route' => ['/site/contact'],
+            'url' => 'https://www.premabrand.com.ua/#comp-kbgakxmn_r_comp-mgum76un',
+            'target' => '_blank',
             'visible' => true,
-            'breadcrumbs' => true,
+            'breadcrumbs' => false,
         ],
 
         // Пример внешней ссылки. Пока скрыто.
