@@ -41,6 +41,17 @@ $level ??= 0;
         </a>
 
         <?php if ($hasChildren): ?>
+            <button
+                    class="menu__submenu-toggle js-menu-submenu-toggle"
+                    type="button"
+                    aria-expanded="false"
+                    aria-label="<?= Html::encode(Yii::t('frontend', 'Toggle submenu') . ': ' . (string)$item['label']) ?>"
+                        >
+                <span class="menu__triangle-box menu__triangle-box--mobile" aria-hidden="true">
+                    <span></span>
+                    <span></span>
+                </span>
+            </button>
             <div class="menu__submenu menu__submenu--level-<?= (int)$level ?>">
                 <?= $this->render('_nav_tree', [
                     'items' => $children,

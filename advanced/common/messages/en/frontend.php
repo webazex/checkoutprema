@@ -187,4 +187,8 @@ return [
     'Customer account is under development' => 'Customer account is under development',
     'All buyers will receive login details by email once the customer account is ready.' => 'All buyers will receive login details by email once the customer account is ready.',
     'Got it' => 'Got it',
+    'Open menu' => 'Open menu',
+    'Close menu' => 'Close menu',
+    'Main menu' => 'Main menu',
+    'Toggle submenu' => 'Toggle submenu',
 ];

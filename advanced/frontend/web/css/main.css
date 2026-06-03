@@ -327,14 +327,14 @@ header, footer, main, section {
     pointer-events: none;
 }
 
-/* Но display:none у тебя уже используется, поэтому visibility/pointer тут как страховка */
+
 .header__menu .menu__item.menu__item--parent:hover > .menu__submenu,
 .header__menu .menu__item.menu__item--parent:focus-within > .menu__submenu,
 .header__menu .menu__item.menu__item--parent.menu__item--open > .menu__submenu {
     visibility: visible;
 }
 
-/* Hover bridge: удерживает hover при проходе от Test к Subtest */
+
 @media (hover: hover) and (pointer: fine) {
     .header__menu .menu__submenu .menu__item.menu__item--parent::after {
         content: "";
@@ -366,6 +366,251 @@ header, footer, main, section {
 .menu__item.menu__item--parent:focus-within > a.menu__link .menu__triangle-box span:last-child,
 .menu__item.menu__item--parent.menu__item--open > a.menu__link .menu__triangle-box span:last-child {
     transform: rotate(45deg);
+}
+/* ──────────────────────────────────────────────── */
+/* Header mobile menu */
+/* ──────────────────────────────────────────────── */
+
+.header__burger,
+.menu__submenu-toggle {
+    display: none;
+}
+
+@media (max-width: 900px) {
+    body.is-mobile-menu-open {
+        overflow: hidden;
+    }
+
+    header {
+        position: relative;
+        z-index: 1100;
+    }
+
+    .header-container__header {
+        position: relative;
+        display: flex;
+        align-items: center;
+        gap: 14px;
+    }
+
+    .header__logo {
+        position: relative;
+        z-index: 1202;
+        flex: 0 1 auto;
+    }
+
+    .header__logo svg {
+        max-width: 164px;
+        height: auto;
+    }
+
+    .header__btns {
+        position: relative;
+        z-index: 1202;
+        margin-left: auto;
+        display: flex;
+        align-items: center;
+        gap: 12px;
+    }
+
+    .header__burger {
+        position: relative;
+        z-index: 1203;
+        width: 44px;
+        height: 44px;
+        margin-left: auto;
+        padding: 0;
+        border: 1px solid rgba(80, 53, 96, 0.22);
+        border-radius: 999px;
+        background: var(--secondary-color);
+        display: inline-flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        gap: 5px;
+        cursor: pointer;
+        color: var(--txt-color);
+    }
+
+    .header__burger-line {
+        width: 20px;
+        height: 1.5px;
+        border-radius: 999px;
+        background: currentColor;
+        transition: transform 0.22s ease, opacity 0.22s ease;
+    }
+
+    body.is-mobile-menu-open .header__burger-line:nth-child(1) {
+        transform: translateY(6.5px) rotate(45deg);
+    }
+
+    body.is-mobile-menu-open .header__burger-line:nth-child(2) {
+        opacity: 0;
+    }
+
+    body.is-mobile-menu-open .header__burger-line:nth-child(3) {
+        transform: translateY(-6.5px) rotate(-45deg);
+    }
+
+    .header__menu {
+        position: fixed;
+        top: 0;
+        right: 0;
+        bottom: 0;
+        z-index: 1201;
+        width: min(420px, 100vw);
+        max-width: 100vw;
+        padding: 112px 24px 34px;
+        display: block;
+        overflow-y: auto;
+        background: var(--secondary-color);
+        box-shadow: -18px 0 46px rgba(80, 53, 96, 0.18);
+        transform: translateX(104%);
+        opacity: 0;
+        visibility: hidden;
+        pointer-events: none;
+        transition: transform 0.24s ease, opacity 0.24s ease, visibility 0.24s ease;
+    }
+
+    body.is-mobile-menu-open .header__menu {
+        transform: translateX(0);
+        opacity: 1;
+        visibility: visible;
+        pointer-events: auto;
+    }
+
+    .header__menu .menu__item {
+        position: relative;
+        width: 100%;
+        min-width: 0;
+        display: block;
+        border-bottom: 1px solid rgba(80, 53, 96, 0.12);
+    }
+
+    .header__menu .menu__item:last-child {
+        border-bottom: none;
+    }
+
+    .header__menu .menu__link {
+        width: 100%;
+        min-height: 54px;
+        padding: 15px 54px 15px 0;
+        display: flex;
+        align-items: center;
+        justify-content: flex-start;
+        color: var(--txt-color);
+        text-decoration: none;
+        font-size: 1.02rem;
+        line-height: 1.25;
+    }
+
+    .header__menu .menu__link-text {
+        max-width: 100%;
+        overflow-wrap: anywhere;
+    }
+
+    .header__menu .menu__link > .menu__triangle-box {
+        display: none;
+    }
+
+    .menu__submenu-toggle {
+        position: absolute;
+        top: 5px;
+        right: 0;
+        z-index: 2;
+        width: 44px;
+        height: 44px;
+        padding: 0;
+        border: none;
+        border-radius: 999px;
+        background: transparent;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        color: var(--txt-color);
+        cursor: pointer;
+    }
+
+    .menu__triangle-box--mobile {
+        width: 18px;
+        height: 18px;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        transition: transform 0.2s ease;
+    }
+
+    .menu__item--open > .menu__submenu-toggle .menu__triangle-box--mobile {
+        transform: rotate(180deg);
+    }
+
+    .header__menu .menu__submenu {
+        position: static !important;
+        top: auto !important;
+        left: auto !important;
+        right: auto !important;
+        width: 100% !important;
+        min-width: 0 !important;
+        max-width: 100% !important;
+        height: auto !important;
+        margin: 0 !important;
+        padding: 0 !important;
+        display: block !important;
+        overflow: hidden;
+        max-height: 0;
+        opacity: 1 !important;
+        visibility: visible !important;
+        transform: none !important;
+        pointer-events: auto !important;
+        background: transparent !important;
+        border-radius: 0 !important;
+        box-shadow: none !important;
+        transition: max-height 0.24s ease;
+    }
+
+    .header__menu .menu__item--open > .menu__submenu {
+        max-height: 1400px;
+        padding-bottom: 8px !important;
+    }
+
+    .header__menu .menu__submenu .menu__item {
+        border-bottom: none;
+    }
+
+    .header__menu .menu__submenu .menu__link {
+        min-height: 44px;
+        padding-top: 10px;
+        padding-bottom: 10px;
+        padding-left: 18px;
+        font-size: 0.94rem;
+        opacity: 0.88;
+    }
+
+    .header__menu .menu__submenu .menu__submenu .menu__link {
+        padding-left: 34px;
+        font-size: 0.9rem;
+    }
+}
+
+@media (max-width: 420px) {
+    .header__menu {
+        width: 100vw;
+        padding-left: 20px;
+        padding-right: 20px;
+    }
+
+    .header__logo svg {
+        max-width: 136px;
+    }
+
+    .header__btns {
+        gap: 8px;
+    }
+
+    .header__burger {
+        width: 42px;
+        height: 42px;
+    }
 }
 /* ──────────────────────────────────────────────── */
 /* cart */
