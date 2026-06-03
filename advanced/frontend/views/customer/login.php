@@ -20,6 +20,10 @@ $this->title = Yii::t('frontend', 'Login');
                     'id' => 'customer-login-form',
                     'options' => [
                             'class' => 'customer-auth__form customer-login__form',
+                            'data-customer-login-stub' => '1',
+                            'data-stub-title' => Yii::t('frontend', 'Customer account is under development'),
+                            'data-stub-message' => Yii::t('frontend', 'All buyers will receive login details by email once the customer account is ready.'),
+                            'data-stub-close' => Yii::t('frontend', 'Got it'),
                     ],
                     'fieldConfig' => [
                             'template' => "{input}\n{error}",

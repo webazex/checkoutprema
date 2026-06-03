@@ -183,4 +183,7 @@ return [
     'If an account with this email exists, we will send instructions for setting or resetting your password.' => 'Якщо акаунт із такою поштою існує, ми надішлемо інструкції для встановлення або скидання пароля.',
     'Send link' => 'Надіслати посилання',
     'Back to login' => 'Повернутися до входу',
+    'Customer account is under development' => 'Кабінет покупця ще в розробці',
+    'All buyers will receive login details by email once the customer account is ready.' => 'Усі покупці отримають повідомлення на пошту, яку використовували під час оформлення замовлення, з даними для входу, щойно все буде готово.',
+    'Got it' => 'Зрозуміло',
 ];

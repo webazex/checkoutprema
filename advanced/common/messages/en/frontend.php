@@ -184,4 +184,7 @@ return [
     'If an account with this email exists, we will send instructions for setting or resetting your password.' => 'If an account with this email exists, we will send instructions for setting or resetting your password.',
     'Send link' => 'Send link',
     'Back to login' => 'Back to login',
+    'Customer account is under development' => 'Customer account is under development',
+    'All buyers will receive login details by email once the customer account is ready.' => 'All buyers will receive login details by email once the customer account is ready.',
+    'Got it' => 'Got it',
 ];
