@@ -387,7 +387,7 @@ header, footer, main, section {
         margin-left: auto;
         padding: 0;
         border: 1px solid rgba(80, 53, 96, 0.22);
-        border-radius: 999px;
+        border-radius: 15px;
         background: transparent;
         display: inline-flex;
         flex-direction: column;
