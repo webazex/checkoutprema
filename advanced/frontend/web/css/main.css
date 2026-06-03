@@ -309,7 +309,30 @@ header, footer, main, section {
 
     transform: translateY(-6px);
 }
+.header__logo-link {
+    display: inline-flex;
+    align-items: center;
+    text-decoration: none;
+}
 
+.header__logo-img {
+    display: block;
+    width: 180px;
+    max-width: 100%;
+    height: auto;
+}
+
+@media (max-width: 900px) {
+    .header__logo-img {
+        width: 145px;
+    }
+}
+
+@media (max-width: 420px) {
+    .header__logo-img {
+        width: 132px;
+    }
+}
 /* Открытие — hover/focus/class, один механизм для любого уровня */
 .header__menu .menu__item.menu__item--parent:hover > .menu__submenu,
 .header__menu .menu__item.menu__item--parent:focus-within > .menu__submenu,
@@ -327,7 +350,6 @@ header, footer, main, section {
     pointer-events: none;
 }
 
-/* Но display:none у тебя уже используется, поэтому visibility/pointer тут как страховка */
 .header__menu .menu__item.menu__item--parent:hover > .menu__submenu,
 .header__menu .menu__item.menu__item--parent:focus-within > .menu__submenu,
 .header__menu .menu__item.menu__item--parent.menu__item--open > .menu__submenu {
