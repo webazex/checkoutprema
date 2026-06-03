@@ -1327,11 +1327,10 @@ label.order-form__label[for='fio'] > span, label.order-form__label[for='mail'] {
 .product-accordion__table > tbody > tr:nth-child(even) {
     background-color: var(--btn-color);
 }
-.product-accordion__table > tbody > tr > th {
-    padding-right: 5px;
-}
+
+.product-accordion__table > tbody > tr > th,
 .product-accordion__table > tbody > tr > td {
-    padding-left: 5px;
+    padding: 4px 5px;
 }
 .catalog-breadcrumbs {
     display: flex;
