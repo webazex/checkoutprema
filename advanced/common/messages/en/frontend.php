@@ -175,4 +175,8 @@ return [
     'Order number' => 'Order number',
     'Site order number' => 'Site order number',
     'Site order identifier' => 'Site order identifier',
+
+    'Customer account login' => 'Customer account login',
+    'Login' => 'Login',
+    'Restore access' => 'Restore access',
 ];

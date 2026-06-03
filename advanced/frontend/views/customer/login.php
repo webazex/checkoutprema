@@ -1,41 +1,91 @@
 <?php
 
 /** @var yii\web\View $this */
-/** @var yii\bootstrap5\ActiveForm $form */
-/** @var \common\models\LoginForm $model */
+/** @var frontend\models\customer\CustomerLoginForm $model */
 
-use yii\bootstrap5\Html;
-use yii\bootstrap5\ActiveForm;
+use yii\helpers\Html;
+use yii\helpers\Url;
+use yii\widgets\ActiveForm;
 
-$this->title = 'Login';
-$this->params['breadcrumbs'][] = $this->title;
+$this->title = Yii::t('frontend', 'Login');
 ?>
-<div class="site-login">
-    <h1><?= Html::encode($this->title) ?></h1>
 
-    <p>Please fill out the following fields to login:</p>
+<main class="customer-auth-page customer-login-page">
+    <div class="site-size">
+        <section class="customer-auth customer-auth--login">
+            <h1 class="customer-auth__title">
+                <?= Html::encode(Yii::t('frontend', 'Customer account login')) ?>
+            </h1>
 
-    <div class="row">
-        <div class="col-lg-5">
-            <?php $form = ActiveForm::begin(['id' => 'login-form']); ?>
+            <?php $form = ActiveForm::begin([
+                    'id' => 'customer-login-form',
+                    'action' => Url::to(['/customer/login']),
+                    'options' => [
+                            'class' => 'customer-auth__form customer-login__form',
+                    ],
+                    'fieldConfig' => [
+                            'template' => "{input}\n{error}",
+                            'options' => [
+                                    'class' => 'customer-auth__field',
+                            ],
+                            'errorOptions' => [
+                                    'class' => 'customer-auth__error',
+                            ],
+                    ],
+            ]); ?>
 
-                <?= $form->field($model, 'username')->textInput(['autofocus' => true]) ?>
+            <?= $form->field($model, 'email')->input('email', [
+                    'class' => 'customer-auth__input',
+                    'placeholder' => 'Email',
+                    'autocomplete' => 'email',
+                    'autofocus' => true,
+                    'required' => true,
+            ]) ?>
 
-                <?= $form->field($model, 'password')->passwordInput() ?>
+            <?= $form->field($model, 'password')->passwordInput([
+                    'class' => 'customer-auth__input',
+                    'placeholder' => Yii::t('frontend', 'Password'),
+                    'autocomplete' => 'current-password',
+                    'required' => true,
+            ]) ?>
 
-                <?= $form->field($model, 'rememberMe')->checkbox() ?>
+            <div class="customer-auth__remember-row">
+                <label class="customer-auth__remember">
+                    <?= Html::activeCheckbox($model, 'rememberMe', [
+                            'class' => 'customer-auth__remember-input',
+                            'label' => false,
+                    ]) ?>
+                    <span><?= Html::encode($model->getAttributeLabel('rememberMe')) ?></span>
+                </label>
 
-                <div class="my-1 mx-0" style="color:#999;">
-                    If you forgot your password you can <?= Html::a('reset it', ['site/request-password-reset']) ?>.
-                    <br>
-                    Need new verification email? <?= Html::a('Resend', ['site/resend-verification-email']) ?>
-                </div>
+                <?= Html::error($model, 'rememberMe', [
+                        'class' => 'customer-auth__error',
+                ]) ?>
+            </div>
 
-                <div class="form-group">
-                    <?= Html::submitButton('Login', ['class' => 'btn btn-primary', 'name' => 'login-button']) ?>
-                </div>
+            <div class="customer-login__btns-row">
+                <button class="customer-auth__btn customer-auth__btn--primary" type="submit">
+                    <span><?= Html::encode(Yii::t('frontend', 'Login')) ?></span>
+                </button>
+
+                <button class="customer-auth__btn customer-auth__btn--secondary" type="reset">
+                    <span><?= Html::encode(Yii::t('frontend', 'Cancel')) ?></span>
+                </button>
+            </div>
+
+            <div class="customer-login__links">
+                <?= Html::a(
+                        Html::tag(
+                                'span',
+                                Html::encode(Yii::t('frontend', 'Restore access')),
+                                ['class' => 'recovery-link__txt']
+                        ),
+                        ['/customer/restore'],
+                        ['class' => 'customer-login__recovery-link']
+                ) ?>
+            </div>
 
             <?php ActiveForm::end(); ?>
-        </div>
+        </section>
     </div>
-</div>
+</main>

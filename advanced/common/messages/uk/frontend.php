@@ -174,4 +174,8 @@ return [
     'Order number' => 'Номер замовлення',
     'Site order number' => 'Номер замовлення з сайту',
     'Site order identifier' => 'Ідентифікатор замовлення з сайту',
+
+    'Customer account login' => 'Вхід до кабінету',
+    'Login' => 'Увійти',
+    'Restore access' => 'Відновити доступ',
 ];

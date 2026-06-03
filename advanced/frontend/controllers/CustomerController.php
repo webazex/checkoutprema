@@ -8,9 +8,10 @@ use yii\web\ForbiddenHttpException;
 use yii\web\BadRequestHttpException;
 use yii\filters\VerbFilter;
 use frontend\models\customer\CustomerLoginForm;
-use frontend\models\customer\customer\CustomerRestoreRequestForm;
-use frontend\models\customer\CustomerResetPasswordForm;
 use common\models\customer\CustomerPasswordResetTokenModel;
+use frontend\models\customer\CustomerRestoreRequestForm;
+use frontend\models\customer\CustomerResetPasswordForm;
+use frontend\assets\CustomerAsset;
 
 class CustomerController extends Controller
 {
@@ -24,6 +25,13 @@ class CustomerController extends Controller
                 ],
             ],
         ];
+    }
+
+    public function beforeAction($action)
+    {
+        CustomerAsset::register($this->getView());
+
+        return parent::beforeAction($action);
     }
 
     public function actionLogin()
