@@ -1041,6 +1041,32 @@ label.order-form__label[for='fio'] > span, label.order-form__label[for='mail'] {
     }
 }
 
+/* Footer long links mobile fix */
+
+.site-footer .footer__menu-column,
+.site-footer .menu-column__list,
+.site-footer .menu-column__item {
+    min-width: 0;
+    max-width: 100%;
+}
+
+.site-footer .item__menu-link {
+    max-width: 100%;
+    white-space: normal;
+    overflow-wrap: anywhere;
+    word-break: break-word;
+}
+
+.site-footer .item__menu-link > span {
+    overflow-wrap: anywhere;
+    word-break: inherit;
+}
+@media (max-width: 760px) {
+    .site-footer .item__menu-link {
+        line-height: 1.35;
+    }
+}
+
 .menu-column__title {
     margin-bottom: 24px;
 }
