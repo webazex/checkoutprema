@@ -1301,7 +1301,18 @@ label.order-form__label[for='fio'] > span, label.order-form__label[for='mail'] {
 .product-page {
     padding: 32px 0 64px;
 }
-
+.product-accordion {
+    position: relative;
+    width: 100%;
+    margin-top: 15px;
+}
+.product-accordion__item {
+    border-bottom: 1px solid var(--txt-color);
+    margin-bottom: 10px;
+}
+.product-accordion__summary {
+    font-weight: bold;
+}
 .catalog-breadcrumbs {
     display: flex;
     flex-wrap: wrap;
