@@ -4,7 +4,6 @@
 /** @var frontend\models\customer\CustomerLoginForm $model */
 
 use yii\helpers\Html;
-use yii\helpers\Url;
 use yii\widgets\ActiveForm;
 
 $this->title = Yii::t('frontend', 'Login');
@@ -19,7 +18,6 @@ $this->title = Yii::t('frontend', 'Login');
 
             <?php $form = ActiveForm::begin([
                     'id' => 'customer-login-form',
-                    'action' => Url::to(['/customer/login']),
                     'options' => [
                             'class' => 'customer-auth__form customer-login__form',
                     ],
