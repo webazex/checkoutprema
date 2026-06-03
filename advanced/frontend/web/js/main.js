@@ -215,4 +215,109 @@ $(function () {
             .find('> .js-category-collapse-toggle')
             .attr('aria-expanded', 'false');
     });
+
+    /* Mobile header menu */
+
+    var MOBILE_MENU_BREAKPOINT = 900;
+    var $body = $('body');
+    var $mobileMenuToggle = $('.js-mobile-menu-toggle');
+    var $mobileMenu = $('#site-mobile-menu');
+
+    function isMobileMenuMode() {
+        return window.matchMedia('(max-width: ' + MOBILE_MENU_BREAKPOINT + 'px)').matches;
+    }
+
+    function closeMobileSubmenus() {
+        if (!$mobileMenu.length) {
+            return;
+        }
+
+        $mobileMenu
+            .find('.menu__item--open')
+            .removeClass('menu__item--open')
+            .children('.js-mobile-submenu-toggle')
+            .attr('aria-expanded', 'false');
+    }
+
+    function openMobileMenu() {
+        if (!$mobileMenuToggle.length || !$mobileMenu.length) {
+            return;
+        }
+
+        $body.addClass('is-mobile-menu-open');
+
+        $mobileMenuToggle
+            .attr('aria-expanded', 'true')
+            .attr(
+                'aria-label',
+                $mobileMenuToggle.data('close-label') || 'Close menu'
+            );
+    }
+
+    function closeMobileMenu() {
+        if (!$mobileMenuToggle.length || !$mobileMenu.length) {
+            return;
+        }
+
+        $body.removeClass('is-mobile-menu-open');
+
+        $mobileMenuToggle
+            .attr('aria-expanded', 'false')
+            .attr(
+                'aria-label',
+                $mobileMenuToggle.data('open-label') || 'Open menu'
+            );
+
+        closeMobileSubmenus();
+    }
+
+    $(document).on('click', '.js-mobile-menu-toggle', function (event) {
+        event.preventDefault();
+        event.stopPropagation();
+
+        if (!isMobileMenuMode()) {
+            return;
+        }
+
+        if ($body.hasClass('is-mobile-menu-open')) {
+            closeMobileMenu();
+            return;
+        }
+
+        openMobileMenu();
+    });
+
+    $(document).on('click', '.js-mobile-submenu-toggle', function (event) {
+        event.preventDefault();
+        event.stopPropagation();
+
+        if (!isMobileMenuMode()) {
+            return;
+        }
+
+        var $button = $(this);
+        var $item = $button.closest('.menu__item');
+        var isOpen = $item.hasClass('menu__item--open');
+
+        $item.toggleClass('menu__item--open', !isOpen);
+        $button.attr('aria-expanded', !isOpen ? 'true' : 'false');
+    });
+
+    $mobileMenu.on('click', '.menu__link', function () {
+        if (isMobileMenuMode()) {
+            closeMobileMenu();
+        }
+    });
+
+    $(document).on('keydown', function (event) {
+        if (event.key === 'Escape' && $body.hasClass('is-mobile-menu-open')) {
+            closeMobileMenu();
+        }
+    });
+
+    $(window).on('resize', function () {
+        if (!isMobileMenuMode() && $body.hasClass('is-mobile-menu-open')) {
+            closeMobileMenu();
+        }
+    });
 });
