@@ -992,6 +992,55 @@ label.order-form__label[for='fio'] > span, label.order-form__label[for='mail'] {
     grid-area: menu3;
 }
 
+/* Footer rounded background fix */
+
+.site-footer {
+    width: 100%;
+    padding: 17px 20px;
+}
+
+.site-footer > .site-size.footer-bg.footer-paddings {
+    max-width: 1440px;
+    width: 100%;
+    margin: 0 auto;
+    padding: 70px 45px 88px;
+    background-color: var(--secondary-color);
+    border-radius: var(--border-radius);
+    overflow: hidden;
+}
+
+.site-footer .site-size__footer-container {
+    width: 100%;
+    height: auto;
+    max-height: none;
+}
+
+.site-footer .footer-container__footer {
+    width: 100%;
+    height: auto;
+}
+
+@media (max-width: 1180px) {
+    .site-footer {
+        padding: 17px 20px;
+    }
+
+    .site-footer > .site-size.footer-bg.footer-paddings {
+        padding: 56px 34px 68px;
+    }
+}
+
+@media (max-width: 760px) {
+    .site-footer {
+        padding: 12px 12px;
+    }
+
+    .site-footer > .site-size.footer-bg.footer-paddings {
+        padding: 42px 24px 52px;
+        border-radius: 18px;
+    }
+}
+
 .menu-column__title {
     margin-bottom: 24px;
 }
