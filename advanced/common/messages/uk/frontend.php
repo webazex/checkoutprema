@@ -178,4 +178,9 @@ return [
     'Customer account login' => 'Вхід до кабінету',
     'Login' => 'Увійти',
     'Restore access' => 'Відновити доступ',
+    'Access recovery' => 'Відновлення доступу',
+    'Enter the email you used when placing your order.' => 'Вкажіть email, який ви використовували під час оформлення замовлення.',
+    'If an account with this email exists, we will send instructions for setting or resetting your password.' => 'Якщо акаунт із такою поштою існує, ми надішлемо інструкції для встановлення або скидання пароля.',
+    'Send link' => 'Надіслати посилання',
+    'Back to login' => 'Повернутися до входу',
 ];

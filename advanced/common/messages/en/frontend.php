@@ -179,4 +179,9 @@ return [
     'Customer account login' => 'Customer account login',
     'Login' => 'Login',
     'Restore access' => 'Restore access',
+    'Access recovery' => 'Access recovery',
+    'Enter the email you used when placing your order.' => 'Enter the email you used when placing your order.',
+    'If an account with this email exists, we will send instructions for setting or resetting your password.' => 'If an account with this email exists, we will send instructions for setting or resetting your password.',
+    'Send link' => 'Send link',
+    'Back to login' => 'Back to login',
 ];
