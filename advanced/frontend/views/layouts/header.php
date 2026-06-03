@@ -36,30 +36,12 @@ $cartUrl = (string)($cartState['cartUrl'] ?? Url::to(['/cart/index']));
                     </svg>
 
                 </div>
-                <button
-                        class="header__burger js-header-menu-toggle"
-                        type="button"
-                        aria-controls="site-mobile-menu"
-                        aria-expanded="false"
-                        aria-label="<?= Html::encode(Yii::t('frontend', 'Open menu')) ?>"
-                        data-open-label="<?= Html::encode(Yii::t('frontend', 'Open menu')) ?>"
-                        data-close-label="<?= Html::encode(Yii::t('frontend', 'Close menu')) ?>"
-                >
-                    <span class="header__burger-line"></span>
-                    <span class="header__burger-line"></span>
-                    <span class="header__burger-line"></span>
-                </button>
-
-                <nav
-                        id="site-mobile-menu"
-                        class="header__menu"
-                        aria-label="<?= Html::encode(Yii::t('frontend', 'Main menu')) ?>"
-                >
+                <div class="header__menu">
                     <?= $this->render('_nav_tree', [
                             'items' => $headerTree ?? [],
                             'level' => 0,
                     ]) ?>
-                </nav>
+                </div>
                 <div class="header__btns">
                     <a href="/customer" class="btns__profile">
                         <svg width="800px" height="800px" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
