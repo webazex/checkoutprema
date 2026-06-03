@@ -20,6 +20,10 @@ class CustomerPasswordResetTokenModel extends \common\models\BaseModel
         return '{{%customer_password_reset_token}}';
     }
 
+    public static function createForCustomer(CustomerModel $customer) {
+        return "test-token-str";
+    }
+
     public function rules(): array
     {
         return array_merge(parent::rules(), [
