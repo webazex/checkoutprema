@@ -674,6 +674,40 @@ header, footer, main, section {
 .menu__item.menu__item--parent.menu__item--open > a.menu__link .menu__triangle-box span:last-child {
     transform: rotate(45deg);
 }
+
+/* Mobile menu stacking fix */
+
+@media (max-width: 900px) {
+    header {
+        position: relative;
+        z-index: 9000;
+        isolation: isolate;
+    }
+
+    .header-container,
+    .header-container__header {
+        position: relative;
+        z-index: 9001;
+    }
+
+    .header__menu {
+        z-index: 9002 !important;
+    }
+
+    .header__logo,
+    .header__btns,
+    .header__burger {
+        position: relative;
+        z-index: 9003;
+    }
+
+    body.is-mobile-menu-open main,
+    body.is-mobile-menu-open footer,
+    body.is-mobile-menu-open .cart-side-box {
+        position: relative;
+        z-index: 1;
+    }
+}
 /* ──────────────────────────────────────────────── */
 /* cart */
 /* ──────────────────────────────────────────────── */
