@@ -2274,7 +2274,7 @@ button.catalog-card__button.catalog-card__button--primary {
 
 .product-design__price {
     margin-bottom: 18px;
-    font-family: "Garet-Heavy", "Garet-Book", system-ui, sans-serif;
+    font-family: "Garet-Book", system-ui, sans-serif;
     font-size: .8rem;
     font-weight: 800;
     line-height: 1.2;
