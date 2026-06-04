@@ -309,7 +309,9 @@ header, footer, main, section {
 .btns__cart {
     width: 25px;
     height: 25px;
-    display: block;
+    display: flex;
+    justify-content: center;
+    align-items: center;
 }
 
 .btns__cart {
