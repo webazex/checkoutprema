@@ -1,7 +1,8 @@
 :root {
     --fs: 20px;
     font-size: var(--fs);
-    --txt-color: rgba(71, 46, 86, 1);
+    /*--txt-color: rgba(71, 46, 86, 1);*/
+    --txt-color: #472E56;
     --main-color: #ACACAC;
     --secondary-color: #F7F5EF;
     --btn-color: #FFCFE7;
