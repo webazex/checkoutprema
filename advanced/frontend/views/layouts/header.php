@@ -12,7 +12,7 @@ $cartState = $cartState ?? [];
 
 $cartItemsCount = max(0, (int)($cartState['itemsCount'] ?? 0));
 $cartUrl = (string)($cartState['cartUrl'] ?? Url::to(['/cart/index']));
-$logoUrl = Url::to('@web/img/logo.svg');
+$logoUrl = Url::to('@web/img/logo2.svg');
 ?>
 <!DOCTYPE html>
 <html lang="<?= Html::encode(Yii::$app->language) ?>">
