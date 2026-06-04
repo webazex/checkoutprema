@@ -26,6 +26,15 @@ final class KeyCrmProductMapper
             ));
         }
 
+        $imageUrls = $this->extractImageUrls($item);
+        $fallbackThumbnailUrl = $this->nullableString($item['thumbnail_url'] ?? null);
+
+        if ($fallbackThumbnailUrl !== null && !in_array($fallbackThumbnailUrl, $imageUrls, true)) {
+            array_unshift($imageUrls, $fallbackThumbnailUrl);
+        }
+
+        $thumbnailUrl = $imageUrls[0] ?? $fallbackThumbnailUrl;
+
         $stockQuantity = $this->extractStockQuantity($item);
         $reservedQuantity = $this->extractReservedQuantity($item);
         $availableQuantity = $this->extractAvailableQuantity(
@@ -38,7 +47,8 @@ final class KeyCrmProductMapper
             externalId: $externalId,
             name: $name,
             description: $this->nullableString($item['description'] ?? null),
-            thumbnailUrl: $this->nullableString($item['thumbnail_url'] ?? null),
+            thumbnailUrl: $thumbnailUrl,
+            imageUrls: $imageUrls,
 
             // Raw/legacy value. Do not treat it as available-to-sell.
             quantity: (int)($item['quantity'] ?? 0),
@@ -78,6 +88,60 @@ final class KeyCrmProductMapper
         }
 
         return $result;
+    }
+
+    /**
+     * @return string[]
+     */
+    private function extractImageUrls(array $item): array
+    {
+        $urls = [];
+
+        if (array_key_exists('attachments_data', $item)) {
+            $this->collectImageUrls($item['attachments_data'], $urls);
+        }
+
+        return array_values(array_unique(array_filter($urls)));
+    }
+
+    private function collectImageUrls(mixed $value, array &$urls): void
+    {
+        if ($value === null || $value === '') {
+            return;
+        }
+
+        if (is_string($value)) {
+            $url = trim($value);
+
+            if ($url === '') {
+                return;
+            }
+
+            if (preg_match('~^https?://~i', $url) || str_starts_with($url, '/')) {
+                $urls[] = $url;
+            }
+
+            return;
+        }
+
+        if (is_object($value)) {
+            $value = get_object_vars($value);
+        }
+
+        if (!is_array($value)) {
+            return;
+        }
+
+        foreach (['url', 'src', 'thumbnail_url', 'image_url', 'original_url', 'full_url'] as $key) {
+            if (!empty($value[$key]) && is_string($value[$key])) {
+                $this->collectImageUrls($value[$key], $urls);
+                return;
+            }
+        }
+
+        foreach ($value as $item) {
+            $this->collectImageUrls($item, $urls);
+        }
     }
 
     private function extractStockQuantity(array $item): ?int

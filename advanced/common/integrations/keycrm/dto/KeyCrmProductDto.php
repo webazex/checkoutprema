@@ -10,7 +10,20 @@ final class KeyCrmProductDto
         public readonly int $externalId,
         public readonly string $name,
         public readonly ?string $description,
+
+        /**
+         * Main product image URL.
+         * Usually the first URL from KeyCRM attachments_data.
+         */
         public readonly ?string $thumbnailUrl,
+
+        /**
+         * Ordered product image URLs from KeyCRM.
+         * The first item is considered the main image.
+         *
+         * @var string[]
+         */
+        public readonly array $imageUrls,
 
         /**
          * Legacy/raw KeyCRM quantity value.

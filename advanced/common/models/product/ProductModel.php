@@ -1,10 +1,11 @@
 <?php
 
 namespace common\models\product;
+
 use common\models\BaseModel;
 use common\models\cart\CartItemModel;
-use common\models\order\OrderItemModel;
 use common\models\catalog\CatalogCategoryModel;
+use common\models\order\OrderItemModel;
 
 /**
  * @property int $id
@@ -22,12 +23,16 @@ use common\models\catalog\CatalogCategoryModel;
  * @property int|null $width_mm
  * @property int|null $height_mm
  * @property string|null $thumbnail_url
+ * @property string|null $images_json
  * @property int|null $category_external_id
  * @property int $is_archived
+ * @property int|null $archived_at
+ * @property int|null $category_id
  * @property int $created_at
  * @property int $updated_at
  *
  * @property ProductExternalMapModel[] $externalMaps
+ * @property CatalogCategoryModel|null $category
  * @property CartItemModel[] $cartItems
  * @property OrderItemModel[] $orderItems
  */
@@ -42,14 +47,13 @@ class ProductModel extends BaseModel
     {
         return array_merge(parent::rules(), [
             [['name', 'price', 'currency'], 'required'],
-            [['description'], 'string'],
+            [['description', 'images_json'], 'string'],
             [['price', 'purchased_price', 'weight_kg'], 'number'],
             [['quantity', 'length_mm', 'width_mm', 'height_mm', 'category_external_id', 'is_archived', 'created_at', 'updated_at'], 'integer'],
             [['name', 'slug'], 'string', 'max' => 255],
             [['sku', 'barcode'], 'string', 'max' => 64],
             [['currency'], 'string', 'max' => 3],
             [['thumbnail_url'], 'string', 'max' => 512],
-
             [['slug'], 'unique'],
             [['sku'], 'unique'],
             [['is_archived'], 'boolean'],
@@ -83,6 +87,7 @@ class ProductModel extends BaseModel
             'width_mm' => 'Ширина (мм)',
             'height_mm' => 'Высота (мм)',
             'thumbnail_url' => 'Изображение',
+            'images_json' => 'Изображения',
             'category_external_id' => 'Внешняя категория',
             'is_archived' => 'В архиве',
             'created_at' => 'Создано',
@@ -121,6 +126,7 @@ class ProductModel extends BaseModel
     {
         return !$this->getIsArchived() && (int)$this->quantity > 0;
     }
+
     public static function find(): ProductQuery
     {
         return new ProductQuery(static::class);

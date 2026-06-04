@@ -329,6 +329,7 @@ final class KeyCrmProductImportService
         $product->price = $dto->price;
         $product->currency = $dto->currencyCode;
         $product->purchased_price = $dto->purchasedPrice;
+
         // product.quantity stores available-to-sell quantity.
         // Do not overwrite it with raw KeyCRM product quantity because it may be
         // total stock without reserved quantity deduction.
@@ -339,7 +340,15 @@ final class KeyCrmProductImportService
         } elseif ($product->isNewRecord) {
             $product->quantity = 0;
         }
+
         $product->thumbnail_url = $dto->thumbnailUrl;
+
+        if ($product->hasAttribute('images_json')) {
+            $product->images_json = $dto->imageUrls !== []
+                ? Json::encode($dto->imageUrls, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES)
+                : null;
+        }
+
         $product->category_external_id = $dto->categoryId !== null ? (string) $dto->categoryId : null;
         $product->is_archived = $dto->isArchived ? 1 : 0;
 
