@@ -320,4 +320,43 @@ $(function () {
             closeMobileMenu();
         }
     });
+
+    /* Product image gallery */
+
+    $(document).on('click', '.js-product-gallery-thumb', function (event) {
+        event.preventDefault();
+
+        var $button = $(this);
+        var $gallery = $button.closest('.js-product-gallery');
+        var $mainImage = $gallery.find('.js-product-gallery-main').first();
+        var $thumbImage = $button.find('img').first();
+
+        if (!$mainImage.length || !$thumbImage.length) {
+            return;
+        }
+
+        var nextSrc = $button.attr('data-src') || $thumbImage.attr('src');
+        var nextAlt = $button.attr('data-alt') || $thumbImage.attr('alt') || '';
+        var currentSrc = $mainImage.attr('src');
+        var currentAlt = $mainImage.attr('alt') || '';
+
+        if (!nextSrc || !currentSrc || nextSrc === currentSrc) {
+            return;
+        }
+
+        $mainImage.attr({
+            src: nextSrc,
+            alt: nextAlt
+        });
+
+        $thumbImage.attr({
+            src: currentSrc,
+            alt: currentAlt
+        });
+
+        $button.attr({
+            'data-src': currentSrc,
+            'data-alt': currentAlt
+        });
+    });
 });

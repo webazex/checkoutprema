@@ -188,4 +188,9 @@ return [
     'All buyers will receive login details by email once the customer account is ready.' => 'All buyers will receive login details by email once the customer account is ready.',
     'Got it' => 'Got it',
     'All products' => 'All products',
+    'Product images' => 'Product images',
+    'Show product image {number}' => 'Show product image {number}',
+    'Out of stock' => 'Out of stock',
+    'Reviews' => 'Reviews',
+    'Reviews will be added soon.' => 'Reviews will be added soon.',
 ];

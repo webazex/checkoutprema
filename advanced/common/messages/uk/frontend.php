@@ -187,4 +187,9 @@ return [
     'All buyers will receive login details by email once the customer account is ready.' => 'Усі покупці отримають повідомлення на пошту, яку використовували під час оформлення замовлення, з даними для входу, щойно все буде готово.',
     'Got it' => 'Зрозуміло',
     'All products' => 'Усі товари',
+    'Product images' => 'Зображення товару',
+    'Show product image {number}' => 'Показати зображення товару {number}',
+    'Out of stock' => 'Немає в наявності',
+    'Reviews' => 'Відгуки',
+    'Reviews will be added soon.' => 'Відгуки будуть додані пізніше.',
 ];
