@@ -34,8 +34,6 @@ $alt = trim($product->name . ($category instanceof CatalogCategoryModel ? ', ' .
                         src="<?= Html::encode($product->thumbnail_url) ?>"
                         alt="<?= Html::encode($alt) ?>"
                         loading="lazy"
-                        width="420"
-                        height="420"
                 >
             <?php else: ?>
                 <div class="catalog-card__image catalog-card__image--empty">
