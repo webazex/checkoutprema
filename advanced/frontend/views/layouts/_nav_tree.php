@@ -16,9 +16,17 @@ $level ??= 0;
     $children = $item['children'] ?? [];
     $hasChildren = !empty($children);
 
+    $itemKey = (string)($item['key'] ?? '');
+    $itemType = (string)($item['type'] ?? '');
+    $itemUrl = (string)($item['url'] ?? '#');
+    $itemLabel = (string)($item['label'] ?? '');
+
+    $isCatalogRoot = $level === 0 && ($itemKey === 'catalog' || $itemType === 'catalog');
+
     $itemClasses = [
             'menu__item',
             $hasChildren ? 'menu__item--parent' : '',
+            $isCatalogRoot ? 'menu__item--catalog-root' : '',
             !empty($item['isActive']) ? 'menu__item--active' : '',
     ];
 
@@ -27,9 +35,6 @@ $level ??= 0;
             $hasChildren ? 'js-mobile-parent-toggle' : '',
             !empty($item['isActive']) ? 'menu__link--active' : '',
     ];
-
-    $itemUrl = (string)($item['url'] ?? '#');
-    $itemLabel = (string)($item['label'] ?? '');
     ?>
 
     <div class="<?= Html::encode(trim(implode(' ', array_filter($itemClasses)))) ?>">
@@ -60,13 +65,15 @@ $level ??= 0;
 
         <?php if ($hasChildren): ?>
             <div class="menu__submenu menu__submenu--level-<?= (int)$level ?>">
-                <div class="menu__item menu__item--all menu__item--mobile-only">
-                    <a href="<?= Html::encode($itemUrl) ?>" class="menu__link menu__link--all">
-                        <span class="menu__link-text">
-                            <?= Html::encode(Yii::t('frontend', 'All products')) ?>
-                        </span>
-                    </a>
-                </div>
+                <?php if ($isCatalogRoot): ?>
+                    <div class="menu__item menu__item--catalog-overview menu__item--mobile-only">
+                        <a href="<?= Html::encode($itemUrl) ?>" class="menu__link menu__link--all">
+                            <span class="menu__link-text">
+                                <?= Html::encode(Yii::t('frontend', 'All products')) ?>
+                            </span>
+                        </a>
+                    </div>
+                <?php endif; ?>
 
                 <?= $this->render('_nav_tree', [
                         'items' => $children,
