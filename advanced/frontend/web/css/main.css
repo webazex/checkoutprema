@@ -105,9 +105,10 @@ header, footer, main, section {
 
 .header__logo-img {
     display: block;
-    width: 180px;
+    width: 112px;
     max-width: 100%;
     height: auto;
+    image-rendering: auto;
 }
 
 .header__menu {
@@ -385,7 +386,7 @@ header, footer, main, section {
     }
 
     .header__logo-img {
-        width: 145px;
+        width: 88px;
     }
 
     .header__btns {
@@ -596,7 +597,7 @@ header, footer, main, section {
 
 @media (max-width: 420px) {
     .header__logo-img {
-        width: 132px;
+        width: 82px;
     }
 
     .header__menu {
