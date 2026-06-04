@@ -216,6 +216,46 @@ $(function () {
             .attr('aria-expanded', 'false');
     });
 
+    /* Product gallery */
+
+    $(document).on('click', '.js-product-gallery-thumb', function (event) {
+        event.preventDefault();
+
+        var $thumbButton = $(this);
+        var $gallery = $thumbButton.closest('.js-product-gallery');
+        var $mainImage = $gallery.find('.js-product-gallery-main').first();
+        var $thumbImage = $thumbButton.find('img').first();
+
+        if (!$mainImage.length || !$thumbImage.length) {
+            return;
+        }
+
+        var currentMainSrc = $mainImage.attr('src');
+        var currentMainAlt = $mainImage.attr('alt');
+
+        var nextMainSrc = $thumbButton.attr('data-src') || $thumbImage.attr('src');
+        var nextMainAlt = $thumbButton.attr('data-alt') || $thumbImage.attr('alt') || currentMainAlt;
+
+        if (!nextMainSrc || nextMainSrc === currentMainSrc) {
+            return;
+        }
+
+        $mainImage.attr({
+            src: nextMainSrc,
+            alt: nextMainAlt
+        });
+
+        $thumbImage.attr({
+            src: currentMainSrc,
+            alt: currentMainAlt
+        });
+
+        $thumbButton.attr({
+            'data-src': currentMainSrc,
+            'data-alt': currentMainAlt
+        });
+    });
+
     /* Mobile header menu */
 
     var MOBILE_MENU_BREAKPOINT = 900;
@@ -319,44 +359,5 @@ $(function () {
         if (!isMobileMenuMode() && $body.hasClass('is-mobile-menu-open')) {
             closeMobileMenu();
         }
-    });
-
-    /* Product image gallery */
-
-    $(document).on('click', '.js-product-gallery-thumb', function (event) {
-        event.preventDefault();
-
-        var $button = $(this);
-        var $gallery = $button.closest('.js-product-gallery');
-        var $mainImage = $gallery.find('.js-product-gallery-main').first();
-        var $thumbImage = $button.find('img').first();
-
-        if (!$mainImage.length || !$thumbImage.length) {
-            return;
-        }
-
-        var nextSrc = $button.attr('data-src') || $thumbImage.attr('src');
-        var nextAlt = $button.attr('data-alt') || $thumbImage.attr('alt') || '';
-        var currentSrc = $mainImage.attr('src');
-        var currentAlt = $mainImage.attr('alt') || '';
-
-        if (!nextSrc || !currentSrc || nextSrc === currentSrc) {
-            return;
-        }
-
-        $mainImage.attr({
-            src: nextSrc,
-            alt: nextAlt
-        });
-
-        $thumbImage.attr({
-            src: currentSrc,
-            alt: currentAlt
-        });
-
-        $button.attr({
-            'data-src': currentSrc,
-            'data-alt': currentAlt
-        });
     });
 });

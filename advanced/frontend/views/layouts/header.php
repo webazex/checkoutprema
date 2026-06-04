@@ -18,7 +18,7 @@ $logoUrl = Url::to('@web/img/logo.svg');
 <html lang="<?= Html::encode(Yii::$app->language) ?>">
 <head>
     <meta charset="<?= Html::encode(Yii::$app->charset) ?>">
-    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="viewport" content="width=device-width, initial-scale=1">
 
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -35,7 +35,6 @@ $logoUrl = Url::to('@web/img/logo.svg');
     <div class="site-size">
         <div class="header-container">
             <div class="header-container__header">
-
                 <div class="header__logo">
                     <?= Html::a(
                             Html::img($logoUrl, [
@@ -118,7 +117,6 @@ $logoUrl = Url::to('@web/img/logo.svg');
                         </span>
                     </a>
                 </div>
-
             </div>
         </div>
     </div>
