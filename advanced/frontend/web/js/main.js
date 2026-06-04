@@ -235,7 +235,7 @@ $(function () {
         $mobileMenu
             .find('.menu__item--open')
             .removeClass('menu__item--open')
-            .children('.js-mobile-submenu-toggle')
+            .children('.js-mobile-parent-toggle')
             .attr('aria-expanded', 'false');
     }
 
@@ -287,23 +287,23 @@ $(function () {
         openMobileMenu();
     });
 
-    $(document).on('click', '.js-mobile-submenu-toggle', function (event) {
-        event.preventDefault();
-        event.stopPropagation();
-
+    $(document).on('click', '#site-mobile-menu .menu__item--parent > .js-mobile-parent-toggle', function (event) {
         if (!isMobileMenuMode()) {
             return;
         }
 
-        var $button = $(this);
-        var $item = $button.closest('.menu__item');
+        event.preventDefault();
+        event.stopPropagation();
+
+        var $link = $(this);
+        var $item = $link.closest('.menu__item');
         var isOpen = $item.hasClass('menu__item--open');
 
         $item.toggleClass('menu__item--open', !isOpen);
-        $button.attr('aria-expanded', !isOpen ? 'true' : 'false');
+        $link.attr('aria-expanded', !isOpen ? 'true' : 'false');
     });
 
-    $mobileMenu.on('click', '.menu__link', function () {
+    $mobileMenu.on('click', '.menu__item:not(.menu__item--parent) > .menu__link, .menu__link--all', function () {
         if (isMobileMenuMode()) {
             closeMobileMenu();
         }

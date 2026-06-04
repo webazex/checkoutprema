@@ -24,14 +24,21 @@ $level ??= 0;
 
     $linkClasses = [
             'menu__link',
+            $hasChildren ? 'js-mobile-parent-toggle' : '',
             !empty($item['isActive']) ? 'menu__link--active' : '',
     ];
+
+    $itemUrl = (string)($item['url'] ?? '#');
+    $itemLabel = (string)($item['label'] ?? '');
     ?>
 
     <div class="<?= Html::encode(trim(implode(' ', array_filter($itemClasses)))) ?>">
         <a
-                href="<?= Html::encode((string)($item['url'] ?? '#')) ?>"
+                href="<?= Html::encode($itemUrl) ?>"
                 class="<?= Html::encode(trim(implode(' ', array_filter($linkClasses)))) ?>"
+                <?php if ($hasChildren): ?>
+                    aria-expanded="false"
+                <?php endif; ?>
                 <?php if (!empty($item['target'])): ?>
                     target="<?= Html::encode((string)$item['target']) ?>"
                 <?php endif; ?>
@@ -40,7 +47,7 @@ $level ??= 0;
                 <?php endif; ?>
         >
             <span class="menu__link-text">
-                <?= Html::encode((string)($item['label'] ?? '')) ?>
+                <?= Html::encode($itemLabel) ?>
             </span>
 
             <?php if ($hasChildren): ?>
@@ -52,16 +59,15 @@ $level ??= 0;
         </a>
 
         <?php if ($hasChildren): ?>
-            <button
-                    class="menu__submenu-toggle js-mobile-submenu-toggle"
-                    type="button"
-                    aria-expanded="false"
-                    aria-label="<?= Html::encode(Yii::t('frontend', 'Toggle submenu') . ': ' . (string)($item['label'] ?? '')) ?>"
-            >
-                <span class="menu__submenu-toggle-icon" aria-hidden="true"></span>
-            </button>
-
             <div class="menu__submenu menu__submenu--level-<?= (int)$level ?>">
+                <div class="menu__item menu__item--all menu__item--mobile-only">
+                    <a href="<?= Html::encode($itemUrl) ?>" class="menu__link menu__link--all">
+                        <span class="menu__link-text">
+                            <?= Html::encode(Yii::t('frontend', 'All products')) ?>
+                        </span>
+                    </a>
+                </div>
+
                 <?= $this->render('_nav_tree', [
                         'items' => $children,
                         'level' => $level + 1,

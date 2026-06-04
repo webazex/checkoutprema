@@ -66,11 +66,16 @@ header, footer, main, section {
 /* ──────────────────────────────────────────────── */
 /* Header */
 /* ──────────────────────────────────────────────── */
+/* ──────────────────────────────────────────────── */
+/* Header */
+/* ──────────────────────────────────────────────── */
+
 .header-container {
     width: 100%;
     height: 104px;
     margin-bottom: 17px;
 }
+
 .header-container__header {
     width: 100%;
     height: 100%;
@@ -82,6 +87,7 @@ header, footer, main, section {
     border: none;
     border-radius: var(--border-radius);
 }
+
 .header__logo {
     width: auto;
     height: 100%;
@@ -89,6 +95,20 @@ header, footer, main, section {
     justify-content: center;
     align-items: center;
 }
+
+.header__logo-link {
+    display: inline-flex;
+    align-items: center;
+    text-decoration: none;
+}
+
+.header__logo-img {
+    display: block;
+    width: 180px;
+    max-width: 100%;
+    height: auto;
+}
+
 .header__menu {
     width: auto;
     padding: 0 15px;
@@ -96,8 +116,9 @@ header, footer, main, section {
     flex-direction: row;
     justify-content: flex-start;
     align-items: stretch;
-    position: relative; /* Делаем containing block для submenu */
+    position: relative;
 }
+
 .menu__item {
     margin-right: 15px;
     position: relative;
@@ -105,9 +126,25 @@ header, footer, main, section {
     justify-content: center;
     align-items: center;
 }
+
 .menu__item:last-child {
     margin-right: unset;
 }
+
+.menu__link {
+    width: 100%;
+    height: 100%;
+    display: flex;
+    justify-content: flex-start;
+    align-items: center;
+    text-decoration: none;
+}
+
+.menu__link-text {
+    color: var(--txt-color);
+    text-decoration: none;
+}
+
 .menu__link-text::before {
     position: absolute;
     content: '';
@@ -117,57 +154,12 @@ header, footer, main, section {
     background-color: var(--txt-color);
     transition: width 0.1s ease-in-out;
 }
-.header__menu > .menu__item.menu__item--parent {
-    position: static;
-}
+
 .menu__item:hover > a.menu__link > span.menu__link-text::before {
     width: 100%;
     transition: width 0.5s ease-in-out;
 }
-.menu__submenu:hover > a.menu-item__link-menu > span.menu__link-text::before {
-    width: 100%;
-    transition: width 0.5s ease-in-out;
-}
-.menu__item.menu__item--parent:hover > .menu__submenu,
-.menu__item.menu__item--parent:focus-within > .menu__submenu {
-    display: grid;
-    opacity: 1;
-    transform: translateY(0);
-}
-.menu__item.menu__item--parent:hover > a.menu__link .menu__triangle-box  span,
-.menu__item.menu__item--parent:focus-within > a.menu__link .menu__triangle-box  span {
-    transition: all 0.5s ease-in-out;
-    width: 100%;
-    transform-origin: center;
-    right: unset;
-    left: unset;
-}
-.menu__item.menu__item--parent:hover > a.menu__link .menu__triangle-box  span:first-child,
-.menu__item.menu__item--parent:focus-within > a.menu__link .menu__triangle-box  span:first-child {
-    transform: rotate(-45deg);
-}
-.menu__item.menu__item--parent:hover > a.menu__link .menu__triangle-box  span:last-child,
-.menu__item.menu__item--parent:focus-within > a.menu__link .menu__triangle-box  span:last-child {
-    transform: rotate(45deg);
-}
 
-.menu__link  {
-    width: 100%;
-    height: 100%;
-    display: flex;
-    justify-content: flex-start;
-    align-items: center;
-    text-decoration: none;
-}
-.menu__link-arrow {
-    width: 20px;
-    height: 15px;
-    transition: all 0.5s ease-in-out;
-}
-.menu__link-text {
-    color: var(--txt-color);
-    text-decoration: none;
-}
 .menu__triangle-box {
     width: 20px;
     height: 20px;
@@ -175,57 +167,134 @@ header, footer, main, section {
     justify-content: center;
     align-items: center;
 }
+
 .menu__triangle-box > span {
     position: absolute;
-    width: 50%; /*100%*/
+    width: 50%;
     height: 1px;
     display: block;
     background-color: var(--txt-color);
 }
+
 .menu__triangle-box > span:first-child {
     transform: rotate(135deg);
     left: 4px;
     transform-origin: right;
 }
+
 .menu__triangle-box > span:last-child {
     transform: rotate(45deg);
     transform-origin: right;
 }
+
 .menu__submenu {
     position: absolute;
-    top: 100%; /* Под меню */
-    left: 0;   /* Слева от .header__menu */
-    width: 100%; /* Полная ширина .header__menu */
+    top: 100%;
+    left: 0;
+    width: 100%;
     display: none;
     background-color: var(--secondary-color);
     border-bottom-left-radius: var(--border-radius);
     border-bottom-right-radius: var(--border-radius);
-    grid-template-columns: repeat(2, 1fr); /* Твоя сетка */
+    grid-template-columns: repeat(2, 1fr);
     gap: 10px;
     padding: 15px;
     transition: opacity 0.3s ease, transform 0.3s ease;
     opacity: 0;
+    visibility: hidden;
+    pointer-events: none;
     transform: translateY(-10px);
-    z-index: 2;
+    z-index: 20;
 }
-.menu__submenu .menu__submenu {
-    width: fit-content;
+
+.header__menu > .menu__item.menu__item--parent {
+    position: static;
+}
+
+.header__menu > .menu__item.menu__item--parent > .menu__submenu {
+    position: absolute;
+    top: 100%;
+    left: 0;
+    width: 100%;
+    grid-template-columns: repeat(2, 1fr);
+    z-index: 20;
+}
+
+.header__menu .menu__submenu .menu__item.menu__item--parent {
+    position: relative;
+}
+
+.header__menu .menu__submenu .menu__item.menu__item--parent > .menu__submenu {
+    position: absolute;
+    top: calc(100% + 10px);
+    left: 0;
+    width: max-content;
     min-width: 220px;
-    max-width: calc(100vw - 40px);
+    max-width: 320px;
     grid-template-columns: 1fr;
-    z-index: 3;
+    gap: 0;
+    padding: 12px 15px 15px;
+    z-index: 30;
+    border-radius: 0 0 var(--border-radius) var(--border-radius);
+    transform: translateY(-6px);
 }
-.menu__submenu .menu__item--parent:hover {
-    transition: all 0.3s ease-in-out;
-    border-bottom-left-radius: 0;
-    border-bottom-right-radius: 0;
+
+.header__menu .menu__item.menu__item--parent:hover > .menu__submenu,
+.header__menu .menu__item.menu__item--parent:focus-within > .menu__submenu,
+.header__menu .menu__item.menu__item--parent.menu__item--open > .menu__submenu {
+    display: grid;
+    opacity: 1;
+    visibility: visible;
+    pointer-events: auto;
+    transform: translateY(0);
 }
+
+.menu__item.menu__item--parent:hover > a.menu__link .menu__triangle-box span,
+.menu__item.menu__item--parent:focus-within > a.menu__link .menu__triangle-box span,
+.menu__item.menu__item--parent.menu__item--open > a.menu__link .menu__triangle-box span {
+    transition: all 0.5s ease-in-out;
+    width: 100%;
+    transform-origin: center;
+    right: unset;
+    left: unset;
+}
+
+.menu__item.menu__item--parent:hover > a.menu__link .menu__triangle-box span:first-child,
+.menu__item.menu__item--parent:focus-within > a.menu__link .menu__triangle-box span:first-child,
+.menu__item.menu__item--parent.menu__item--open > a.menu__link .menu__triangle-box span:first-child {
+    transform: rotate(-45deg);
+}
+
+.menu__item.menu__item--parent:hover > a.menu__link .menu__triangle-box span:last-child,
+.menu__item.menu__item--parent:focus-within > a.menu__link .menu__triangle-box span:last-child,
+.menu__item.menu__item--parent.menu__item--open > a.menu__link .menu__triangle-box span:last-child {
+    transform: rotate(45deg);
+}
+
+@media (hover: hover) and (pointer: fine) {
+    .header__menu .menu__submenu .menu__item.menu__item--parent::after {
+        content: "";
+        position: absolute;
+        top: 100%;
+        left: 0;
+        width: 100%;
+        height: 12px;
+        display: block;
+    }
+}
+
 .menu-item__link-menu {
     text-decoration: none;
 }
+
 .submenu__menu-item .menu__link-text {
     text-decoration: none;
 }
+
+.menu__item--mobile-only {
+    display: none;
+}
+
 .header__btns {
     width: auto;
     height: 100%;
@@ -235,11 +304,14 @@ header, footer, main, section {
     justify-content: flex-start;
     align-items: center;
 }
-.btns__profile, .btns__cart {
+
+.btns__profile,
+.btns__cart {
     width: 25px;
     height: 25px;
     display: block;
 }
+
 .btns__cart {
     width: auto;
     display: flex;
@@ -249,11 +321,14 @@ header, footer, main, section {
     color: var(--txt-color);
     text-decoration: none;
 }
-.btns__profile > svg, .btns__cart > svg{
+
+.btns__profile > svg,
+.btns__cart > svg {
     width: 100%;
     height: 100%;
     color: var(--txt-color);
 }
+
 .btns__cart .cart__count {
     min-width: 18px;
     height: 18px;
@@ -268,79 +343,13 @@ header, footer, main, section {
     line-height: 1;
     font-weight: 600;
 }
-/* ================= Header menu: desktop nested submenu fix ================= */
 
-/* Первый уровень: mega-menu под пунктом "Каталог" */
-.header__menu > .menu__item.menu__item--parent {
-    position: static;
-}
-
-.header__menu > .menu__item.menu__item--parent > .menu__submenu {
-    position: absolute;
-    top: 100%;
-    left: 0;
-    width: 100%;
-    grid-template-columns: repeat(2, 1fr);
-    z-index: 20;
-}
-
-/* Все вложенные parent-items внутри dropdown должны быть нормальным containing block */
-.header__menu .menu__submenu .menu__item.menu__item--parent {
-    position: relative;
-}
-
-/* Вложенные submenu: НЕ растягивать на всю ширину mega-menu */
-.header__menu .menu__submenu .menu__item.menu__item--parent > .menu__submenu {
-    position: absolute;
-    top: calc(100% + 10px);
-    left: 0;
-
-    width: max-content;
-    min-width: 220px;
-    max-width: 320px;
-
-    grid-template-columns: 1fr;
-    gap: 0;
-
-    padding: 12px 15px 15px;
-    z-index: 30;
-
-    border-radius: 0 0 var(--border-radius) var(--border-radius);
-
-    transform: translateY(-6px);
-}
-.header__logo-link {
-    display: inline-flex;
-    align-items: center;
-    text-decoration: none;
-}
-
-.header__logo-img {
-    display: block;
-    width: 180px;
-    max-width: 100%;
-    height: auto;
-}
 /* ──────────────────────────────────────────────── */
 /* Header mobile menu */
 /* ──────────────────────────────────────────────── */
 
-.header__burger,
-.menu__submenu-toggle {
+.header__burger {
     display: none;
-}
-
-.header__logo-link {
-    display: inline-flex;
-    align-items: center;
-    text-decoration: none;
-}
-
-.header__logo-img {
-    display: block;
-    width: 180px;
-    max-width: 100%;
-    height: auto;
 }
 
 @media (max-width: 900px) {
@@ -350,11 +359,17 @@ header, footer, main, section {
 
     header {
         position: relative;
-        z-index: 1300;
+        z-index: 9000;
+        isolation: isolate;
+    }
+
+    .header-container,
+    .header-container__header {
+        position: relative;
+        z-index: 9001;
     }
 
     .header-container__header {
-        position: relative;
         display: flex;
         align-items: center;
         gap: 12px;
@@ -362,7 +377,7 @@ header, footer, main, section {
 
     .header__logo {
         position: relative;
-        z-index: 1303;
+        z-index: 9003;
         flex: 0 1 auto;
     }
 
@@ -372,8 +387,9 @@ header, footer, main, section {
 
     .header__btns {
         position: relative;
-        z-index: 1303;
+        z-index: 9003;
         margin-left: 0;
+        padding-left: 0;
         display: flex;
         align-items: center;
         gap: 10px;
@@ -381,7 +397,7 @@ header, footer, main, section {
 
     .header__burger {
         position: relative;
-        z-index: 1304;
+        z-index: 9004;
         width: 44px;
         height: 44px;
         margin-left: auto;
@@ -423,14 +439,16 @@ header, footer, main, section {
     .header__menu {
         position: fixed !important;
         inset: 0 !important;
-        z-index: 1301;
+        z-index: 9002 !important;
         width: 100vw !important;
         height: 100vh;
         height: 100dvh;
         max-width: none !important;
         max-height: none !important;
+        margin: 0 !important;
         padding: 118px 24px 38px !important;
-        background: var(--secondary-color);
+        display: block !important;
+        background: var(--secondary-color) !important;
         overflow-x: hidden;
         overflow-y: auto;
         overscroll-behavior: contain;
@@ -442,17 +460,24 @@ header, footer, main, section {
     }
 
     body.is-mobile-menu-open .header__menu {
-        display: block !important;
         transform: translateX(0);
         opacity: 1;
         visibility: visible;
         pointer-events: auto;
     }
 
-    .header__menu .menu__item {
+    body.is-mobile-menu-open main,
+    body.is-mobile-menu-open footer,
+    body.is-mobile-menu-open .cart-side-box {
         position: relative;
+        z-index: 1;
+    }
+
+    .header__menu .menu__item {
+        position: relative !important;
         width: 100%;
         min-width: 0;
+        margin-right: 0;
         display: block;
         border-bottom: 1px solid rgba(80, 53, 96, 0.12);
     }
@@ -464,10 +489,11 @@ header, footer, main, section {
     .header__menu .menu__link {
         width: 100%;
         min-height: 56px;
-        padding: 16px 54px 16px 0;
+        padding: 16px 0;
         display: flex;
         align-items: center;
         justify-content: flex-start;
+        gap: 12px;
         color: var(--txt-color);
         text-decoration: none;
         font-family: "Garet-Book", system-ui, sans-serif;
@@ -481,57 +507,37 @@ header, footer, main, section {
         overflow-wrap: anywhere;
     }
 
-    .header__menu .menu__link > .menu__triangle-box {
-        display: none !important;
+    .header__menu .menu__link-text::before {
+        display: none;
     }
 
-    .header__menu .menu__submenu-toggle {
-        position: absolute;
-        top: 6px;
-        right: 0;
-        z-index: 2;
-        width: 44px;
-        height: 44px;
-        padding: 0;
-        border: none;
-        border-radius: 999px;
-        background: transparent;
-        display: inline-flex;
-        align-items: center;
-        justify-content: center;
+    .header__menu .menu__item--parent > .menu__link {
         cursor: pointer;
-        color: var(--txt-color);
-        -webkit-appearance: none;
-        appearance: none;
     }
 
-    .menu__submenu-toggle-icon {
-        position: relative;
-        width: 18px;
-        height: 18px;
-        display: block;
-    }
-
-    .menu__submenu-toggle-icon::before,
-    .menu__submenu-toggle-icon::after {
-        content: "";
-        position: absolute;
-        top: 50%;
-        left: 50%;
-        width: 14px;
-        height: 1.5px;
-        border-radius: 999px;
-        background: currentColor;
-        transform: translate(-50%, -50%);
+    .header__menu .menu__item--parent > .menu__link .menu__triangle-box {
+        display: inline-flex !important;
+        margin-left: auto;
+        flex-shrink: 0;
+        transform: rotate(0deg);
         transition: transform 0.2s ease;
     }
 
-    .menu__submenu-toggle-icon::after {
-        transform: translate(-50%, -50%) rotate(90deg);
+    .header__menu .menu__item--open > .menu__link .menu__triangle-box {
+        transform: rotate(180deg);
     }
 
-    .header__menu .menu__item--open > .menu__submenu-toggle .menu__submenu-toggle-icon::after {
-        transform: translate(-50%, -50%) rotate(0deg);
+    .header__menu .menu__item--mobile-only {
+        display: block;
+    }
+
+    .header__menu .menu__item--all {
+        border-bottom: none;
+    }
+
+    .header__menu .menu__link--all {
+        font-weight: 400;
+        opacity: 1;
     }
 
     .header__menu .menu__submenu {
@@ -553,6 +559,8 @@ header, footer, main, section {
         visibility: visible !important;
         pointer-events: auto !important;
         display: none !important;
+        grid-template-columns: unset !important;
+        gap: 0 !important;
     }
 
     .header__menu .menu__item--open > .menu__submenu {
@@ -604,108 +612,6 @@ header, footer, main, section {
 
     .header__menu .menu__link {
         font-size: 1.04rem;
-    }
-}
-
-@media (max-width: 900px) {
-    .header__logo-img {
-        width: 145px;
-    }
-}
-
-@media (max-width: 420px) {
-    .header__logo-img {
-        width: 132px;
-    }
-}
-/* Открытие — hover/focus/class, один механизм для любого уровня */
-.header__menu .menu__item.menu__item--parent:hover > .menu__submenu,
-.header__menu .menu__item.menu__item--parent:focus-within > .menu__submenu,
-.header__menu .menu__item.menu__item--parent.menu__item--open > .menu__submenu {
-    display: grid;
-    opacity: 1;
-    visibility: visible;
-    pointer-events: auto;
-    transform: translateY(0);
-}
-
-/* Закрытое состояние */
-.header__menu .menu__submenu {
-    visibility: hidden;
-    pointer-events: none;
-}
-
-.header__menu .menu__item.menu__item--parent:hover > .menu__submenu,
-.header__menu .menu__item.menu__item--parent:focus-within > .menu__submenu,
-.header__menu .menu__item.menu__item--parent.menu__item--open > .menu__submenu {
-    visibility: visible;
-}
-
-/* Hover bridge: удерживает hover при проходе от Test к Subtest */
-@media (hover: hover) and (pointer: fine) {
-    .header__menu .menu__submenu .menu__item.menu__item--parent::after {
-        content: "";
-        position: absolute;
-        top: 100%;
-        left: 0;
-        width: 100%;
-        height: 12px;
-        display: block;
-    }
-}
-.menu__item.menu__item--parent:hover > a.menu__link .menu__triangle-box span,
-.menu__item.menu__item--parent:focus-within > a.menu__link .menu__triangle-box span,
-.menu__item.menu__item--parent.menu__item--open > a.menu__link .menu__triangle-box span {
-    transition: all 0.5s ease-in-out;
-    width: 100%;
-    transform-origin: center;
-    right: unset;
-    left: unset;
-}
-
-.menu__item.menu__item--parent:hover > a.menu__link .menu__triangle-box span:first-child,
-.menu__item.menu__item--parent:focus-within > a.menu__link .menu__triangle-box span:first-child,
-.menu__item.menu__item--parent.menu__item--open > a.menu__link .menu__triangle-box span:first-child {
-    transform: rotate(-45deg);
-}
-
-.menu__item.menu__item--parent:hover > a.menu__link .menu__triangle-box span:last-child,
-.menu__item.menu__item--parent:focus-within > a.menu__link .menu__triangle-box span:last-child,
-.menu__item.menu__item--parent.menu__item--open > a.menu__link .menu__triangle-box span:last-child {
-    transform: rotate(45deg);
-}
-
-/* Mobile menu stacking fix */
-
-@media (max-width: 900px) {
-    header {
-        position: relative;
-        z-index: 9000;
-        isolation: isolate;
-    }
-
-    .header-container,
-    .header-container__header {
-        position: relative;
-        z-index: 9001;
-    }
-
-    .header__menu {
-        z-index: 9002 !important;
-    }
-
-    .header__logo,
-    .header__btns,
-    .header__burger {
-        position: relative;
-        z-index: 9003;
-    }
-
-    body.is-mobile-menu-open main,
-    body.is-mobile-menu-open footer,
-    body.is-mobile-menu-open .cart-side-box {
-        position: relative;
-        z-index: 1;
     }
 }
 /* ──────────────────────────────────────────────── */

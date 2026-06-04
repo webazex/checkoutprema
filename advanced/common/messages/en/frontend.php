@@ -187,4 +187,5 @@ return [
     'Customer account is under development' => 'Customer account is under development',
     'All buyers will receive login details by email once the customer account is ready.' => 'All buyers will receive login details by email once the customer account is ready.',
     'Got it' => 'Got it',
+    'All products' => 'All products',
 ];

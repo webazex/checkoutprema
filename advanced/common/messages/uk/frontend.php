@@ -186,4 +186,5 @@ return [
     'Customer account is under development' => 'Кабінет покупця ще в розробці',
     'All buyers will receive login details by email once the customer account is ready.' => 'Усі покупці отримають повідомлення на пошту, яку використовували під час оформлення замовлення, з даними для входу, щойно все буде готово.',
     'Got it' => 'Зрозуміло',
+    'All products' => 'Усі товари',
 ];
