@@ -1209,16 +1209,15 @@ label.order-form__label[for='fio'] > span, label.order-form__label[for='mail'] {
 
 .footer__logo-block {
     grid-area: logo;
-    max-width: none;
+    max-width: 216px;
     width: auto;
 }
 
 .footer__logo-link {
+    width: 100%;
     display: inline-block;
     color: var(--txt-color);
     font-family: "Garet-Book", system-ui, sans-serif;
-    font-size: 2.2rem;
-    font-weight: 300;
     line-height: 1;
     letter-spacing: 0.04em;
     text-decoration: none;
