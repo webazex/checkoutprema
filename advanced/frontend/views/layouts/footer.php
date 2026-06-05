@@ -2,6 +2,7 @@
 
 use frontend\services\navigation\NavigationProvider;
 use yii\helpers\Html;
+use yii\helpers\Url;
 
 /** @var yii\web\View $this */
 /** @var array|null $footerTree */
@@ -23,6 +24,7 @@ $linkOptions = static function (array $item, array $options = []): array {
 
     return $options;
 };
+$logoUrl = Url::to('@web/img/logo2.svg');
 ?>
 
 <footer class="site-footer">
@@ -30,10 +32,18 @@ $linkOptions = static function (array $item, array $options = []): array {
         <div class="site-size__footer-container">
             <div class="footer-container__footer">
                 <div class="footer__logo-block">
-                    <?= Html::a('Prēma', ['/site/index'], [
-                            'class' => 'footer__logo-link',
-                            'aria-label' => 'Prema',
-                    ]) ?>
+                    <?= Html::a(
+                            Html::img($logoUrl, [
+                                    'class' => 'footer__logo-img',
+                                    'alt' => 'Prema',
+                                    'loading' => 'eager',
+                            ]),
+                            Url::home(),
+                            [
+                                    'class' => 'footer__logo-link',
+                                    'aria-label' => 'Prema',
+                            ]
+                    ) ?>
                 </div>
 
                 <?php foreach (array_values($footerTree) as $columnIndex => $column): ?>

@@ -1223,6 +1223,9 @@ label.order-form__label[for='fio'] > span, label.order-form__label[for='mail'] {
     letter-spacing: 0.04em;
     text-decoration: none;
 }
+.footer__logo-img {
+    width: 100%;
+}
 
 .footer__menu-column {
     width: 100%;
