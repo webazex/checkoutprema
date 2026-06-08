@@ -206,6 +206,6 @@ return [
     'Cart hash or session key is required.' => 'Не вдалося визначити кошик.',
     'Please enter a valid email address.' => 'Вкажіть коректну email-адресу.',
     'Please enter a valid Ukrainian phone number.' => 'Вкажіть коректний український номер телефону.',
-    'Specify Nova Poshta branch number' => 'Вкажіть номер відділення Нової пошти',
+    'Specify Nova Poshta branch number' => 'Вкажіть інформацію про відділення Нової пошти',
     'Nova Poshta branch number must contain only digits.' => 'Номер відділення Нової пошти має містити лише цифри.',
 ];
