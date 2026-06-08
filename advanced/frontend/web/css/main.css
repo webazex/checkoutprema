@@ -1595,7 +1595,7 @@ label.order-form__label[for='fio'] > span, label.order-form__label[for='mail'] {
 }
 
 .catalog-breadcrumbs a {
-    color: inherit;
+    color: var(--txt-color);
     text-decoration: underline;
 }
 
@@ -1614,6 +1614,7 @@ label.order-form__label[for='fio'] > span, label.order-form__label[for='mail'] {
     font-family: "Unbounded", sans-serif;
     font-size: 1rem;
     font-weight: 500;
+    color: var(--txt-color);
 }
 
 .catalog-page__seo-text {
@@ -1666,7 +1667,7 @@ label.order-form__label[for='fio'] > span, label.order-form__label[for='mail'] {
 }
 
 .catalog-card__title a {
-    color: inherit;
+    color: var(--txt-color);
     text-decoration: none;
 }
 
@@ -1674,6 +1675,7 @@ label.order-form__label[for='fio'] > span, label.order-form__label[for='mail'] {
 .product-hero__price {
     margin-bottom: 12px;
     font-weight: 700;
+    color: var(--txt-color);
 }
 
 .catalog-card__button,
@@ -1942,12 +1944,14 @@ button.catalog-card__button.catalog-card__button--primary {
 .site-home h1,
 .site-page h1 {
     margin: 0 0 16px;
+    color: var(--txt-color);
 }
 
 .site-home p,
 .site-page__header p,
 .site-page__body {
     line-height: 1.65;
+    color: var(--txt-color);
 }
 
 .site-home__button {
@@ -2013,11 +2017,13 @@ button.catalog-card__button.catalog-card__button--primary {
     min-width: 0;
     font-family: "Unbounded", sans-serif;
     font-weight: 400;
+    color: var(--txt-color);
 }
 
 .catalog-category-menu__arrow {
     flex: 0 0 auto;
     transition: transform 0.2s ease;
+    color: var(--txt-color);
 }
 
 .catalog-category-menu__item.is-open > .catalog-category-menu__trigger .catalog-category-menu__arrow,
@@ -2276,7 +2282,7 @@ button.catalog-card__button.catalog-card__button--primary {
     font-weight: 600;
     line-height: 1.25;
     text-transform: uppercase;
-    color: #151515;
+    color: var(--txt-color);
 }
 
 .product-design__price {
@@ -2308,14 +2314,11 @@ button.catalog-card__button.catalog-card__button--primary {
 .product-design__meta-value {
     font-size: inherit;
     line-height: inherit;
+    color: var(--txt-color);
 }
 
 .product-design__meta-label {
     opacity: .72;
-}
-
-.product-design__meta-value {
-    color: #151515;
 }
 
 .product-design__actions {
@@ -2482,6 +2485,7 @@ button.catalog-card__button.catalog-card__button--primary {
     font-size: 1rem;
     font-weight: 500;
     text-transform: uppercase;
+    color: var(--txt-color);
 }
 
 @media (max-width: 1180px) {
