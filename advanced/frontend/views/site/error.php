@@ -35,7 +35,6 @@ $codeLabel = '#' . $statusCode;
 ?>
 
 <section class="error-page">
-    <div class="site-size">
         <div class="error-page__card">
             <div class="error-page__content">
                 <div class="error-page__eyebrow">
@@ -80,5 +79,4 @@ $codeLabel = '#' . $statusCode;
                 </div>
             </div>
         </div>
-    </div>
 </section>
