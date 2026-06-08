@@ -97,8 +97,10 @@ CheckoutAsset::register($this);
                         'autocomplete' => 'address-level2',
                 ]) ?>
 
-                <?= $field->numberInput('np_office_number', 'Nova Poshta branch number', [
-                        'id' => 'checkout-np-office-number',
+                <?= $field->textInput('branch', 'Specify Nova Poshta branch number', [
+                        'id' => 'checkout-branch',
+                        'inputmode' => 'numeric',
+                        'autocomplete' => 'off',
                 ]) ?>
 
                 <div class="order-form__title checkout-section-title">
