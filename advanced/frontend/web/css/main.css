@@ -1607,7 +1607,9 @@ label.order-form__label[for='fio'] > span, label.order-form__label[for='mail'] {
     max-width: 920px;
     margin-bottom: 32px;
 }
-
+.catalog-page__header p {
+    color: var(--txt-color);
+}
 .catalog-page__header h1,
 .product-hero h1 {
     margin: 0 0 16px;
