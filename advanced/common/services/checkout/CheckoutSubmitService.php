@@ -128,6 +128,13 @@ final class CheckoutSubmitService
             MetaModel::upsertText(MetaModel::ENTITY_ORDER, (int)$order->id, 'delivery.city', $delivery['city'] ?? null);
             MetaModel::upsertText(MetaModel::ENTITY_ORDER, (int)$order->id, 'delivery.branch', $delivery['branch'] ?? null);
 
+            MetaModel::upsertText(
+                MetaModel::ENTITY_ORDER,
+                (int)$order->id,
+                'delivery.branch_number',
+                $delivery['branch_number'] ?? null
+            );
+
             $payment = new PaymentModel();
             $payment->order_id = (int)$order->id;
             $payment->customer_id = (int)$customer->id;

@@ -8,6 +8,7 @@ use common\models\payment\PaymentModel;
 use common\services\cart\CheckoutCartViewService;
 use common\services\checkout\CheckoutCartManageService;
 use common\services\checkout\CheckoutSubmitService;
+use frontend\models\CheckoutForm;
 use DomainException;
 use Yii;
 use yii\filters\VerbFilter;
@@ -47,9 +48,27 @@ final class CheckoutController extends Controller
         $service = Yii::$container->get(CheckoutCartViewService::class);
         $cart = $service->getActiveCartByHash($hash);
 
+        $model = new CheckoutForm();
+
+        $formData = Yii::$app->session->getFlash('checkoutFormData', []);
+        $formErrors = Yii::$app->session->getFlash('checkoutFormErrors', []);
+
+        if (is_array($formData) && $formData !== []) {
+            $model->setAttributes($formData, false);
+        }
+
+        if (is_array($formErrors) && $formErrors !== []) {
+            foreach ($formErrors as $attribute => $messages) {
+                foreach ((array)$messages as $message) {
+                    $model->addError((string)$attribute, (string)$message);
+                }
+            }
+        }
+
         return $this->render('view', [
             'cart' => $cart->toArray(),
             'hash' => $hash,
+            'model' => $model,
         ]);
     }
 
@@ -178,6 +197,23 @@ final class CheckoutController extends Controller
 
             $payload = Yii::$app->request->post();
             $payload['cartHash'] = $hash;
+
+            $form = new CheckoutForm();
+            $form->load($payload, '');
+
+            if (!$form->validate()) {
+                Yii::$app->session->setFlash(
+                    'error',
+                    Yii::t('frontend', 'Please correct the highlighted fields.')
+                );
+
+                Yii::$app->session->setFlash('checkoutFormData', $payload);
+                Yii::$app->session->setFlash('checkoutFormErrors', $form->getErrors());
+
+                return $this->redirect(['checkout/view', 'hash' => $hash]);
+            }
+
+            $payload = $form->getAttributes();
 
             $callbackUrl = Yii::$app->request->hostInfo . '/api/v1/callbacks/payments/' . PaymentModel::PROVIDER_WAYFORPAY;
             $defaultReturnUrl = Yii::$app->request->hostInfo . '/checkout/payment-return';

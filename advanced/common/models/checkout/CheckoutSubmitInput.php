@@ -21,6 +21,7 @@ class CheckoutSubmitInput extends Model
     public ?string $region = null;
     public ?string $city = null;
     public ?string $branch = null;
+    public ?string $branch_number = null;
 
     public ?string $payment_method = 'wayforpay';
     public ?string $returnUrl = null;
@@ -28,10 +29,30 @@ class CheckoutSubmitInput extends Model
     public function rules(): array
     {
         return [
-            [['email', 'phone', 'first_name', 'last_name'], 'required'],
+            [
+                ['email', 'phone', 'first_name', 'last_name', 'branch_number'],
+                'required',
+                'message' => Yii::t('frontend', 'This field is required.'),
+            ],
 
-            [['cartHash', 'sessionKey', 'sourceType', 'payment_method', 'returnUrl'], 'trim'],
-            [['email', 'phone', 'first_name', 'last_name', 'region', 'city', 'branch'], 'trim'],
+            [
+                [
+                    'cartHash',
+                    'sessionKey',
+                    'sourceType',
+                    'payment_method',
+                    'returnUrl',
+                    'email',
+                    'phone',
+                    'first_name',
+                    'last_name',
+                    'region',
+                    'city',
+                    'branch',
+                    'branch_number',
+                ],
+                'trim',
+            ],
 
             [
                 'cartHash',
@@ -40,7 +61,10 @@ class CheckoutSubmitInput extends Model
                         trim((string)$this->cartHash) === ''
                         && trim((string)$this->sessionKey) === ''
                     ) {
-                        $this->addError($attribute, 'Cart hash or session key is required.');
+                        $this->addError(
+                            $attribute,
+                            Yii::t('frontend', 'Cart hash or session key is required.')
+                        );
                     }
                 },
             ],
@@ -52,7 +76,21 @@ class CheckoutSubmitInput extends Model
                     ? mb_strtolower(trim((string)$value))
                     : null,
             ],
-            ['email', 'email'],
+
+            [
+                'email',
+                'email',
+                'message' => Yii::t('frontend', 'Please enter a valid email address.'),
+            ],
+
+            ['phone', 'validatePhone'],
+
+            [
+                'branch_number',
+                'match',
+                'pattern' => '/^\d+$/',
+                'message' => Yii::t('frontend', 'Nova Poshta branch number must contain only digits.'),
+            ],
 
             [['cartHash', 'sessionKey'], 'string', 'max' => 128],
             [['sourceType'], 'string', 'max' => 32],
@@ -60,12 +98,39 @@ class CheckoutSubmitInput extends Model
             [['phone'], 'string', 'max' => 30],
             [['first_name', 'last_name'], 'string', 'max' => 100],
             [['region', 'city', 'branch'], 'string', 'max' => 255],
-
+            [['branch_number'], 'string', 'max' => 20],
             [['payment_method'], 'string', 'max' => 64],
             [['payment_method'], 'in', 'range' => ['wayforpay']],
-
             [['returnUrl'], 'url'],
         ];
+    }
+
+    public function validatePhone(string $attribute): void
+    {
+        $raw = trim((string)$this->{$attribute});
+
+        if ($raw === '') {
+            $this->addError($attribute, Yii::t('frontend', 'This field is required.'));
+            return;
+        }
+
+        $digits = preg_replace('/\D+/', '', $raw);
+
+        if ($digits === null || $digits === '') {
+            $this->addError($attribute, Yii::t('frontend', 'Please enter a valid Ukrainian phone number.'));
+            return;
+        }
+
+        if (str_starts_with($digits, '0') && strlen($digits) === 10) {
+            $digits = '38' . $digits;
+        }
+
+        if (!preg_match('/^380\d{9}$/', $digits)) {
+            $this->addError($attribute, Yii::t('frontend', 'Please enter a valid Ukrainian phone number.'));
+            return;
+        }
+
+        $this->{$attribute} = '+' . $digits;
     }
 
     public function attributeLabels(): array
@@ -81,6 +146,7 @@ class CheckoutSubmitInput extends Model
             'region' => Yii::t('frontend', 'Select region'),
             'city' => Yii::t('frontend', 'Select city'),
             'branch' => Yii::t('frontend', 'Select branch'),
+            'branch_number' => Yii::t('frontend', 'Specify Nova Poshta branch number'),
             'payment_method' => Yii::t('frontend', 'Payment'),
             'returnUrl' => 'Return URL',
         ];
@@ -101,7 +167,8 @@ class CheckoutSubmitInput extends Model
         return [
             'region' => $this->region,
             'city' => $this->city,
-            'branch' => $this->branch,
+            'branch' => $this->branch ?: $this->branch_number,
+            'branch_number' => $this->branch_number,
         ];
     }
 

@@ -201,4 +201,11 @@ return [
     'Error' => 'Помилка',
     'Go to homepage' => 'На головну',
     'Open catalog' => 'До каталогу',
+    'Please correct the highlighted fields.' => 'Будь ласка, виправте виділені поля.',
+    'This field is required.' => 'Це поле обовʼязкове.',
+    'Cart hash or session key is required.' => 'Не вдалося визначити кошик.',
+    'Please enter a valid email address.' => 'Вкажіть коректну email-адресу.',
+    'Please enter a valid Ukrainian phone number.' => 'Вкажіть коректний український номер телефону.',
+    'Specify Nova Poshta branch number' => 'Вкажіть номер відділення Нової пошти',
+    'Nova Poshta branch number must contain only digits.' => 'Номер відділення Нової пошти має містити лише цифри.',
 ];

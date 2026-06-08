@@ -193,4 +193,11 @@ return [
     'Out of stock' => 'Out of stock',
     'Reviews' => 'Reviews',
     'Reviews will be added soon.' => 'Reviews will be added soon.',
+    'Please correct the highlighted fields.' => 'Please correct the highlighted fields.',
+    'This field is required.' => 'This field is required.',
+    'Cart hash or session key is required.' => 'Cart hash or session key is required.',
+    'Please enter a valid email address.' => 'Please enter a valid email address.',
+    'Please enter a valid Ukrainian phone number.' => 'Please enter a valid Ukrainian phone number.',
+    'Specify Nova Poshta branch number' => 'Specify Nova Poshta branch number',
+    'Nova Poshta branch number must contain only digits.' => 'Nova Poshta branch number must contain only digits.',
 ];
