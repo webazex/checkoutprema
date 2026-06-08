@@ -918,16 +918,57 @@ label.order-form__label[for='fio'] > span, label.order-form__label[for='mail'] {
 .checkout-field input:focus {
     border-bottom-color: #000;
 }
-.checkout-field--error input {
-    border-color: #c0392b;
+.checkout-field {
+    display: flex;
+    flex-direction: column;
+    align-items: stretch;
+    gap: 8px;
+    min-width: 0;
+}
+
+.checkout-field__label {
+    display: block;
+    margin: 0;
+    padding: 0;
+    font: inherit;
+    font-size: 16px;
+    line-height: 1.25;
+    color: inherit;
+}
+
+.checkout-field__control {
+    display: block;
+    width: 100%;
+    min-width: 0;
+    box-sizing: border-box;
 }
 
 .checkout-field__error {
     display: block;
-    margin-top: 6px;
-    color: #c0392b;
-    font-size: 13px;
+    width: 100%;
+    margin: 0;
+    padding: 0;
+    font-size: 14px;
     line-height: 1.35;
+    color: #c94b55;
+    white-space: normal;
+    overflow-wrap: anywhere;
+    word-break: normal;
+}
+
+.checkout-field--error .checkout-field__control {
+    border-color: #c94b55;
+}
+
+/* Перебиваем слишком общие старые стили, если они есть */
+.order-form__label .checkout-field__label,
+.order-form__label .checkout-field__error {
+    position: static;
+    transform: none;
+}
+
+.order-form__label .checkout-field__error {
+    color: #c94b55;
 }
 .checkout-cart-title {
     display: flex;
