@@ -3016,6 +3016,32 @@ button.catalog-card__button.catalog-card__button--primary {
         height: 100%;
     }
 }
+@media (max-width: 640px) {
+    .checkout-field {
+        gap: 6px;
+    }
+
+    .checkout-field__label {
+        font-size: 15px;
+        line-height: 1.2;
+    }
+
+    .checkout-field__error {
+        font-size: 13px;
+        line-height: 1.3;
+    }
+}
+
+@media (max-width: 359px) {
+    .checkout-field__label {
+        font-size: 14px;
+    }
+
+    .checkout-field__error {
+        font-size: 12px;
+        line-height: 1.25;
+    }
+}
 @media (max-width: 540px) {
     .properties__prop-row {
         flex-direction: column;
