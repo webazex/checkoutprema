@@ -192,4 +192,13 @@ return [
     'Out of stock' => 'Немає в наявності',
     'Reviews' => 'Відгуки',
     'Reviews will be added soon.' => 'Відгуки будуть додані пізніше.',
+    'Page not found' => 'Сторінку не знайдено',
+    'Something went wrong' => 'Щось пішло не так',
+    'This page does not exist' => 'Такої сторінки не існує',
+    'Temporary technical issue' => 'Тимчасова технічна помилка',
+    'The page may have been moved, deleted, or the address may contain a mistake.' => 'Можливо, сторінку було переміщено, видалено або в адресі є помилка.',
+    'We are already working on it. Please try again later or return to the catalog.' => 'Ми вже працюємо над цим. Спробуйте пізніше або поверніться до каталогу.',
+    'Error' => 'Помилка',
+    'Go to homepage' => 'На головну',
+    'Open catalog' => 'До каталогу',
 ];
