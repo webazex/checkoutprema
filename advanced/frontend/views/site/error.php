@@ -8,6 +8,7 @@
 use yii\helpers\Html;
 
 $this->title = $name;
+echo $code;
 ?>
 <div class="site-error">
 
