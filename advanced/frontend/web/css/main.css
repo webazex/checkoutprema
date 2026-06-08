@@ -2471,7 +2471,9 @@ button.catalog-card__button.catalog-card__button--primary {
 .product-design .product-accordion__table tr:last-child td {
     border-bottom: none;
 }
-
+.catalog-card__unavailable {
+    color: var(--txt-color);
+}
 .product-design .product-accordion__table th {
     width: 40%;
     padding-right: 14px;
