@@ -1,18 +1,24 @@
 <?php
-$diPatch = __DIR__ . '/di.php';
-$singlePatch = __DIR__ . '/singletones.php';
-$definitions = (file_exists($diPatch))? require $diPatch : [];
-$singletones = (file_exists($singlePatch))? require $singlePatch : [];
+
+$diPath = __DIR__ . '/di.php';
+$singlePath = __DIR__ . '/singletones.php';
+
+$definitions = file_exists($diPath) ? require $diPath : [];
+$singletones = file_exists($singlePath) ? require $singlePath : [];
+
 return [
     'aliases' => [
         '@bower' => '@vendor/bower-asset',
         '@npm'   => '@vendor/npm-asset',
     ],
+
     'vendorPath' => dirname(dirname(__DIR__)) . '/vendor',
+
     'components' => [
         'cache' => [
             'class' => \yii\caching\FileCache::class,
         ],
+
         'i18n' => [
             'translations' => [
                 'frontend*' => [
@@ -25,11 +31,24 @@ return [
                 ],
             ],
         ],
+
+        'queue' => [
+            'class' => \yii\queue\db\Queue::class,
+            'db' => 'db',
+            'tableName' => '{{%queue}}',
+            'channel' => 'keycrm',
+            'mutex' => [
+                'class' => \yii\mutex\MysqlMutex::class,
+            ],
+            'as log' => \yii\queue\LogBehavior::class,
+        ],
     ],
+
     'container' => [
         'singletons' => $singletones,
         'definitions' => $definitions,
     ],
+
     'timeZone' => 'Europe/Kyiv',
-    'language' => 'uk'
+    'language' => 'uk',
 ];

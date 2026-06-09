@@ -10,7 +10,7 @@ $params = array_merge(
 return [
     'id' => 'app-console',
     'basePath' => dirname(__DIR__),
-    'bootstrap' => ['log'],
+    'bootstrap' => ['log', 'queue'],
     'controllerNamespace' => 'console\controllers',
     'aliases' => [
         '@bower' => '@vendor/bower-asset',
@@ -21,6 +21,13 @@ return [
             'class' => \yii\console\controllers\FixtureController::class,
             'namespace' => 'common\fixtures',
           ],
+        'migrate' => [
+            'class' => \yii\console\controllers\MigrateController::class,
+            'migrationPath' => null,
+            'migrationNamespaces' => [
+                'yii\queue\db\migrations',
+            ],
+        ],
     ],
     'components' => [
         'log' => [
