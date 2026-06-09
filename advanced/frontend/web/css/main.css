@@ -1190,9 +1190,8 @@ label.order-form__label[for='fio'] > span, label.order-form__label[for='mail'] {
     padding: 68px 142px;
 }
 .empty-cart__title {
-    position: absolute;
-    top: 0;
-    left: 142px;
+    width: auto;
+    text-align: center;
 }
 .empty-cart__centered-box {
     width: auto;
@@ -3029,6 +3028,9 @@ button.catalog-card__button.catalog-card__button--primary {
     .checkout-field__error {
         font-size: 13px;
         line-height: 1.3;
+    }
+    .empty-cart {
+        padding: 15px;
     }
 }
 
