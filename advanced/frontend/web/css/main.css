@@ -1185,6 +1185,7 @@ label.order-form__label[for='fio'] > span, label.order-form__label[for='mail'] {
 .empty-cart {
     width: 100%;
     display: flex;
+    flex-direction: column;
     justify-content: center;
     align-items: center;
     padding: 68px 142px;
