@@ -19,6 +19,10 @@ return [
             'class' => \yii\caching\FileCache::class,
         ],
 
+        'mutex' => [
+            'class' => \yii\mutex\MysqlMutex::class,
+        ],
+
         'i18n' => [
             'translations' => [
                 'frontend*' => [
