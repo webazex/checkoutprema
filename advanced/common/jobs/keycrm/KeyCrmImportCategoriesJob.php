@@ -14,6 +14,7 @@ final class KeyCrmImportCategoriesJob extends BaseObject implements JobInterface
 {
     public int $maxPages = 0;
     public bool $linkProducts = true;
+    public string $uniqueKey = '';
 
     public function execute($queue): void
     {
@@ -23,6 +24,7 @@ final class KeyCrmImportCategoriesJob extends BaseObject implements JobInterface
             Yii::warning([
                 'message' => 'KeyCRM categories import skipped: lock is already acquired.',
                 'lock' => $lockName,
+                'uniqueKey' => $this->uniqueKey,
             ], __METHOD__);
 
             return;
@@ -44,12 +46,14 @@ final class KeyCrmImportCategoriesJob extends BaseObject implements JobInterface
 
             Yii::info([
                 'message' => 'KeyCRM categories import completed from queue.',
+                'uniqueKey' => $this->uniqueKey,
                 'categoryStats' => $categoryStats,
                 'linkStats' => $linkStats,
             ], __METHOD__);
         } catch (Throwable $e) {
             Yii::error([
                 'message' => 'KeyCRM categories import failed from queue.',
+                'uniqueKey' => $this->uniqueKey,
                 'exception' => $e->getMessage(),
                 'trace' => $e->getTraceAsString(),
             ], __METHOD__);

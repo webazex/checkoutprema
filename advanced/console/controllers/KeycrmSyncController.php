@@ -4,8 +4,7 @@ declare(strict_types=1);
 
 namespace console\controllers;
 
-use common\jobs\keycrm\KeyCrmImportCategoriesJob;
-use common\jobs\keycrm\KeyCrmImportProductsJob;
+use common\services\keycrm\KeyCrmSyncSchedulerService;
 use Yii;
 use yii\console\Controller;
 use yii\console\ExitCode;
@@ -14,43 +13,53 @@ final class KeycrmSyncController extends Controller
 {
     public function actionProducts(int $maxPages = 0): int
     {
-        $jobId = Yii::$app->queue->push(new KeyCrmImportProductsJob([
-            'maxPages' => $maxPages,
-            'withCustomFields' => true,
-        ]));
+        /** @var KeyCrmSyncSchedulerService $scheduler */
+        $scheduler = Yii::$container->get(KeyCrmSyncSchedulerService::class);
 
-        $this->stdout("KeyCRM products sync job pushed. Job ID: {$jobId}\n");
+        $jobId = $scheduler->scheduleProducts(
+            maxPages: $maxPages,
+            withCustomFields: true,
+        );
+
+        $this->stdout($this->formatJobResult('KeyCRM products sync', $jobId));
 
         return ExitCode::OK;
     }
 
     public function actionCategories(int $maxPages = 0, int $linkProducts = 1): int
     {
-        $jobId = Yii::$app->queue->push(new KeyCrmImportCategoriesJob([
-            'maxPages' => $maxPages,
-            'linkProducts' => (bool)$linkProducts,
-        ]));
+        /** @var KeyCrmSyncSchedulerService $scheduler */
+        $scheduler = Yii::$container->get(KeyCrmSyncSchedulerService::class);
 
-        $this->stdout("KeyCRM categories sync job pushed. Job ID: {$jobId}\n");
+        $jobId = $scheduler->scheduleCategories(
+            maxPages: $maxPages,
+            linkProducts: (bool)$linkProducts,
+        );
+
+        $this->stdout($this->formatJobResult('KeyCRM categories sync', $jobId));
 
         return ExitCode::OK;
     }
 
     public function actionFull(int $maxPages = 0): int
     {
-        $categoriesJobId = Yii::$app->queue->push(new KeyCrmImportCategoriesJob([
-            'maxPages' => $maxPages,
-            'linkProducts' => true,
-        ]));
+        /** @var KeyCrmSyncSchedulerService $scheduler */
+        $scheduler = Yii::$container->get(KeyCrmSyncSchedulerService::class);
 
-        $productsJobId = Yii::$app->queue->push(new KeyCrmImportProductsJob([
-            'maxPages' => $maxPages,
-            'withCustomFields' => true,
-        ]));
+        $result = $scheduler->scheduleFull($maxPages);
 
-        $this->stdout("KeyCRM categories sync job pushed. Job ID: {$categoriesJobId}\n");
-        $this->stdout("KeyCRM products sync job pushed. Job ID: {$productsJobId}\n");
+        $this->stdout($this->formatJobResult('KeyCRM categories sync', $result['categories']));
+        $this->stdout($this->formatJobResult('KeyCRM products sync', $result['products']));
 
         return ExitCode::OK;
+    }
+
+    private function formatJobResult(string $label, int|string|null $jobId): string
+    {
+        if ($jobId === null) {
+            return "{$label} job skipped: duplicate active job exists.\n";
+        }
+
+        return "{$label} job pushed. Job ID: {$jobId}\n";
     }
 }
