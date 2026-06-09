@@ -9,21 +9,40 @@ use yii\base\Model;
 
 class CheckoutSubmitInput extends Model
 {
-    private const SOURCE_TYPE_WIX = 'wix';
-    private const PAYMENT_METHOD_WAYFORPAY = 'wayforpay';
+    private const DEFAULT_SOURCE_TYPE = 'wix';
+    private const DEFAULT_PAYMENT_METHOD = 'wayforpay';
 
-    private const PHONE_MAX_LENGTH = 30;
-    private const NAME_MAX_LENGTH = 100;
-    private const EMAIL_MAX_LENGTH = 255;
-    private const DELIVERY_FIELD_MAX_LENGTH = 255;
-    private const BRANCH_MAX_LENGTH = 20;
-    private const CART_REFERENCE_MAX_LENGTH = 128;
-    private const SOURCE_TYPE_MAX_LENGTH = 32;
-    private const PAYMENT_METHOD_MAX_LENGTH = 64;
+    private const PAYMENT_METHODS = [
+        self::DEFAULT_PAYMENT_METHOD,
+    ];
+
+    private const REQUIRED_FIELDS = [
+        'email',
+        'phone',
+        'first_name',
+        'last_name',
+        'branch',
+    ];
+
+    private const TRIM_FIELDS = [
+        'cartHash',
+        'sessionKey',
+        'sourceType',
+        'payment_method',
+        'returnUrl',
+        'email',
+        'phone',
+        'first_name',
+        'last_name',
+        'region',
+        'city',
+        'branch',
+        'branch_number',
+    ];
 
     public ?string $cartHash = null;
     public ?string $sessionKey = null;
-    public ?string $sourceType = self::SOURCE_TYPE_WIX;
+    public ?string $sourceType = self::DEFAULT_SOURCE_TYPE;
 
     public ?string $email = null;
     public ?string $phone = null;
@@ -34,41 +53,34 @@ class CheckoutSubmitInput extends Model
     public ?string $city = null;
 
     /**
-     * Номер відділення Нової пошти.
+     * Основное поле отделения доставки.
      *
-     * Сохраняется в заказ как delivery.branch.
+     * Сейчас во view в это поле вводится номер отделения Новой пошты.
      */
     public ?string $branch = null;
 
-    public ?string $payment_method = self::PAYMENT_METHOD_WAYFORPAY;
+    /**
+     * Совместимый alias для внутренних сервисов / старого payload.
+     *
+     * Не является отдельным полем формы.
+     */
+    public ?string $branch_number = null;
+
+    public ?string $payment_method = self::DEFAULT_PAYMENT_METHOD;
     public ?string $returnUrl = null;
 
     public function rules(): array
     {
         return [
             [
-                $this->requiredAttributes(),
+                self::REQUIRED_FIELDS,
                 'required',
                 'message' => Yii::t('frontend', 'This field is required.'),
             ],
 
             [
-                $this->trimmedAttributes(),
-                'trim',
-            ],
-
-            [
                 'cartHash',
-                'validateCartReference',
-                'skipOnEmpty' => false,
-            ],
-
-            [
-                'email',
-                'filter',
-                'filter' => static fn($value): ?string => $value !== null
-                    ? mb_strtolower(trim((string)$value))
-                    : null,
+                'validateCartIdentifier',
             ],
 
             [
@@ -80,7 +92,6 @@ class CheckoutSubmitInput extends Model
             [
                 'phone',
                 'validatePhone',
-                'skipOnEmpty' => false,
             ],
 
             [
@@ -90,19 +101,90 @@ class CheckoutSubmitInput extends Model
                 'message' => Yii::t('frontend', 'Nova Poshta branch number must contain only digits.'),
             ],
 
-            [['cartHash', 'sessionKey'], 'string', 'max' => self::CART_REFERENCE_MAX_LENGTH],
-            ['sourceType', 'string', 'max' => self::SOURCE_TYPE_MAX_LENGTH],
-            ['email', 'string', 'max' => self::EMAIL_MAX_LENGTH],
-            ['phone', 'string', 'max' => self::PHONE_MAX_LENGTH],
-            [['first_name', 'last_name'], 'string', 'max' => self::NAME_MAX_LENGTH],
-            [['region', 'city'], 'string', 'max' => self::DELIVERY_FIELD_MAX_LENGTH],
-            ['branch', 'string', 'max' => self::BRANCH_MAX_LENGTH],
+            [['cartHash', 'sessionKey'], 'string', 'max' => 128],
+            [['sourceType'], 'string', 'max' => 32],
+            [['email'], 'string', 'max' => 255],
+            [['phone'], 'string', 'max' => 30],
+            [['first_name', 'last_name'], 'string', 'max' => 100],
+            [['region', 'city'], 'string', 'max' => 255],
+            [['branch', 'branch_number'], 'string', 'max' => 20],
 
-            ['payment_method', 'string', 'max' => self::PAYMENT_METHOD_MAX_LENGTH],
-            ['payment_method', 'in', 'range' => [self::PAYMENT_METHOD_WAYFORPAY]],
+            [
+                'payment_method',
+                'string',
+                'max' => 64,
+            ],
 
-            ['returnUrl', 'url'],
+            [
+                'payment_method',
+                'in',
+                'range' => self::PAYMENT_METHODS,
+            ],
+
+            [
+                'returnUrl',
+                'url',
+            ],
         ];
+    }
+
+    public function beforeValidate(): bool
+    {
+        if (!parent::beforeValidate()) {
+            return false;
+        }
+
+        $this->normalizeStringFields();
+        $this->normalizeEmail();
+        $this->normalizeBranchAlias();
+
+        return true;
+    }
+
+    public function validateCartIdentifier(string $attribute): void
+    {
+        if ($this->isFilled($this->cartHash) || $this->isFilled($this->sessionKey)) {
+            return;
+        }
+
+        $this->addError(
+            $attribute,
+            Yii::t('frontend', 'Cart hash or session key is required.')
+        );
+    }
+
+    public function validatePhone(string $attribute): void
+    {
+        $raw = trim((string)$this->{$attribute});
+
+        if ($raw === '') {
+            $this->addError($attribute, Yii::t('frontend', 'This field is required.'));
+            return;
+        }
+
+        $digits = preg_replace('/\D+/', '', $raw);
+
+        if ($digits === null || $digits === '') {
+            $this->addError(
+                $attribute,
+                Yii::t('frontend', 'Please enter a valid Ukrainian phone number.')
+            );
+            return;
+        }
+
+        if (str_starts_with($digits, '0') && strlen($digits) === 10) {
+            $digits = '38' . $digits;
+        }
+
+        if (!preg_match('/^380\d{9}$/', $digits)) {
+            $this->addError(
+                $attribute,
+                Yii::t('frontend', 'Please enter a valid Ukrainian phone number.')
+            );
+            return;
+        }
+
+        $this->{$attribute} = '+' . $digits;
     }
 
     public function attributeLabels(): array
@@ -120,41 +202,11 @@ class CheckoutSubmitInput extends Model
             'region' => Yii::t('frontend', 'Select region'),
             'city' => Yii::t('frontend', 'Select city'),
             'branch' => Yii::t('frontend', 'Specify Nova Poshta branch number'),
+            'branch_number' => Yii::t('frontend', 'Specify Nova Poshta branch number'),
 
             'payment_method' => Yii::t('frontend', 'Payment'),
             'returnUrl' => 'Return URL',
         ];
-    }
-
-    public function validateCartReference(string $attribute): void
-    {
-        if ($this->hasCartReference()) {
-            return;
-        }
-
-        $this->addError(
-            $attribute,
-            Yii::t('frontend', 'Cart hash or session key is required.')
-        );
-    }
-
-    public function validatePhone(string $attribute): void
-    {
-        $rawPhone = trim((string)$this->{$attribute});
-
-        if ($rawPhone === '') {
-            $this->addError($attribute, Yii::t('frontend', 'This field is required.'));
-            return;
-        }
-
-        $normalizedPhone = $this->normalizePhone($rawPhone);
-
-        if ($normalizedPhone === null) {
-            $this->addError($attribute, Yii::t('frontend', 'Please enter a valid Ukrainian phone number.'));
-            return;
-        }
-
-        $this->{$attribute} = $normalizedPhone;
     }
 
     public function getCustomerPayload(): array
@@ -172,71 +224,58 @@ class CheckoutSubmitInput extends Model
         return [
             'region' => $this->region,
             'city' => $this->city,
+
+            // Основное значение для заказа.
             'branch' => $this->branch,
+
+            // Alias на тот же номер отделения, чтобы не сломать существующий код,
+            // если где-то дальше уже читается branch_number.
+            'branch_number' => $this->branch_number,
         ];
     }
 
     public function getPaymentPayload(): array
     {
         return [
-            'payment_method' => $this->payment_method ?: self::PAYMENT_METHOD_WAYFORPAY,
+            'payment_method' => $this->payment_method ?: self::DEFAULT_PAYMENT_METHOD,
             'returnUrl' => $this->returnUrl,
         ];
     }
 
-    private function requiredAttributes(): array
+    private function normalizeStringFields(): void
     {
-        return [
-            'email',
-            'phone',
-            'first_name',
-            'last_name',
-            'branch',
-        ];
+        foreach (self::TRIM_FIELDS as $attribute) {
+            if ($this->{$attribute} === null) {
+                continue;
+            }
+
+            $value = trim((string)$this->{$attribute});
+            $this->{$attribute} = $value === '' ? null : $value;
+        }
     }
 
-    private function trimmedAttributes(): array
+    private function normalizeEmail(): void
     {
-        return [
-            'cartHash',
-            'sessionKey',
-            'sourceType',
-            'payment_method',
-            'returnUrl',
+        if ($this->email === null) {
+            return;
+        }
 
-            'email',
-            'phone',
-            'first_name',
-            'last_name',
-
-            'region',
-            'city',
-            'branch',
-        ];
+        $this->email = mb_strtolower($this->email);
     }
 
-    private function hasCartReference(): bool
+    private function normalizeBranchAlias(): void
     {
-        return trim((string)$this->cartHash) !== ''
-            || trim((string)$this->sessionKey) !== '';
+        if (!$this->isFilled($this->branch) && $this->isFilled($this->branch_number)) {
+            $this->branch = $this->branch_number;
+        }
+
+        if (!$this->isFilled($this->branch_number) && $this->isFilled($this->branch)) {
+            $this->branch_number = $this->branch;
+        }
     }
 
-    private function normalizePhone(string $phone): ?string
+    private function isFilled(?string $value): bool
     {
-        $digits = preg_replace('/\D+/', '', $phone);
-
-        if ($digits === null || $digits === '') {
-            return null;
-        }
-
-        if (str_starts_with($digits, '0') && strlen($digits) === 10) {
-            $digits = '38' . $digits;
-        }
-
-        if (!preg_match('/^380\d{9}$/', $digits)) {
-            return null;
-        }
-
-        return '+' . $digits;
+        return trim((string)$value) !== '';
     }
 }

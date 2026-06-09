@@ -4,62 +4,79 @@ declare(strict_types=1);
 
 namespace frontend\helpers\checkout;
 
-use yii\base\Model;
+use frontend\models\CheckoutForm;
+use Yii;
 use yii\helpers\Html;
 
 final class CheckoutFieldViewHelper
 {
     public function __construct(
-        private readonly Model $model
+        private readonly CheckoutForm $model
     ) {
     }
 
-    public function textInput(string $attribute, string $label, array $options = []): string
+    public function textInput(string $attribute, ?string $label = null, array $options = []): string
     {
-        return $this->input($attribute, $label, 'text', $options);
+        return $this->input('text', $attribute, $label, $options);
     }
 
-    public function telInput(string $attribute, string $label, array $options = []): string
+    public function telInput(string $attribute, ?string $label = null, array $options = []): string
     {
-        return $this->input($attribute, $label, 'text', array_merge([
-            'inputmode' => 'tel',
+        $options = array_merge([
             'autocomplete' => 'tel',
-            'placeholder' => '+380XXXXXXXXX',
-        ], $options));
+            'inputmode' => 'tel',
+        ], $options);
+
+        return $this->input('tel', $attribute, $label, $options);
     }
 
-    public function emailInput(string $attribute, string $label, array $options = []): string
+    public function emailInput(string $attribute, ?string $label = null, array $options = []): string
     {
-        return $this->input($attribute, $label, 'text', array_merge([
-            'inputmode' => 'email',
+        $options = array_merge([
             'autocomplete' => 'email',
-        ], $options));
+            'inputmode' => 'email',
+        ], $options);
+
+        return $this->input('email', $attribute, $label, $options);
     }
 
-    public function numericInput(string $attribute, string $label, array $options = []): string
+    public function hiddenInput(string $attribute, ?string $value = null, array $options = []): string
     {
-        return $this->input($attribute, $label, 'text', array_merge([
-            'inputmode' => 'numeric',
-            'autocomplete' => 'off',
-        ], $options));
+        return Html::hiddenInput(
+            $attribute,
+            $value ?? $this->value($attribute),
+            $options
+        );
     }
 
-    public function hiddenInput(string $name, string $value): string
+    private function input(string $type, string $attribute, ?string $label = null, array $options = []): string
     {
-        return Html::hiddenInput($name, $value);
-    }
+        $id = (string)($options['id'] ?? 'checkout-' . str_replace('_', '-', $attribute));
+        $error = $this->error($attribute);
+        $hasError = $error !== '';
 
-    private function input(string $attribute, string $label, string $type, array $options = []): string
-    {
-        $id = $options['id'] ?? $this->buildId($attribute);
+        $inputOptions = array_merge($options, [
+            'id' => $id,
+            'class' => trim((string)($options['class'] ?? '')),
+            'aria-invalid' => $hasError ? 'true' : 'false',
+        ]);
 
-        $inputOptions = $this->normalizeInputOptions($attribute, $id, $options);
+        if ($hasError) {
+            $inputOptions['aria-describedby'] = $this->errorId($id);
+        }
+
+        $input = Html::input(
+            $type,
+            $attribute,
+            $this->value($attribute),
+            $inputOptions
+        );
 
         return Html::tag(
             'label',
-            $this->renderLabel($label)
-            . $this->renderInput($type, $attribute, $inputOptions)
-            . $this->renderError($attribute),
+            $this->label($attribute, $label)
+            . $input
+            . $this->errorTag($id, $error),
             [
                 'class' => $this->labelClass($attribute),
                 'for' => $id,
@@ -67,58 +84,24 @@ final class CheckoutFieldViewHelper
         );
     }
 
-    private function renderLabel(string $label): string
+    private function label(string $attribute, ?string $label = null): string
     {
         return Html::tag(
             'span',
-            Html::encode($label),
-            ['class' => 'checkout-field__label']
-        );
-    }
-
-    private function renderInput(string $type, string $attribute, array $options): string
-    {
-        return Html::input(
-            $type,
-            $attribute,
-            $this->value($attribute),
-            $options
-        );
-    }
-
-    private function renderError(string $attribute): string
-    {
-        $error = $this->model->getFirstError($attribute);
-
-        if ($error === '') {
-            return '';
-        }
-
-        return Html::tag(
-            'span',
-            Html::encode($error),
+            Html::encode($this->labelText($attribute, $label)),
             [
-                'class' => 'checkout-field__error',
-                'role' => 'alert',
+                'class' => 'checkout-field__label-text',
             ]
         );
     }
 
-    private function normalizeInputOptions(string $attribute, string $id, array $options): array
+    private function labelText(string $attribute, ?string $label = null): string
     {
-        unset($options['labelOptions']);
-
-        $options['id'] = $id;
-
-        $options['class'] = trim(
-            'checkout-field__control ' . (string)($options['class'] ?? '')
-        );
-
-        if ($this->model->hasErrors($attribute)) {
-            $options['aria-invalid'] = 'true';
+        if ($label !== null) {
+            return Yii::t('frontend', $label);
         }
 
-        return $options;
+        return $this->model->getAttributeLabel($attribute);
     }
 
     private function labelClass(string $attribute): string
@@ -135,20 +118,34 @@ final class CheckoutFieldViewHelper
         return implode(' ', $classes);
     }
 
-    private function value(string $attribute): string
+    private function errorTag(string $inputId, string $error): string
     {
-        if (
-            property_exists($this->model, $attribute)
-            || $this->model->canGetProperty($attribute)
-        ) {
-            return (string)$this->model->{$attribute};
+        if ($error === '') {
+            return '';
         }
 
-        return '';
+        return Html::tag(
+            'span',
+            Html::encode($error),
+            [
+                'id' => $this->errorId($inputId),
+                'class' => 'checkout-field__error',
+            ]
+        );
     }
 
-    private function buildId(string $attribute): string
+    private function error(string $attribute): string
     {
-        return 'checkout-' . str_replace('_', '-', $attribute);
+        return (string)$this->model->getFirstError($attribute);
+    }
+
+    private function value(string $attribute): string
+    {
+        return Html::encode((string)($this->model->{$attribute} ?? ''));
+    }
+
+    private function errorId(string $inputId): string
+    {
+        return $inputId . '-error';
     }
 }

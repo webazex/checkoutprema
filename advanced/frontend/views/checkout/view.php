@@ -131,7 +131,10 @@ CheckoutAsset::register($this);
             </div>
 
             <div class="cart-box__price-row checkout-total">
-                <span class="price-row__label"><?= Html::encode($page->t('Total')) ?></span>
+                <span class="price-row__label">
+                    <?= Html::encode($page->t('Total')) ?>
+                </span>
+
                 <span class="checkout-total__value">
                     <?= Html::encode($page->total()) ?>
                 </span>
