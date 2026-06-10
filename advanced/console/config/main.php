@@ -34,7 +34,14 @@ return [
             'targets' => [
                 [
                     'class' => \yii\log\FileTarget::class,
-                    'levels' => ['error', 'warning'],
+                    'levels' => ['error', 'warning', 'info'],
+                    'categories' => [
+                        'common\jobs\keycrm\*',
+                        'common\services\keycrm\*',
+                        'common\integrations\keycrm\*',
+                    ],
+                    'logFile' => '@console/runtime/logs/keycrm-sync.log',
+                    'logVars' => [],
                 ],
             ],
         ],
