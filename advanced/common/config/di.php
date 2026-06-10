@@ -1,10 +1,11 @@
 <?php
 return [
-    \common\integrations\keycrm\KeyCrmApiClient::class => static function () {
+    \common\integrations\keycrm\KeyCrmApiClient::class => static function (\yii\di\Container $container) {
         return new \common\integrations\keycrm\KeyCrmApiClient(
             baseUrl: \Yii::$app->params['keycrm.baseUrl'],
             token: \Yii::$app->params['keycrm.token'],
             timeout: (int)(\Yii::$app->params['keycrm.timeout'] ?? 30),
+            rateLimiter: $container->get(\common\services\keycrm\KeyCrmRateLimiter::class),
         );
     },
 
@@ -78,6 +79,12 @@ return [
         return new \common\services\keycrm\KeyCrmCategorySyncService(
             $container->get(\common\integrations\keycrm\KeyCrmApiClient::class),
             $container->get(\common\integrations\keycrm\mappers\KeyCrmCategoryMapper::class),
+        );
+    },
+    \common\services\keycrm\KeyCrmRateLimiter::class => static function () {
+        return new \common\services\keycrm\KeyCrmRateLimiter(
+            minIntervalMs: (int)(\Yii::$app->params['keycrm.rateLimitIntervalMs'] ?? 2000),
+            lockTimeoutSeconds: (int)(\Yii::$app->params['keycrm.rateLimitLockTimeout'] ?? 10),
         );
     },
 ];

@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace common\integrations\keycrm;
 
+use common\services\keycrm\KeyCrmRateLimiter;
 use RuntimeException;
 use yii\helpers\Json;
 
@@ -13,6 +14,7 @@ final class KeyCrmApiClient
         private readonly string $baseUrl,
         private readonly string $token,
         private readonly int $timeout = 30,
+        private readonly ?KeyCrmRateLimiter $rateLimiter = null,
     ) {
     }
 
@@ -41,6 +43,8 @@ final class KeyCrmApiClient
         array $query = [],
         array $body = [],
     ): array {
+        $this->rateLimiter?->beforeRequest();
+
         $url = rtrim($this->baseUrl, '/') . '/' . ltrim($path, '/');
 
         if ($query !== []) {
@@ -80,6 +84,8 @@ final class KeyCrmApiClient
         $responseBody = curl_exec($ch);
         $curlError = curl_error($ch);
         $httpCode = (int) curl_getinfo($ch, CURLINFO_RESPONSE_CODE);
+
+        curl_close($ch);
 
         if ($responseBody === false) {
             throw new RuntimeException('KeyCRM request failed: ' . $curlError);
