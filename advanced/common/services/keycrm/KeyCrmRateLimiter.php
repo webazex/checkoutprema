@@ -10,6 +10,7 @@ final class KeyCrmRateLimiter
 {
     private const CACHE_KEY_LAST_REQUEST_AT = 'keycrm:api:last-request-at-ms';
     private const LOCK_NAME = 'keycrm:api:rate-limit';
+    private const LOG_CATEGORY = 'keycrm.sync.rate-limiter';
 
     public function __construct(
         private readonly int $minIntervalMs = 2000,
@@ -24,17 +25,21 @@ final class KeyCrmRateLimiter
         }
 
         if (!Yii::$app->mutex->acquire(self::LOCK_NAME, $this->lockTimeoutSeconds)) {
-            Yii::warning([
-                'message' => 'KeyCRM rate limiter lock was not acquired. Continue without delay.',
-                'lock' => self::LOCK_NAME,
-            ], __METHOD__);
+            Yii::warning(
+                KeyCrmSyncLogFormatter::event('rate-limiter', 'LOCK_FAILED_CONTINUE', [
+                    'lock' => self::LOCK_NAME,
+                    'minIntervalMs' => $this->minIntervalMs,
+                    'lockTimeoutSeconds' => $this->lockTimeoutSeconds,
+                ]),
+                self::LOG_CATEGORY
+            );
 
             return;
         }
 
         try {
             $nowMs = $this->nowMs();
-            $lastRequestAtMs = (int) Yii::$app->cache->get(self::CACHE_KEY_LAST_REQUEST_AT);
+            $lastRequestAtMs = (int)Yii::$app->cache->get(self::CACHE_KEY_LAST_REQUEST_AT);
 
             if ($lastRequestAtMs > 0) {
                 $elapsedMs = $nowMs - $lastRequestAtMs;
@@ -54,6 +59,6 @@ final class KeyCrmRateLimiter
 
     private function nowMs(): int
     {
-        return (int) floor(microtime(true) * 1000);
+        return (int)floor(microtime(true) * 1000);
     }
 }

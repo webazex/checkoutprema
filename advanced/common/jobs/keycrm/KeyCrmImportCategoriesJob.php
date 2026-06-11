@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace common\jobs\keycrm;
 
 use common\services\keycrm\KeyCrmCategorySyncService;
+use common\services\keycrm\KeyCrmSyncLogFormatter;
 use Throwable;
 use Yii;
 use yii\base\BaseObject;
@@ -12,20 +13,27 @@ use yii\queue\JobInterface;
 
 final class KeyCrmImportCategoriesJob extends BaseObject implements JobInterface
 {
+    private const LOCK_NAME = 'keycrm:import-categories';
+    private const LOG_CATEGORY = 'keycrm.sync.categories';
+
     public int $maxPages = 0;
     public bool $linkProducts = true;
     public string $uniqueKey = '';
 
     public function execute($queue): void
     {
-        $lockName = 'keycrm:import-categories';
+        unset($queue);
 
-        if (!Yii::$app->mutex->acquire($lockName, 0)) {
-            Yii::warning([
-                'message' => 'KeyCRM categories import skipped: lock is already acquired.',
-                'lock' => $lockName,
-                'uniqueKey' => $this->uniqueKey,
-            ], __METHOD__);
+        if (!Yii::$app->mutex->acquire(self::LOCK_NAME, 0)) {
+            Yii::warning(
+                KeyCrmSyncLogFormatter::event('categories', 'SKIP_LOCKED', [
+                    'key' => $this->uniqueKey,
+                    'lock' => self::LOCK_NAME,
+                    'maxPages' => $this->maxPages,
+                    'linkProducts' => $this->linkProducts,
+                ]),
+                self::LOG_CATEGORY
+            );
 
             return;
         }
@@ -38,29 +46,46 @@ final class KeyCrmImportCategoriesJob extends BaseObject implements JobInterface
                 maxPages: $this->maxPages > 0 ? $this->maxPages : null,
             );
 
-            $linkStats = null;
+            Yii::info(
+                KeyCrmSyncLogFormatter::event('categories', 'DONE', array_merge(
+                    [
+                        'key' => $this->uniqueKey,
+                        'maxPages' => $this->maxPages,
+                        'linkProducts' => $this->linkProducts,
+                    ],
+                    $categoryStats,
+                )),
+                self::LOG_CATEGORY
+            );
 
             if ($this->linkProducts) {
                 $linkStats = $service->linkProductsToCategories();
-            }
 
-            Yii::info([
-                'message' => 'KeyCRM categories import completed from queue.',
-                'uniqueKey' => $this->uniqueKey,
-                'categoryStats' => $categoryStats,
-                'linkStats' => $linkStats,
-            ], __METHOD__);
+                Yii::info(
+                    KeyCrmSyncLogFormatter::event('category-products', 'LINK_DONE', array_merge(
+                        [
+                            'key' => $this->uniqueKey,
+                        ],
+                        $linkStats,
+                    )),
+                    self::LOG_CATEGORY
+                );
+            }
         } catch (Throwable $e) {
-            Yii::error([
-                'message' => 'KeyCRM categories import failed from queue.',
-                'uniqueKey' => $this->uniqueKey,
-                'exception' => $e->getMessage(),
-                'trace' => $e->getTraceAsString(),
-            ], __METHOD__);
+            Yii::error(
+                KeyCrmSyncLogFormatter::event('categories', 'FAILED', [
+                    'key' => $this->uniqueKey,
+                    'maxPages' => $this->maxPages,
+                    'linkProducts' => $this->linkProducts,
+                    'exception' => $e::class,
+                    'error' => $e->getMessage(),
+                ]),
+                self::LOG_CATEGORY
+            );
 
             throw $e;
         } finally {
-            Yii::$app->mutex->release($lockName);
+            Yii::$app->mutex->release(self::LOCK_NAME);
         }
     }
 }

@@ -64,11 +64,14 @@ final class KeyCrmCategorySyncService
             } catch (Throwable $e) {
                 $stats['errors']++;
 
-                Yii::error([
-                    'message' => 'Failed to sync KeyCRM category.',
-                    'externalId' => $categoryDto->externalId,
-                    'exception' => $e->getMessage(),
-                ], __METHOD__);
+                Yii::error(
+                    KeyCrmSyncLogFormatter::event('categories', 'ITEM_FAILED', [
+                        'externalId' => $categoryDto->externalId,
+                        'exception' => $e::class,
+                        'error' => $e->getMessage(),
+                    ]),
+                    'keycrm.sync.categories'
+                );
 
                 throw $e;
             }

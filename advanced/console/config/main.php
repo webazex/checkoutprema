@@ -14,13 +14,13 @@ return [
     'controllerNamespace' => 'console\controllers',
     'aliases' => [
         '@bower' => '@vendor/bower-asset',
-        '@npm'   => '@vendor/npm-asset',
+        '@npm' => '@vendor/npm-asset',
     ],
     'controllerMap' => [
         'fixture' => [
             'class' => \yii\console\controllers\FixtureController::class,
             'namespace' => 'common\fixtures',
-          ],
+        ],
         'migrate' => [
             'class' => \yii\console\controllers\MigrateController::class,
             'migrationPath' => null,
@@ -31,17 +31,21 @@ return [
     ],
     'components' => [
         'log' => [
+            'traceLevel' => YII_DEBUG ? 3 : 0,
             'targets' => [
                 [
                     'class' => \yii\log\FileTarget::class,
-                    'levels' => ['error', 'warning', 'info'],
+                    'levels' => ['error', 'warning'],
+                ],
+                [
+                    'class' => \yii\log\FileTarget::class,
+                    'levels' => ['info', 'warning', 'error'],
                     'categories' => [
-                        'common\jobs\keycrm\*',
-                        'common\services\keycrm\*',
-                        'common\integrations\keycrm\*',
+                        'keycrm.stock.webhook',
                     ],
-                    'logFile' => '@console/runtime/logs/keycrm-sync.log',
+                    'logFile' => '@api/runtime/logs/keycrm-stock-webhook.log',
                     'logVars' => [],
+                    'prefix' => static fn ($message): string => '',
                 ],
             ],
         ],

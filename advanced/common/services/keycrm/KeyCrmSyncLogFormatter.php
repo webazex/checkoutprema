@@ -45,7 +45,7 @@ final class KeyCrmSyncLogFormatter
         }
 
         if (is_int($value) || is_float($value)) {
-            return (string) $value;
+            return (string)$value;
         }
 
         if (is_string($value)) {

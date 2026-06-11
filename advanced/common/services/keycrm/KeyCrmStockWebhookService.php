@@ -5,16 +5,16 @@ declare(strict_types=1);
 namespace common\services\keycrm;
 
 use common\models\product\ProductExternalMapModel;
-use common\models\product\ProductExternalMapQuery;
 use common\models\product\ProductModel;
 use DomainException;
-use JsonException;
+use Throwable;
 use Yii;
-use yii\db\Connection;
 use yii\helpers\Json;
 
 final class KeyCrmStockWebhookService
 {
+    private const LOG_CATEGORY = 'keycrm.stock.webhook';
+
     /**
      * @param array<int, array<string, mixed>> $payload
      * @return array<string, mixed>
@@ -38,11 +38,21 @@ final class KeyCrmStockWebhookService
                     'status' => 'failed',
                     'reason' => 'Row must be an object.',
                 ];
+
+                Yii::warning(
+                    KeyCrmSyncLogFormatter::event('stock-webhook', 'ROW_INVALID', [
+                        'index' => $index,
+                        'type' => get_debug_type($row),
+                    ]),
+                    self::LOG_CATEGORY
+                );
+
                 continue;
             }
 
             try {
                 $normalized = $this->normalizeRow($row);
+
                 $product = $this->resolveProduct(
                     offerId: $normalized['offerId'],
                     sku: $normalized['sku'],
@@ -57,12 +67,17 @@ final class KeyCrmStockWebhookService
                         'sku' => $normalized['sku'],
                     ];
 
-                    Yii::warning([
-                        'message' => 'KeyCRM stock webhook product not found.',
-                        'offerId' => $normalized['offerId'],
-                        'sku' => $normalized['sku'],
-                        'row' => $row,
-                    ], __METHOD__);
+                    Yii::warning(
+                        KeyCrmSyncLogFormatter::event('stock-webhook', 'PRODUCT_NOT_FOUND', [
+                            'index' => $index,
+                            'offerId' => $normalized['offerId'],
+                            'sku' => $normalized['sku'],
+                            'inStock' => $normalized['inStock'],
+                            'inReserve' => $normalized['inReserve'],
+                            'availableQuantity' => $normalized['availableQuantity'],
+                        ]),
+                        self::LOG_CATEGORY
+                    );
 
                     continue;
                 }
@@ -78,6 +93,7 @@ final class KeyCrmStockWebhookService
                         'productId' => (int)$product->id,
                         'quantity' => $newQuantity,
                     ];
+
                     continue;
                 }
 
@@ -101,17 +117,20 @@ final class KeyCrmStockWebhookService
                     'sku' => $normalized['sku'],
                 ];
 
-                Yii::info([
-                    'message' => 'KeyCRM stock updated.',
-                    'productId' => (int)$product->id,
-                    'oldQuantity' => $oldQuantity,
-                    'newQuantity' => $newQuantity,
-                    'offerId' => $normalized['offerId'],
-                    'sku' => $normalized['sku'],
-                    'inStock' => $normalized['inStock'],
-                    'inReserve' => $normalized['inReserve'],
-                ], __METHOD__);
-            } catch (\Throwable $e) {
+                Yii::info(
+                    KeyCrmSyncLogFormatter::event('stock-webhook', 'UPDATED', [
+                        'index' => $index,
+                        'productId' => (int)$product->id,
+                        'oldQuantity' => $oldQuantity,
+                        'newQuantity' => $newQuantity,
+                        'offerId' => $normalized['offerId'],
+                        'sku' => $normalized['sku'],
+                        'inStock' => $normalized['inStock'],
+                        'inReserve' => $normalized['inReserve'],
+                    ]),
+                    self::LOG_CATEGORY
+                );
+            } catch (Throwable $e) {
                 $result['failed']++;
                 $result['details'][] = [
                     'index' => $index,
@@ -119,13 +138,27 @@ final class KeyCrmStockWebhookService
                     'reason' => $e->getMessage(),
                 ];
 
-                Yii::error([
-                    'message' => 'KeyCRM stock webhook row processing failed.',
-                    'exception' => $e->getMessage(),
-                    'row' => $row,
-                ], __METHOD__);
+                Yii::error(
+                    KeyCrmSyncLogFormatter::event('stock-webhook', 'ROW_FAILED', [
+                        'index' => $index,
+                        'exception' => $e::class,
+                        'error' => $e->getMessage(),
+                    ]),
+                    self::LOG_CATEGORY
+                );
             }
         }
+
+        Yii::info(
+            KeyCrmSyncLogFormatter::event('stock-webhook', 'DONE', [
+                'received' => $result['received'],
+                'updated' => $result['updated'],
+                'unchanged' => $result['unchanged'],
+                'notFound' => $result['notFound'],
+                'failed' => $result['failed'],
+            ]),
+            self::LOG_CATEGORY
+        );
 
         return $result;
     }
@@ -133,11 +166,11 @@ final class KeyCrmStockWebhookService
     /**
      * @param array<string, mixed> $row
      * @return array{
-     *   offerId: ?string,
-     *   sku: ?string,
-     *   inStock: int,
-     *   inReserve: int,
-     *   availableQuantity: int
+     *     offerId: ?string,
+     *     sku: ?string,
+     *     inStock: int,
+     *     inReserve: int,
+     *     availableQuantity: int
      * }
      */
     private function normalizeRow(array $row): array

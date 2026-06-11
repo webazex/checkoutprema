@@ -12,6 +12,7 @@ use Yii;
 final class KeyCrmSyncSchedulerService
 {
     private const CHANNEL = 'keycrm';
+    private const LOG_CATEGORY = 'keycrm.sync.scheduler';
 
     public function scheduleProducts(int $maxPages = 0, bool $withCustomFields = true): int|string|null
     {
@@ -63,20 +64,40 @@ final class KeyCrmSyncSchedulerService
     private function pushUnique(string $uniqueKey, string $lockName, object $job): int|string|null
     {
         if (!Yii::$app->mutex->acquire($lockName, 3)) {
+            Yii::warning(
+                KeyCrmSyncLogFormatter::event('scheduler', 'LOCK_FAILED', [
+                    'key' => $uniqueKey,
+                    'lock' => $lockName,
+                ]),
+                self::LOG_CATEGORY
+            );
+
             throw new RuntimeException("Can not acquire scheduler lock: {$lockName}");
         }
 
         try {
             if ($this->hasActiveJob($uniqueKey)) {
-                Yii::info([
-                    'message' => 'KeyCRM sync job was not pushed: duplicate active job exists.',
-                    'uniqueKey' => $uniqueKey,
-                ], __METHOD__);
+                Yii::info(
+                    KeyCrmSyncLogFormatter::event('scheduler', 'SKIP_DUPLICATE', [
+                        'key' => $uniqueKey,
+                    ]),
+                    self::LOG_CATEGORY
+                );
 
                 return null;
             }
 
-            return Yii::$app->queue->push($job);
+            $jobId = Yii::$app->queue->push($job);
+
+            Yii::info(
+                KeyCrmSyncLogFormatter::event('scheduler', 'PUSHED', [
+                    'key' => $uniqueKey,
+                    'jobId' => $jobId,
+                ]),
+                self::LOG_CATEGORY
+            );
+
+            return $jobId;
         } finally {
             Yii::$app->mutex->release($lockName);
         }
@@ -86,18 +107,18 @@ final class KeyCrmSyncSchedulerService
     {
         $payloadLike = '%' . addcslashes($uniqueKey, '%_\\') . '%';
 
-        return (bool) Yii::$app->db
+        return (bool)Yii::$app->db
             ->createCommand(
                 <<<SQL
-SELECT EXISTS(
-    SELECT 1
-    FROM {{%queue}}
-    WHERE [[channel]] = :channel
-      AND [[done_at]] IS NULL
-      AND CAST([[job]] AS CHAR) LIKE :payloadLike
-    LIMIT 1
-)
-SQL
+                    SELECT EXISTS(
+                        SELECT 1
+                        FROM {{%queue}}
+                        WHERE [[channel]] = :channel
+                          AND [[done_at]] IS NULL
+                          AND CAST([[job]] AS CHAR) LIKE :payloadLike
+                        LIMIT 1
+                    )
+                    SQL
             )
             ->bindValue(':channel', self::CHANNEL)
             ->bindValue(':payloadLike', $payloadLike)
