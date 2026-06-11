@@ -45,6 +45,16 @@ return [
                     'class' => \yii\log\FileTarget::class,
                     'levels' => ['error', 'warning'],
                 ],
+                [
+                    'class' => \yii\log\FileTarget::class,
+                    'levels' => ['info', 'warning', 'error'],
+                    'categories' => [
+                        'keycrm.stock.webhook',
+                    ],
+                    'logFile' => '@api/runtime/logs/keycrm-stock-webhook.log',
+                    'logVars' => [],
+                    'prefix' => static fn ($message): string => '',
+                ],
             ],
         ],
         'errorHandler' => [
