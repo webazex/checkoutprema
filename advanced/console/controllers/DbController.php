@@ -52,21 +52,36 @@ final class DbController extends Controller
      * - catalog_category
      *
      * Removes checkout/order/customer/payment/cart data:
+     * - meta rows for customer/order/order_item/payment
      * - payment_log
      * - payment
      * - order_item
-     * - order
      * - cart_item
+     * - order
      * - cart
      * - customer_password_reset_token
      * - customer
-     * - related meta rows
+     *
+     * Optional flags:
+     * - --includeQueue=1 removes queue rows
+     * - --includeSyncState=1 removes keycrm_sync_state/keycrm_sync_run rows
+     * - --dryRun=1 prints counts without deleting anything
+     * - --force=1 disables confirmation prompt
+     * - --resetAutoIncrement=0 keeps current AUTO_INCREMENT values
      */
     public function actionProdClean(): int
     {
         $this->stdout(PHP_EOL . 'CheckoutPrema DB prod clean' . PHP_EOL, Console::FG_YELLOW);
         $this->stdout('This command removes local checkout/customer/order/payment/cart data.' . PHP_EOL, Console::FG_YELLOW);
         $this->stdout('Catalog products and categories will NOT be removed.' . PHP_EOL . PHP_EOL, Console::FG_GREEN);
+
+        if ($this->includeQueue) {
+            $this->stdout('Queue table WILL be cleaned because --includeQueue=1 was passed.' . PHP_EOL, Console::FG_YELLOW);
+        }
+
+        if ($this->includeSyncState) {
+            $this->stdout('KeyCRM sync state tables WILL be cleaned because --includeSyncState=1 was passed.' . PHP_EOL, Console::FG_YELLOW);
+        }
 
         $plan = $this->buildCleanupPlan();
 
@@ -174,6 +189,10 @@ final class DbController extends Controller
         }
 
         if ($this->includeSyncState) {
+            /*
+             * keycrm_sync_state has FK links to keycrm_sync_run.
+             * Delete state first, then run.
+             */
             $plan[] = [
                 'type' => 'table',
                 'table' => '{{%keycrm_sync_state}}',
@@ -201,7 +220,7 @@ final class DbController extends Controller
             $count = $this->countPlanItem($item);
 
             $this->stdout(sprintf(
-                ' - %-55s %d%s',
+                ' - %-60s %d%s',
                 $item['label'] . ':',
                 $count,
                 PHP_EOL
@@ -225,11 +244,27 @@ final class DbController extends Controller
                 return 0;
             }
 
+            $table = $this->quoteTableName('{{%meta}}');
+            $column = $this->quoteColumnName('entity_type');
+
+            $params = [];
+            $placeholders = [];
+
+            foreach ($entityTypes as $index => $entityType) {
+                $placeholder = ':entityType' . $index;
+                $placeholders[] = $placeholder;
+                $params[$placeholder] = $entityType;
+            }
+
+            $sql = sprintf(
+                'SELECT COUNT(*) FROM %s WHERE %s IN (%s)',
+                $table,
+                $column,
+                implode(', ', $placeholders)
+            );
+
             return (int)Yii::$app->db
-                ->createCommand()
-                ->select('COUNT(*)')
-                ->from('{{%meta}}')
-                ->where(['entity_type' => $entityTypes])
+                ->createCommand($sql, $params)
                 ->queryScalar();
         }
 
@@ -265,38 +300,14 @@ final class DbController extends Controller
         try {
             foreach ($plan as $item) {
                 if ($item['type'] === 'meta') {
-                    $entityTypes = $item['entityTypes'] ?? [];
-
-                    if ($entityTypes !== [] && $this->tableExists('{{%meta}}')) {
-                        $deleted = $db
-                            ->createCommand()
-                            ->delete('{{%meta}}', ['entity_type' => $entityTypes])
-                            ->execute();
-
-                        $this->stdout("Deleted {$deleted} rows from {$item['label']}." . PHP_EOL);
-                    }
+                    $deleted = $this->deleteMetaRows($item);
+                    $this->stdout("Deleted {$deleted} rows from {$item['label']}." . PHP_EOL);
 
                     continue;
                 }
 
                 if ($item['type'] === 'table') {
-                    $table = $item['table'] ?? null;
-
-                    if ($table === null) {
-                        throw new RuntimeException('Cleanup plan table is missing.');
-                    }
-
-                    if (!$this->tableExists($table)) {
-                        $this->stdout("Skipped missing table {$item['label']}." . PHP_EOL, Console::FG_YELLOW);
-                        continue;
-                    }
-
-                    $quotedTable = $this->quoteTableName($table);
-
-                    $deleted = $db
-                        ->createCommand("DELETE FROM {$quotedTable}")
-                        ->execute();
-
+                    $deleted = $this->deleteTableRows($item);
                     $this->stdout("Deleted {$deleted} rows from {$item['label']}." . PHP_EOL);
 
                     continue;
@@ -315,6 +326,53 @@ final class DbController extends Controller
         if ($this->resetAutoIncrement) {
             $this->resetAutoIncrements($plan);
         }
+    }
+
+    /**
+     * @param array{type:string, table?:string, entityTypes?:string[], label:string} $item
+     */
+    private function deleteMetaRows(array $item): int
+    {
+        $entityTypes = $item['entityTypes'] ?? [];
+
+        if ($entityTypes === []) {
+            return 0;
+        }
+
+        if (!$this->tableExists('{{%meta}}')) {
+            $this->stdout("Skipped missing table meta." . PHP_EOL, Console::FG_YELLOW);
+
+            return 0;
+        }
+
+        return Yii::$app->db
+            ->createCommand()
+            ->delete('{{%meta}}', ['entity_type' => $entityTypes])
+            ->execute();
+    }
+
+    /**
+     * @param array{type:string, table?:string, entityTypes?:string[], label:string} $item
+     */
+    private function deleteTableRows(array $item): int
+    {
+        $table = $item['table'] ?? null;
+
+        if ($table === null) {
+            throw new RuntimeException('Cleanup plan table is missing.');
+        }
+
+        if (!$this->tableExists($table)) {
+            $this->stdout("Skipped missing table {$item['label']}." . PHP_EOL, Console::FG_YELLOW);
+
+            return 0;
+        }
+
+        $quotedTable = $this->quoteTableName($table);
+
+        return Yii::$app->db
+            ->createCommand("DELETE FROM {$quotedTable}")
+            ->execute();
     }
 
     /**
@@ -362,6 +420,11 @@ final class DbController extends Controller
     private function quoteTableName(string $table): string
     {
         return Yii::$app->db->schema->quoteTableName($this->normalizeTableName($table));
+    }
+
+    private function quoteColumnName(string $column): string
+    {
+        return Yii::$app->db->schema->quoteColumnName($column);
     }
 
     private function normalizeTableName(string $table): string
