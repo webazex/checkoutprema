@@ -7,6 +7,7 @@ namespace common\services\keycrm;
 use common\jobs\keycrm\KeyCrmImportCategoriesJob;
 use common\jobs\keycrm\KeyCrmImportProductsJob;
 use RuntimeException;
+use Throwable;
 use Yii;
 
 final class KeyCrmSyncSchedulerService
@@ -14,17 +15,29 @@ final class KeyCrmSyncSchedulerService
     private const CHANNEL = 'keycrm';
     private const LOG_CATEGORY = 'keycrm.sync.scheduler';
 
+    private const SYNC_TYPE_PRODUCTS = 'products';
+    private const SYNC_TYPE_CATEGORIES = 'categories';
+
+    private const ACTIVE_RUN_MAX_AGE_SECONDS = 3600;
+
     public function scheduleProducts(int $maxPages = 0, bool $withCustomFields = true): int|string|null
     {
-        $uniqueKey = $this->buildUniqueKey('products', [
+        $syncType = self::SYNC_TYPE_PRODUCTS;
+
+        $params = [
             'maxPages' => $maxPages,
             'withCustomFields' => $withCustomFields,
-        ]);
+        ];
+
+        $uniqueKey = $this->buildUniqueKey($syncType, $params);
 
         return $this->pushUnique(
+            syncType: $syncType,
             uniqueKey: $uniqueKey,
             lockName: 'keycrm:schedule:products',
-            job: new KeyCrmImportProductsJob([
+            params: $params,
+            jobFactory: static fn (int $runId): KeyCrmImportProductsJob => new KeyCrmImportProductsJob([
+                'runId' => $runId,
                 'maxPages' => $maxPages,
                 'withCustomFields' => $withCustomFields,
                 'uniqueKey' => $uniqueKey,
@@ -34,15 +47,22 @@ final class KeyCrmSyncSchedulerService
 
     public function scheduleCategories(int $maxPages = 0, bool $linkProducts = true): int|string|null
     {
-        $uniqueKey = $this->buildUniqueKey('categories', [
+        $syncType = self::SYNC_TYPE_CATEGORIES;
+
+        $params = [
             'maxPages' => $maxPages,
             'linkProducts' => $linkProducts,
-        ]);
+        ];
+
+        $uniqueKey = $this->buildUniqueKey($syncType, $params);
 
         return $this->pushUnique(
+            syncType: $syncType,
             uniqueKey: $uniqueKey,
             lockName: 'keycrm:schedule:categories',
-            job: new KeyCrmImportCategoriesJob([
+            params: $params,
+            jobFactory: static fn (int $runId): KeyCrmImportCategoriesJob => new KeyCrmImportCategoriesJob([
+                'runId' => $runId,
                 'maxPages' => $maxPages,
                 'linkProducts' => $linkProducts,
                 'uniqueKey' => $uniqueKey,
@@ -61,11 +81,21 @@ final class KeyCrmSyncSchedulerService
         ];
     }
 
-    private function pushUnique(string $uniqueKey, string $lockName, object $job): int|string|null
-    {
+    /**
+     * @param array<string, mixed> $params
+     * @param callable(int): object $jobFactory
+     */
+    private function pushUnique(
+        string $syncType,
+        string $uniqueKey,
+        string $lockName,
+        array $params,
+        callable $jobFactory,
+    ): int|string|null {
         if (!Yii::$app->mutex->acquire($lockName, 3)) {
             Yii::warning(
                 KeyCrmSyncLogFormatter::event('scheduler', 'LOCK_FAILED', [
+                    'type' => $syncType,
                     'key' => $uniqueKey,
                     'lock' => $lockName,
                 ]),
@@ -75,11 +105,25 @@ final class KeyCrmSyncSchedulerService
             throw new RuntimeException("Can not acquire scheduler lock: {$lockName}");
         }
 
+        /** @var KeyCrmSyncRunLogger $runLogger */
+        $runLogger = Yii::$container->get(KeyCrmSyncRunLogger::class);
+
         try {
-            if ($this->hasActiveJob($uniqueKey)) {
+            if ($runLogger->hasActiveRun($syncType, $uniqueKey, self::ACTIVE_RUN_MAX_AGE_SECONDS)) {
+                $reason = 'Duplicate active sync run exists.';
+
+                $runLogger->skippedAttempt(
+                    syncType: $syncType,
+                    uniqueKey: $uniqueKey,
+                    reason: $reason,
+                    params: $params,
+                );
+
                 Yii::info(
-                    KeyCrmSyncLogFormatter::event('scheduler', 'SKIP_DUPLICATE', [
+                    KeyCrmSyncLogFormatter::event('scheduler', 'SKIP_DUPLICATE_RUN', [
+                        'type' => $syncType,
                         'key' => $uniqueKey,
+                        'reason' => $reason,
                     ]),
                     self::LOG_CATEGORY
                 );
@@ -87,44 +131,97 @@ final class KeyCrmSyncSchedulerService
                 return null;
             }
 
-            $jobId = Yii::$app->queue->push($job);
+            if ($this->hasActiveQueueJob($uniqueKey)) {
+                $reason = 'Duplicate active queue job exists.';
 
-            Yii::info(
-                KeyCrmSyncLogFormatter::event('scheduler', 'PUSHED', [
-                    'key' => $uniqueKey,
-                    'jobId' => $jobId,
-                ]),
-                self::LOG_CATEGORY
+                $runLogger->skippedAttempt(
+                    syncType: $syncType,
+                    uniqueKey: $uniqueKey,
+                    reason: $reason,
+                    params: $params,
+                );
+
+                Yii::info(
+                    KeyCrmSyncLogFormatter::event('scheduler', 'SKIP_DUPLICATE_QUEUE_JOB', [
+                        'type' => $syncType,
+                        'key' => $uniqueKey,
+                        'reason' => $reason,
+                    ]),
+                    self::LOG_CATEGORY
+                );
+
+                return null;
+            }
+
+            $runId = $runLogger->queued(
+                syncType: $syncType,
+                uniqueKey: $uniqueKey,
+                params: $params,
             );
 
-            return $jobId;
+            try {
+                $job = $jobFactory($runId);
+                $jobId = Yii::$app->queue->push($job);
+
+                $runLogger->attachQueueJobId($runId, $jobId);
+
+                Yii::info(
+                    KeyCrmSyncLogFormatter::event('scheduler', 'PUSHED', [
+                        'type' => $syncType,
+                        'key' => $uniqueKey,
+                        'runId' => $runId,
+                        'jobId' => $jobId,
+                    ]),
+                    self::LOG_CATEGORY
+                );
+
+                return $jobId;
+            } catch (Throwable $e) {
+                $runLogger->failed($runId, $e);
+
+                Yii::error(
+                    KeyCrmSyncLogFormatter::event('scheduler', 'PUSH_FAILED', [
+                        'type' => $syncType,
+                        'key' => $uniqueKey,
+                        'runId' => $runId,
+                        'exception' => $e::class,
+                        'error' => $e->getMessage(),
+                    ]),
+                    self::LOG_CATEGORY
+                );
+
+                throw $e;
+            }
         } finally {
             Yii::$app->mutex->release($lockName);
         }
     }
 
-    private function hasActiveJob(string $uniqueKey): bool
+    private function hasActiveQueueJob(string $uniqueKey): bool
     {
         $payloadLike = '%' . addcslashes($uniqueKey, '%_\\') . '%';
 
         return (bool)Yii::$app->db
             ->createCommand(
                 <<<SQL
-                    SELECT EXISTS(
-                        SELECT 1
-                        FROM {{%queue}}
-                        WHERE [[channel]] = :channel
-                          AND [[done_at]] IS NULL
-                          AND CAST([[job]] AS CHAR) LIKE :payloadLike
-                        LIMIT 1
-                    )
-                    SQL
+SELECT EXISTS(
+    SELECT 1
+    FROM {{%queue}}
+    WHERE [[channel]] = :channel
+      AND [[done_at]] IS NULL
+      AND CAST([[job]] AS CHAR) LIKE :payloadLike
+    LIMIT 1
+)
+SQL
             )
             ->bindValue(':channel', self::CHANNEL)
             ->bindValue(':payloadLike', $payloadLike)
             ->queryScalar();
     }
 
+    /**
+     * @param array<string, mixed> $params
+     */
     private function buildUniqueKey(string $type, array $params): string
     {
         ksort($params);

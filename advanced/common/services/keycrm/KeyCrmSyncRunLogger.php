@@ -1,6 +1,5 @@
 <?php
 
-
 declare(strict_types=1);
 
 namespace common\services\keycrm;
@@ -186,12 +185,43 @@ final class KeyCrmSyncRunLogger
         ]);
     }
 
-    public function failedBeforeQueue(int $runId, Throwable $e): void
+    public function skippedRun(int $runId, string $reason, array $stats = []): void
     {
-        $this->failed($runId, $e);
+        $run = $this->findRun($runId);
+
+        if ($run === null) {
+            return;
+        }
+
+        $now = time();
+        $nowMs = $this->nowMs();
+        $durationMs = $this->durationMs($run, $nowMs);
+        $statsJson = $stats !== [] ? $this->encode($stats) : null;
+
+        Yii::$app->db->createCommand()->update(self::TABLE_RUN, [
+            'status' => self::STATUS_SKIPPED,
+            'stats_json' => $statsJson,
+            'error_message' => $reason,
+            'error_trace' => null,
+            'finished_at' => $now,
+            'finished_at_ms' => $nowMs,
+            'duration_ms' => $durationMs,
+            'updated_at' => $now,
+        ], ['id' => $runId])->execute();
+
+        $this->upsertState((string)$run['sync_type'], [
+            'status' => self::STATUS_SKIPPED,
+            'active_run_id' => null,
+            'last_run_id' => $runId,
+            'last_finished_at' => $now,
+            'last_duration_ms' => $durationMs,
+            'last_stats_json' => $statsJson,
+            'last_error_message' => $reason,
+            'updated_at' => $now,
+        ]);
     }
 
-    public function skipped(string $syncType, string $uniqueKey, string $reason, array $params = []): void
+    public function skippedAttempt(string $syncType, string $uniqueKey, string $reason, array $params = []): void
     {
         $now = time();
         $nowMs = $this->nowMs();
@@ -216,47 +246,34 @@ final class KeyCrmSyncRunLogger
             'updated_at' => $now,
         ])->execute();
 
-        $runId = (int)Yii::$app->db->getLastInsertID();
-
-        $this->upsertState($syncType, [
-            'status' => self::STATUS_SKIPPED,
-            'last_run_id' => $runId,
-            'last_unique_key' => $uniqueKey !== '' ? $uniqueKey : null,
-            'last_finished_at' => $now,
-            'last_error_message' => $reason,
-            'updated_at' => $now,
-        ]);
+        // Важно: state здесь НЕ трогаем.
+        // Duplicate attempt не должен перебивать active queued/running sync.
     }
 
-    public function hasActiveRun(string $syncType, ?int $maxAgeSeconds = 3600): bool
+    public function hasActiveRun(string $syncType, string $uniqueKey, int $maxAgeSeconds = 3600): bool
     {
-        $query = Yii::$app->db
+        $minCreatedAt = time() - $maxAgeSeconds;
+
+        return (bool)Yii::$app->db
             ->createCommand(
                 <<<SQL
-SELECT COUNT(*)
-FROM {{%keycrm_sync_run}}
-WHERE [[sync_type]] = :syncType
-  AND [[status]] IN (:queued, :running)
+SELECT EXISTS(
+    SELECT 1
+    FROM {{%keycrm_sync_run}}
+    WHERE [[sync_type]] = :syncType
+      AND [[unique_key]] = :uniqueKey
+      AND [[status]] IN (:queued, :running)
+      AND [[created_at]] >= :minCreatedAt
+    LIMIT 1
+)
 SQL
             )
             ->bindValue(':syncType', $syncType)
+            ->bindValue(':uniqueKey', $uniqueKey)
             ->bindValue(':queued', self::STATUS_QUEUED)
-            ->bindValue(':running', self::STATUS_RUNNING);
-
-        if ($maxAgeSeconds !== null && $maxAgeSeconds > 0) {
-            $query->setSql(
-                <<<SQL
-SELECT COUNT(*)
-FROM {{%keycrm_sync_run}}
-WHERE [[sync_type]] = :syncType
-  AND [[status]] IN (:queued, :running)
-  AND [[created_at]] >= :minCreatedAt
-SQL
-            );
-            $query->bindValue(':minCreatedAt', time() - $maxAgeSeconds);
-        }
-
-        return (int)$query->queryScalar() > 0;
+            ->bindValue(':running', self::STATUS_RUNNING)
+            ->bindValue(':minCreatedAt', $minCreatedAt)
+            ->queryScalar();
     }
 
     /**
