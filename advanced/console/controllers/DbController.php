@@ -51,7 +51,7 @@ final class DbController extends Controller
      * - product_external_map
      * - catalog_category
      *
-     * Removes checkout/order/customer/payment data:
+     * Removes checkout/order/customer/payment/cart data:
      * - payment_log
      * - payment
      * - order_item
@@ -80,6 +80,7 @@ final class DbController extends Controller
 
         if (!$this->force) {
             $this->stdout(PHP_EOL, Console::FG_YELLOW);
+
             $confirmed = $this->confirm(
                 'This will permanently delete local checkout/customer/order/payment/cart data. Continue?'
             );
@@ -200,7 +201,7 @@ final class DbController extends Controller
             $count = $this->countPlanItem($item);
 
             $this->stdout(sprintf(
-                ' - %-45s %d%s',
+                ' - %-55s %d%s',
                 $item['label'] . ':',
                 $count,
                 PHP_EOL
@@ -220,6 +221,10 @@ final class DbController extends Controller
                 return 0;
             }
 
+            if (!$this->tableExists('{{%meta}}')) {
+                return 0;
+            }
+
             return (int)Yii::$app->db
                 ->createCommand()
                 ->select('COUNT(*)')
@@ -235,12 +240,14 @@ final class DbController extends Controller
                 throw new RuntimeException('Cleanup plan table is missing.');
             }
 
-            if (Yii::$app->db->schema->getTableSchema($table) === null) {
+            if (!$this->tableExists($table)) {
                 return 0;
             }
 
+            $quotedTable = $this->quoteTableName($table);
+
             return (int)Yii::$app->db
-                ->createCommand("SELECT COUNT(*) FROM {$table}")
+                ->createCommand("SELECT COUNT(*) FROM {$quotedTable}")
                 ->queryScalar();
         }
 
@@ -260,7 +267,7 @@ final class DbController extends Controller
                 if ($item['type'] === 'meta') {
                     $entityTypes = $item['entityTypes'] ?? [];
 
-                    if ($entityTypes !== []) {
+                    if ($entityTypes !== [] && $this->tableExists('{{%meta}}')) {
                         $deleted = $db
                             ->createCommand()
                             ->delete('{{%meta}}', ['entity_type' => $entityTypes])
@@ -279,14 +286,15 @@ final class DbController extends Controller
                         throw new RuntimeException('Cleanup plan table is missing.');
                     }
 
-                    if ($db->schema->getTableSchema($table) === null) {
+                    if (!$this->tableExists($table)) {
                         $this->stdout("Skipped missing table {$item['label']}." . PHP_EOL, Console::FG_YELLOW);
                         continue;
                     }
 
+                    $quotedTable = $this->quoteTableName($table);
+
                     $deleted = $db
-                        ->createCommand()
-                        ->delete($table)
+                        ->createCommand("DELETE FROM {$quotedTable}")
                         ->execute();
 
                     $this->stdout("Deleted {$deleted} rows from {$item['label']}." . PHP_EOL);
@@ -332,19 +340,40 @@ final class DbController extends Controller
 
             $table = $item['table'] ?? null;
 
-            if ($table === null) {
+            if ($table === null || !$this->tableExists($table)) {
                 continue;
             }
 
-            if (Yii::$app->db->schema->getTableSchema($table) === null) {
-                continue;
-            }
+            $quotedTable = $this->quoteTableName($table);
 
             Yii::$app->db
-                ->createCommand("ALTER TABLE {$table} AUTO_INCREMENT = 1")
+                ->createCommand("ALTER TABLE {$quotedTable} AUTO_INCREMENT = 1")
                 ->execute();
 
             $this->stdout("Reset AUTO_INCREMENT for {$item['label']}." . PHP_EOL, Console::FG_BLUE);
         }
+    }
+
+    private function tableExists(string $table): bool
+    {
+        return Yii::$app->db->schema->getTableSchema($this->normalizeTableName($table), true) !== null;
+    }
+
+    private function quoteTableName(string $table): string
+    {
+        return Yii::$app->db->schema->quoteTableName($this->normalizeTableName($table));
+    }
+
+    private function normalizeTableName(string $table): string
+    {
+        if (preg_match('/^\{\{%(.+)}}$/', $table, $matches) === 1) {
+            return Yii::$app->db->tablePrefix . $matches[1];
+        }
+
+        if (preg_match('/^\{\{(.+)}}$/', $table, $matches) === 1) {
+            return $matches[1];
+        }
+
+        return $table;
     }
 }
