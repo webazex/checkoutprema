@@ -31,19 +31,14 @@ return [
     ],
     'components' => [
         'log' => [
-            'traceLevel' => YII_DEBUG ? 3 : 0,
             'targets' => [
                 [
                     'class' => \yii\log\FileTarget::class,
-                    'levels' => ['error', 'warning'],
-                ],
-                [
-                    'class' => \yii\log\FileTarget::class,
-                    'levels' => ['info', 'warning', 'error'],
+                    'levels' => ['error', 'warning', 'info'],
                     'categories' => [
-                        'keycrm.stock.webhook',
+                        'keycrm.sync.*',
                     ],
-                    'logFile' => '@api/runtime/logs/keycrm-stock-webhook.log',
+                    'logFile' => '@console/runtime/logs/keycrm-sync.log',
                     'logVars' => [],
                     'prefix' => static fn ($message): string => '',
                 ],
