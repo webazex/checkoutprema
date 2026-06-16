@@ -1,0 +1,370 @@
+diff --git a/advanced/common/models/meta/MetaModel.php b/advanced/common/models/meta/MetaModel.php
+--- a/advanced/common/models/meta/MetaModel.php
++++ b/advanced/common/models/meta/MetaModel.php
+@@ -5,6 +5,8 @@ declare(strict_types=1);
+ namespace common\models\meta;
+ 
+ use common\models\BaseModel;
++use DomainException;
++use InvalidArgumentException;
+ 
+ final class MetaModel extends BaseModel
+ {
+@@ -58,6 +60,128 @@ final class MetaModel extends BaseModel
+         $meta->save(false);
+     }
+ 
++    /**
++     * Synchronizes a complete subset of text meta values identified by key prefix.
++     *
++     * Existing prefixed keys missing from $values are deleted. Values present in
++     * $values are inserted or updated. Meta with other prefixes is not touched.
++     *
++     * @param array<string, string|null> $values
++     * @return array{upserted:int, deleted:int, unchanged:int}
++     */
++    public static function syncTextValuesByPrefix(
++        string $entityType,
++        int $entityId,
++        string $prefix,
++        array $values,
++    ): array {
++        if ($entityId < 1) {
++            throw new InvalidArgumentException('Meta entity ID must be greater than zero.');
++        }
++
++        $prefix = trim($prefix);
++
++        if ($prefix === '') {
++            throw new InvalidArgumentException('Meta key prefix must not be empty.');
++        }
++
++        $normalizedValues = [];
++
++        foreach ($values as $key => $value) {
++            $key = trim((string)$key);
++
++            if ($key === '' || !str_starts_with($key, $prefix)) {
++                continue;
++            }
++
++            $normalizedValues[$key] = self::normalizeTextValue($value);
++        }
++
++        return static::getDb()->transaction(function () use (
++            $entityType,
++            $entityId,
++            $prefix,
++            $normalizedValues,
++        ): array {
++            /** @var self[] $existingRows */
++            $existingRows = static::find()
++                ->forEntity($entityType, $entityId)
++                ->andWhere(['like', 'key', $prefix . '%', false])
++                ->indexBy('key')
++                ->all();
++
++            $stats = [
++                'upserted' => 0,
++                'deleted' => 0,
++                'unchanged' => 0,
++            ];
++
++            foreach ($existingRows as $key => $row) {
++                if (array_key_exists((string)$key, $normalizedValues)) {
++                    continue;
++                }
++
++                if ($row->delete() === false) {
++                    throw new DomainException(sprintf(
++                        'Failed to delete stale meta "%s" for %s #%d.',
++                        (string)$row->key,
++                        $entityType,
++                        $entityId,
++                    ));
++                }
++
++                $stats['deleted']++;
++            }
++
++            foreach ($normalizedValues as $key => $value) {
++                $row = $existingRows[$key] ?? null;
++
++                if (!$row instanceof self) {
++                    $row = new self();
++                    $row->entity_type = $entityType;
++                    $row->entity_id = $entityId;
++                    $row->key = $key;
++                } elseif (
++                    $row->value === $value
++                    && $row->value_int === null
++                    && $row->value_decimal === null
++                ) {
++                    $stats['unchanged']++;
++                    continue;
++                }
++
++                $row->value = $value;
++                $row->value_int = null;
++                $row->value_decimal = null;
++
++                if (!$row->save(false)) {
++                    throw new DomainException(sprintf(
++                        'Failed to save meta "%s" for %s #%d.',
++                        $key,
++                        $entityType,
++                        $entityId,
++                    ));
++                }
++
++                $stats['upserted']++;
++            }
++
++            return $stats;
++        });
++    }
++
++    public static function deleteForEntity(string $entityType, int $entityId): int
++    {
++        if ($entityId < 1) {
++            return 0;
++        }
++
++        return static::deleteAll([
++            'entity_type' => $entityType,
++            'entity_id' => $entityId,
++        ]);
++    }
++
+     /**
+      * @param string[] $keys
+      * @return array<string, string|null>
+@@ -84,4 +186,15 @@ final class MetaModel extends BaseModel
+ 
+         return $result;
+     }
++
++    private static function normalizeTextValue(mixed $value): ?string
++    {
++        if ($value === null) {
++            return null;
++        }
++
++        $value = trim((string)$value);
++
++        return $value !== '' ? $value : null;
++    }
+ }
+diff --git a/advanced/common/services/keycrm/KeyCrmProductImportService.php b/advanced/common/services/keycrm/KeyCrmProductImportService.php
+--- a/advanced/common/services/keycrm/KeyCrmProductImportService.php
++++ b/advanced/common/services/keycrm/KeyCrmProductImportService.php
+@@ -38,8 +38,9 @@ final class KeyCrmProductImportService
+ 
+         $seenExternalIds = $this->extractSeenExternalIds($remoteProducts);
+ 
+-        $this->upsertRemoteProducts($remoteProducts, $stats);
++        $this->upsertRemoteProducts($remoteProducts, $withCustomFields, $stats);
+         $this->archiveMissingProducts($seenExternalIds, $stats);
++        $stats['orphanMetaDeleted'] += $this->cleanupOrphanProductMeta();
+ 
+         return $stats;
+     }
+@@ -57,6 +58,10 @@ final class KeyCrmProductImportService
+             'unchanged' => 0,
+             'orphanRepaired' => 0,
+             'orphanRemoved' => 0,
++            'customMetaUpserted' => 0,
++            'customMetaDeleted' => 0,
++            'customMetaUnchanged' => 0,
++            'orphanMetaDeleted' => 0,
+             'errors' => 0,
+         ];
+     }
+@@ -97,11 +102,11 @@ final class KeyCrmProductImportService
+         return array_values(array_unique($ids));
+     }
+ 
+-    private function upsertRemoteProducts(array $products, array &$stats): void
++    private function upsertRemoteProducts(array $products, bool $syncCustomFields, array &$stats): void
+     {
+         foreach ($products as $dto) {
+             try {
+-                $result = $this->upsertProduct($dto);
++                $result = $this->upsertProduct($dto, $syncCustomFields);
+ 
+                 $stats['processed']++;
+ 
+@@ -130,6 +135,10 @@ final class KeyCrmProductImportService
+                 if (!empty($result['orphanRemoved'])) {
+                     $stats['orphanRemoved']++;
+                 }
++
++                $stats['customMetaUpserted'] += $result['meta']['upserted'];
++                $stats['customMetaDeleted'] += $result['meta']['deleted'];
++                $stats['customMetaUnchanged'] += $result['meta']['unchanged'];
+             } catch (\Throwable $e) {
+                 $stats['errors']++;
+                 throw $e;
+@@ -178,7 +187,7 @@ final class KeyCrmProductImportService
+         }
+     }
+ 
+-    private function upsertProduct(KeyCrmProductDto $dto): array
++    private function upsertProduct(KeyCrmProductDto $dto, bool $syncCustomFields): array
+     {
+         $created = false;
+         $mappingCreated = false;
+@@ -186,6 +195,11 @@ final class KeyCrmProductImportService
+         $unchanged = false;
+         $orphanRepaired = false;
+         $orphanRemoved = false;
++        $metaStats = [
++            'upserted' => 0,
++            'deleted' => 0,
++            'unchanged' => 0,
++        ];
+ 
+         $externalId = (string) $dto->externalId;
+         $source = ProductExternalMapModel::SOURCE_KEYCRM;
+@@ -253,7 +267,10 @@ final class KeyCrmProductImportService
+                 'Failed to save product: ' . Json::encode($product->errors)
+             );
+         }
+-        $this->syncProductCustomFields($product, $dto);
++
++        if ($syncCustomFields) {
++            $metaStats = $this->syncProductCustomFields($product, $dto);
++        }
+ 
+         if (!$mapping instanceof ProductExternalMapModel) {
+             $mapping = new ProductExternalMapModel();
+@@ -287,5 +305,6 @@ final class KeyCrmProductImportService
+             'unchanged' => $unchanged,
+             'orphanRepaired' => $orphanRepaired,
+             'orphanRemoved' => $orphanRemoved,
++            'meta' => $metaStats,
+         ];
+     }
+@@ -362,12 +381,17 @@ final class KeyCrmProductImportService
+         $product->height_mm = $this->centimetersToMillimeters($dto->height);
+     }
+ 
+-    private function syncProductCustomFields(ProductModel $product, KeyCrmProductDto $dto): void
++    /**
++     * @return array{upserted:int, deleted:int, unchanged:int}
++     */
++    private function syncProductCustomFields(ProductModel $product, KeyCrmProductDto $dto): array
+     {
+-        if (!$product->id || $dto->customFields === []) {
+-            return;
++        if (!$product->id) {
++            throw new DomainException('Product must be saved before custom meta synchronization.');
+         }
+ 
++        $values = [];
++
+         foreach ($dto->customFields as $fieldKey => $field) {
+             $code = null;
+             $value = null;
+@@ -386,13 +407,34 @@ final class KeyCrmProductImportService
+ 
+             $metaKey = substr(self::PRODUCT_CUSTOM_FIELD_META_PREFIX . $code, 0, 128);
+ 
+-            MetaModel::upsertText(
+-                MetaModel::ENTITY_PRODUCT,
+-                (int)$product->id,
+-                $metaKey,
+-                $value
+-            );
++            $values[$metaKey] = $value;
+         }
++
++        return MetaModel::syncTextValuesByPrefix(
++            MetaModel::ENTITY_PRODUCT,
++            (int)$product->id,
++            self::PRODUCT_CUSTOM_FIELD_META_PREFIX,
++            $values,
++        );
++    }
++
++    /**
++     * Removes product meta rows whose local product no longer exists.
++     *
++     * This also cleans historical orphan rows left by manual deletes or by the
++     * old archived-product cleanup implementation.
++     */
++    private function cleanupOrphanProductMeta(): int
++    {
++        return MetaModel::deleteAll([
++            'and',
++            ['entity_type' => MetaModel::ENTITY_PRODUCT],
++            [
++                'not in',
++                'entity_id',
++                ProductModel::find()->select('id'),
++            ],
++        ]);
+     }
+ 
+     private function extractCustomFieldCode(array $field, int|string|null $fallbackKey = null): ?string
+diff --git a/advanced/common/services/keycrm/KeyCrmArchivedProductCleanupService.php b/advanced/common/services/keycrm/KeyCrmArchivedProductCleanupService.php
+--- a/advanced/common/services/keycrm/KeyCrmArchivedProductCleanupService.php
++++ b/advanced/common/services/keycrm/KeyCrmArchivedProductCleanupService.php
+@@ -6,7 +6,9 @@ declare(strict_types=1);
+ namespace common\services\keycrm;
+ 
++use common\models\meta\MetaModel;
+ use common\models\product\ProductModel;
+ use DomainException;
++use Yii;
+ use yii\helpers\Json;
+ 
+ final class KeyCrmArchivedProductCleanupService
+@@ -26,6 +28,7 @@ final class KeyCrmArchivedProductCleanupService
+             'scanned' => 0,
+             'eligible' => 0,
+             'deleted' => 0,
++            'deletedMeta' => 0,
+             'skippedCartItems' => 0,
+             'skippedOrderItems' => 0,
+             'skippedMissingArchivedAt' => 0,
+@@ -61,20 +64,30 @@ final class KeyCrmArchivedProductCleanupService
+                     continue;
+                 }
+ 
+-                foreach ($product->externalMaps as $externalMap) {
+-                    if ($externalMap->delete() === false) {
++                $deletedMeta = Yii::$app->db->transaction(function () use ($product): int {
++                    $deletedMeta = MetaModel::deleteForEntity(
++                        MetaModel::ENTITY_PRODUCT,
++                        (int)$product->id,
++                    );
++
++                    foreach ($product->externalMaps as $externalMap) {
++                        if ($externalMap->delete() === false) {
++                            throw new DomainException(
++                                'Failed to delete product external map: ' . Json::encode($externalMap->errors)
++                            );
++                        }
++                    }
++
++                    if ($product->delete() === false) {
+                         throw new DomainException(
+-                            'Failed to delete product external map: ' . Json::encode($externalMap->errors)
++                            'Failed to delete archived product #' . $product->id
+                         );
+                     }
+-                }
+ 
+-                if ($product->delete() === false) {
+-                    throw new DomainException(
+-                        'Failed to delete archived product #' . $product->id
+-                    );
+-                }
++                    return $deletedMeta;
++                });
+ 
++                $stats['deletedMeta'] += $deletedMeta;
+                 $stats['deleted']++;
+             } catch (\Throwable $e) {
+                 $stats['errors']++;
