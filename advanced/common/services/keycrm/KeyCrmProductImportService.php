@@ -11,12 +11,14 @@ use common\models\meta\MetaModel;
 use common\models\product\ProductExternalMapModel;
 use common\models\product\ProductModel;
 use DomainException;
+use Yii;
 use yii\helpers\Inflector;
 use yii\helpers\Json;
 
 final class KeyCrmProductImportService
 {
     private const PRODUCT_CUSTOM_FIELD_META_PREFIX = 'keycrm.custom.';
+
     public function __construct(
         private readonly KeyCrmApiClient $apiClient,
         private readonly KeyCrmProductMapper $productMapper,
@@ -36,8 +38,9 @@ final class KeyCrmProductImportService
 
         $seenExternalIds = $this->extractSeenExternalIds($remoteProducts);
 
-        $this->upsertRemoteProducts($remoteProducts, $stats);
+        $this->upsertRemoteProducts($remoteProducts, $withCustomFields, $stats);
         $this->archiveMissingProducts($seenExternalIds, $stats);
+        $stats['orphanMetaDeleted'] += $this->cleanupOrphanProductMeta();
 
         return $stats;
     }
@@ -55,6 +58,10 @@ final class KeyCrmProductImportService
             'unchanged' => 0,
             'orphanRepaired' => 0,
             'orphanRemoved' => 0,
+            'customMetaUpserted' => 0,
+            'customMetaDeleted' => 0,
+            'customMetaUnchanged' => 0,
+            'orphanMetaDeleted' => 0,
             'errors' => 0,
         ];
     }
@@ -89,17 +96,20 @@ final class KeyCrmProductImportService
         $ids = [];
 
         foreach ($products as $dto) {
-            $ids[] = (string) $dto->externalId;
+            $ids[] = (string)$dto->externalId;
         }
 
         return array_values(array_unique($ids));
     }
 
-    private function upsertRemoteProducts(array $products, array &$stats): void
-    {
+    private function upsertRemoteProducts(
+        array $products,
+        bool $withCustomFields,
+        array &$stats,
+    ): void {
         foreach ($products as $dto) {
             try {
-                $result = $this->upsertProduct($dto);
+                $result = $this->upsertProduct($dto, $withCustomFields);
 
                 $stats['processed']++;
 
@@ -128,6 +138,10 @@ final class KeyCrmProductImportService
                 if (!empty($result['orphanRemoved'])) {
                     $stats['orphanRemoved']++;
                 }
+
+                $stats['customMetaUpserted'] += (int)($result['customMetaUpserted'] ?? 0);
+                $stats['customMetaDeleted'] += (int)($result['customMetaDeleted'] ?? 0);
+                $stats['customMetaUnchanged'] += (int)($result['customMetaUnchanged'] ?? 0);
             } catch (\Throwable $e) {
                 $stats['errors']++;
                 throw $e;
@@ -148,18 +162,19 @@ final class KeyCrmProductImportService
 
         /** @var ProductExternalMapModel $mapping */
         foreach ($mappings as $mapping) {
-            $externalId = (string) $mapping->external_id;
+            $externalId = (string)$mapping->external_id;
 
             if (isset($seenLookup[$externalId])) {
                 continue;
             }
 
             $product = $mapping->product;
+
             if (!$product instanceof ProductModel) {
                 continue;
             }
 
-            if ((int) $product->is_archived === 1) {
+            if ((int)$product->is_archived === 1) {
                 continue;
             }
 
@@ -176,8 +191,10 @@ final class KeyCrmProductImportService
         }
     }
 
-    private function upsertProduct(KeyCrmProductDto $dto): array
-    {
+    private function upsertProduct(
+        KeyCrmProductDto $dto,
+        bool $withCustomFields,
+    ): array {
         $created = false;
         $mappingCreated = false;
         $restored = false;
@@ -185,7 +202,7 @@ final class KeyCrmProductImportService
         $orphanRepaired = false;
         $orphanRemoved = false;
 
-        $externalId = (string) $dto->externalId;
+        $externalId = (string)$dto->externalId;
         $source = ProductExternalMapModel::SOURCE_KEYCRM;
 
         /** @var ProductExternalMapModel|null $mapping */
@@ -206,7 +223,7 @@ final class KeyCrmProductImportService
                 $product = $this->findExistingProductForLinking($dto);
 
                 if ($product instanceof ProductModel) {
-                    $mapping->product_id = (int) $product->id;
+                    $mapping->product_id = (int)$product->id;
 
                     if (!$mapping->save()) {
                         throw new DomainException(
@@ -237,12 +254,12 @@ final class KeyCrmProductImportService
             $created = true;
         }
 
-        $wasArchived = (int) ($product->is_archived ?? 0) === 1;
+        $wasArchived = (int)($product->is_archived ?? 0) === 1;
 
         $this->fillProduct($product, $dto);
         $this->applyArchiveState($product, $dto);
 
-        if ($wasArchived && (int) $product->is_archived === 0) {
+        if ($wasArchived && (int)$product->is_archived === 0) {
             $restored = true;
         }
 
@@ -251,13 +268,18 @@ final class KeyCrmProductImportService
                 'Failed to save product: ' . Json::encode($product->errors)
             );
         }
-        $this->syncProductCustomFields($product, $dto);
+
+        $metaStats = $this->syncProductCustomFields(
+            product: $product,
+            dto: $dto,
+            withCustomFields: $withCustomFields,
+        );
 
         if (!$mapping instanceof ProductExternalMapModel) {
             $mapping = new ProductExternalMapModel();
             $mapping->external_source = $source;
             $mapping->external_id = $externalId;
-            $mapping->product_id = (int) $product->id;
+            $mapping->product_id = (int)$product->id;
 
             if (!$mapping->save()) {
                 throw new DomainException(
@@ -266,15 +288,13 @@ final class KeyCrmProductImportService
             }
 
             $mappingCreated = true;
-        } else {
-            if ((int) $mapping->product_id !== (int) $product->id) {
-                $mapping->product_id = (int) $product->id;
+        } elseif ((int)$mapping->product_id !== (int)$product->id) {
+            $mapping->product_id = (int)$product->id;
 
-                if (!$mapping->save()) {
-                    throw new DomainException(
-                        'Failed to update product external map: ' . Json::encode($mapping->errors)
-                    );
-                }
+            if (!$mapping->save()) {
+                throw new DomainException(
+                    'Failed to update product external map: ' . Json::encode($mapping->errors)
+                );
             }
         }
 
@@ -285,6 +305,9 @@ final class KeyCrmProductImportService
             'unchanged' => $unchanged,
             'orphanRepaired' => $orphanRepaired,
             'orphanRemoved' => $orphanRemoved,
+            'customMetaUpserted' => $metaStats['upserted'],
+            'customMetaDeleted' => $metaStats['deleted'],
+            'customMetaUnchanged' => $metaStats['unchanged'],
         ];
     }
 
@@ -349,7 +372,9 @@ final class KeyCrmProductImportService
                 : null;
         }
 
-        $product->category_external_id = $dto->categoryId !== null ? (string) $dto->categoryId : null;
+        $product->category_external_id = $dto->categoryId !== null
+            ? (string)$dto->categoryId
+            : null;
         $product->is_archived = $dto->isArchived ? 1 : 0;
 
         // KeyCRM UI: вес — граммы, размеры — сантиметры.
@@ -360,11 +385,25 @@ final class KeyCrmProductImportService
         $product->height_mm = $this->centimetersToMillimeters($dto->height);
     }
 
-    private function syncProductCustomFields(ProductModel $product, KeyCrmProductDto $dto): void
-    {
-        if (!$product->id || $dto->customFields === []) {
-            return;
+    /**
+     * @return array{upserted:int, deleted:int, unchanged:int}
+     */
+    private function syncProductCustomFields(
+        ProductModel $product,
+        KeyCrmProductDto $dto,
+        bool $withCustomFields,
+    ): array {
+        $emptyStats = [
+            'upserted' => 0,
+            'deleted' => 0,
+            'unchanged' => 0,
+        ];
+
+        if (!$withCustomFields || !$product->id) {
+            return $emptyStats;
         }
+
+        $values = [];
 
         foreach ($dto->customFields as $fieldKey => $field) {
             $code = null;
@@ -383,29 +422,43 @@ final class KeyCrmProductImportService
             }
 
             $metaKey = substr(self::PRODUCT_CUSTOM_FIELD_META_PREFIX . $code, 0, 128);
-
-            MetaModel::upsertText(
-                MetaModel::ENTITY_PRODUCT,
-                (int)$product->id,
-                $metaKey,
-                $value
-            );
+            $values[$metaKey] = $value;
         }
+
+        return MetaModel::syncTextValuesByPrefix(
+            entityType: MetaModel::ENTITY_PRODUCT,
+            entityId: (int)$product->id,
+            prefix: self::PRODUCT_CUSTOM_FIELD_META_PREFIX,
+            values: $values,
+        );
+    }
+
+    private function cleanupOrphanProductMeta(): int
+    {
+        return MetaModel::deleteAll([
+            'and',
+            ['entity_type' => MetaModel::ENTITY_PRODUCT],
+            [
+                'not in',
+                'entity_id',
+                ProductModel::find()->select('id'),
+            ],
+        ]);
     }
 
     private function extractCustomFieldCode(array $field, int|string|null $fallbackKey = null): ?string
     {
         foreach ([
-                     'code',
-                     'key',
-                     'uuid',
-                     'id',
-                     'name',
-                     'title',
-                     'label',
-                     'field_name',
-                     'field_label',
-                 ] as $key) {
+            'code',
+            'key',
+            'uuid',
+            'id',
+            'name',
+            'title',
+            'label',
+            'field_name',
+            'field_label',
+        ] as $key) {
             if (array_key_exists($key, $field)) {
                 $code = $this->normalizeCustomFieldCode((string)$field[$key]);
 
@@ -416,17 +469,17 @@ final class KeyCrmProductImportService
         }
 
         foreach ([
-                     ['field', 'code'],
-                     ['field', 'key'],
-                     ['field', 'uuid'],
-                     ['field', 'id'],
-                     ['field', 'name'],
-                     ['custom_field', 'code'],
-                     ['custom_field', 'key'],
-                     ['custom_field', 'uuid'],
-                     ['custom_field', 'id'],
-                     ['custom_field', 'name'],
-                 ] as [$parentKey, $childKey]) {
+            ['field', 'code'],
+            ['field', 'key'],
+            ['field', 'uuid'],
+            ['field', 'id'],
+            ['field', 'name'],
+            ['custom_field', 'code'],
+            ['custom_field', 'key'],
+            ['custom_field', 'uuid'],
+            ['custom_field', 'id'],
+            ['custom_field', 'name'],
+        ] as [$parentKey, $childKey]) {
             if (
                 isset($field[$parentKey])
                 && is_array($field[$parentKey])
@@ -450,15 +503,15 @@ final class KeyCrmProductImportService
     private function extractCustomFieldValue(array $field): ?string
     {
         foreach ([
-                     'value',
-                     'values',
-                     'data',
-                     'field_value',
-                     'field_values',
-                     'selected',
-                     'selected_value',
-                     'selected_values',
-                 ] as $key) {
+            'value',
+            'values',
+            'data',
+            'field_value',
+            'field_values',
+            'selected',
+            'selected_value',
+            'selected_values',
+        ] as $key) {
             if (array_key_exists($key, $field)) {
                 return $this->stringifyCustomFieldValue($field[$key]);
             }
@@ -543,6 +596,7 @@ final class KeyCrmProductImportService
     private function makeUniqueSlug(KeyCrmProductDto $dto): string
     {
         $base = Inflector::slug($dto->name);
+
         if ($base === '') {
             $base = 'product';
         }

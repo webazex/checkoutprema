@@ -4,8 +4,10 @@ declare(strict_types=1);
 
 namespace common\services\keycrm;
 
+use common\models\meta\MetaModel;
 use common\models\product\ProductModel;
 use DomainException;
+use Yii;
 use yii\helpers\Json;
 
 final class KeyCrmArchivedProductCleanupService
@@ -24,6 +26,7 @@ final class KeyCrmArchivedProductCleanupService
             'scanned' => 0,
             'eligible' => 0,
             'deleted' => 0,
+            'deletedMeta' => 0,
             'skippedCartItems' => 0,
             'skippedOrderItems' => 0,
             'skippedMissingArchivedAt' => 0,
@@ -59,20 +62,33 @@ final class KeyCrmArchivedProductCleanupService
                     continue;
                 }
 
-                foreach ($product->externalMaps as $externalMap) {
-                    if ($externalMap->delete() === false) {
-                        throw new DomainException(
-                            'Failed to delete product external map: ' . Json::encode($externalMap->errors)
+                $deletedMeta = Yii::$app->db->transaction(
+                    static function () use ($product): int {
+                        $deletedMeta = MetaModel::deleteForEntity(
+                            MetaModel::ENTITY_PRODUCT,
+                            (int)$product->id,
                         );
+
+                        foreach ($product->externalMaps as $externalMap) {
+                            if ($externalMap->delete() === false) {
+                                throw new DomainException(
+                                    'Failed to delete product external map: ' .
+                                    Json::encode($externalMap->errors)
+                                );
+                            }
+                        }
+
+                        if ($product->delete() === false) {
+                            throw new DomainException(
+                                'Failed to delete archived product #' . $product->id
+                            );
+                        }
+
+                        return $deletedMeta;
                     }
-                }
+                );
 
-                if ($product->delete() === false) {
-                    throw new DomainException(
-                        'Failed to delete archived product #' . $product->id
-                    );
-                }
-
+                $stats['deletedMeta'] += $deletedMeta;
                 $stats['deleted']++;
             } catch (\Throwable $e) {
                 $stats['errors']++;
