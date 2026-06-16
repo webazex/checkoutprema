@@ -22,8 +22,15 @@ final class KeyCrmArchivedProductCleanupService
 
         $threshold = time() - ($days * 24 * 60 * 60);
 
+        /** @var ProductModel[] $products */
+        $products = ProductModel::find()
+            ->where(['is_archived' => 1])
+            ->andWhere(['not', ['archived_at' => null]])
+            ->andWhere(['<=', 'archived_at', $threshold])
+            ->with(['externalMaps', 'cartItems', 'orderItems'])
+            ->all();
         $stats = [
-            'scanned' => 0,
+            'scanned' => count($products),
             'eligible' => 0,
             'deleted' => 0,
             'deletedMeta' => 0,
@@ -32,17 +39,6 @@ final class KeyCrmArchivedProductCleanupService
             'skippedMissingArchivedAt' => 0,
             'errors' => 0,
         ];
-
-        /** @var ProductModel[] $products */
-        $products = ProductModel::find()
-            ->where(['is_archived' => 1])
-            ->andWhere(['not', ['archived_at' => null]])
-            ->andWhere(['<=', 'archived_at', $threshold])
-            ->with(['externalMaps', 'cartItems', 'orderItems'])
-            ->all();
-
-        $stats['scanned'] = count($products);
-
         foreach ($products as $product) {
             try {
                 if (empty($product->archived_at)) {
