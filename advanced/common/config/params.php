@@ -8,4 +8,6 @@ return [
     'user.passwordMinLength' => 13,
     'keycrm.rateLimitIntervalMs' => 2000,
     'keycrm.rateLimitLockTimeout' => 10,
+    'novaPoshta.baseUrl' => 'https://api.novaposhta.ua/v2.0/json/',
+    'novaPoshta.timeout' => 15,
 ];
