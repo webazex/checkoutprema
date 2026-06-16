@@ -91,18 +91,24 @@ final class NovaPoshtaApiClient
         $calledMethod = trim($calledMethod);
 
         if ($modelName === '') {
-            throw new RuntimeException('Nova Poshta model name must not be empty.');
+            throw new RuntimeException(
+                'Nova Poshta model name must not be empty.'
+            );
         }
 
         if ($calledMethod === '') {
-            throw new RuntimeException('Nova Poshta method name must not be empty.');
+            throw new RuntimeException(
+                'Nova Poshta method name must not be empty.'
+            );
         }
 
         $payload = [
             'apiKey' => $this->apiKey,
             'modelName' => $modelName,
             'calledMethod' => $calledMethod,
-            'methodProperties' => $methodProperties,
+            'methodProperties' => $methodProperties === []
+                ? new \stdClass()
+                : $methodProperties,
         ];
 
         return $this->request($payload);
