@@ -40,10 +40,16 @@ final class NovaPoshtaController extends Controller
     }
 
     /**
-     * Получение отделений выбранного населённого пункта.
+     * Получение отделений и почтоматов выбранного города.
+     *
+     * На этом диагностическом этапе выводим исходный ответ API.
+     * Фильтрация почтоматов будет выполняться отдельным сервисом.
+     *
+     * В cityRef нужно передавать значение DeliveryCity,
+     * полученное из searchSettlements().
      *
      * Пример:
-     * php yii nova-poshta/warehouses <CITY_REF>
+     * php yii nova-poshta/warehouses <DELIVERY_CITY_REF>
      */
     public function actionWarehouses(
         string $cityRef,
@@ -67,6 +73,37 @@ final class NovaPoshtaController extends Controller
                     page: $page,
                     limit: $limit,
                 );
+            },
+        );
+    }
+
+    /**
+     * Получение официального справочника типов точек Новой почты.
+     *
+     * Он нужен, чтобы отделять обычные отделения от почтоматов
+     * по TypeOfWarehouseRef, а не по тексту названия.
+     *
+     * Пример:
+     * php yii nova-poshta/warehouse-types
+     */
+    public function actionWarehouseTypes(): int
+    {
+        return $this->execute(
+            title: 'Nova Poshta warehouse types response',
+            callback: static function (): array {
+                /** @var NovaPoshtaApiClient $client */
+                $client = Yii::$container->get(
+                    NovaPoshtaApiClient::class
+                );
+
+                $response = $client->call(
+                    modelName: 'Address',
+                    calledMethod: 'getWarehouseTypes',
+                );
+
+                $data = $response['data'] ?? [];
+
+                return is_array($data) ? $data : [];
             },
         );
     }
