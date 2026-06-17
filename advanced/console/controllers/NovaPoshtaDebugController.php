@@ -92,4 +92,15 @@ final class NovaPoshtaDebugController extends Controller
 
         return $service;
     }
+    public function actionRawCargoBranches(string $deliveryCityRef, int $page = 1, int $limit = 5): int
+    {
+        return $this->execute(
+            'Nova Poshta raw cargo branches response',
+            fn (): array => $this->getApiService()->getCargoBranches(
+                $deliveryCityRef,
+                $page,
+                $limit
+            )
+        );
+    }
 }

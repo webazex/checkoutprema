@@ -25,6 +25,7 @@ final class NovaPoshtaApiService
      * - почтоматы ПриватБанка.
      */
     private const WAREHOUSE_TYPE_POST_OFFICE_REF = '841339c7-591a-42e2-8233-7a0a00f0ed6f';
+    private const WAREHOUSE_TYPE_CARGO_BRANCH_REF = '9a68df70-0267-42a8-bb5c-37f427e36ee4';
 
     private const DEFAULT_SETTLEMENT_LIMIT = 20;
     private const MAX_SETTLEMENT_LIMIT = 100;
@@ -36,6 +37,69 @@ final class NovaPoshtaApiService
     public function __construct(private readonly NovaPoshtaApiClient $apiClient)
     {
     }
+
+    /**
+     * Получает только обычные почтовые отделения выбранного города.
+     *
+     * В $deliveryCityRef передаётся DeliveryCity из результата
+     * searchSettlements().
+     *
+     * Возвращает сырой ответ Nova Poshta API.
+     *
+     * @return array<string, mixed>
+     */
+
+
+    public function getPostOffices(string $deliveryCityRef, ?int $page = null, ?int $limit = null): array
+    {
+        return $this->getWarehousesByType(
+            $deliveryCityRef,
+            self::WAREHOUSE_TYPE_POST_OFFICE_REF,
+            $page,
+            $limit
+        );
+    }
+
+    public function getCargoBranches(string $deliveryCityRef, ?int $page = null, ?int $limit = null): array
+    {
+        return $this->getWarehousesByType(
+            $deliveryCityRef,
+            self::WAREHOUSE_TYPE_CARGO_BRANCH_REF,
+            $page,
+            $limit
+        );
+    }
+
+    private function getWarehousesByType(
+        string $deliveryCityRef,
+        string $warehouseTypeRef,
+        ?int $page = null,
+        ?int $limit = null
+    ): array {
+        $deliveryCityRef = trim($deliveryCityRef);
+
+        if ($deliveryCityRef === '') {
+            throw new InvalidArgumentException(
+                'Nova Poshta delivery city reference must not be empty.'
+            );
+        }
+
+        return $this->apiClient->call(
+            modelName: self::MODEL_ADDRESS,
+            calledMethod: self::METHOD_GET_WAREHOUSES,
+            methodProperties: [
+                'CityRef' => $deliveryCityRef,
+                'TypeOfWarehouseRef' => $warehouseTypeRef,
+                'Page' => $this->normalizePage($page),
+                'Limit' => $this->normalizeLimit(
+                    $limit,
+                    self::DEFAULT_WAREHOUSE_LIMIT,
+                    self::MAX_WAREHOUSE_LIMIT
+                ),
+            ],
+        );
+    }
+
 
     /**
      * Возвращает сырой ответ Nova Poshta API.
@@ -63,41 +127,6 @@ final class NovaPoshtaApiService
             ],
         );
     }
-
-    /**
-     * Получает только обычные почтовые отделения выбранного города.
-     *
-     * В $deliveryCityRef передаётся DeliveryCity из результата
-     * searchSettlements().
-     *
-     * Возвращает сырой ответ Nova Poshta API.
-     *
-     * @return array<string, mixed>
-     */
-    public function getPostOffices(string $deliveryCityRef, ?int $page = null, ?int $limit = null): array
-    {
-        $deliveryCityRef = trim($deliveryCityRef);
-
-        if ($deliveryCityRef === '') {
-            throw new InvalidArgumentException('Nova Poshta delivery city reference must not be empty.');
-        }
-
-        return $this->apiClient->call(
-            modelName: self::MODEL_ADDRESS,
-            calledMethod: self::METHOD_GET_WAREHOUSES,
-            methodProperties: [
-                'CityRef' => $deliveryCityRef,
-                'TypeOfWarehouseRef' => self::WAREHOUSE_TYPE_POST_OFFICE_REF,
-                'Page' => $this->normalizePage($page),
-                'Limit' => $this->normalizeLimit(
-                    value: $limit,
-                    default: self::DEFAULT_WAREHOUSE_LIMIT,
-                    maximum: self::MAX_WAREHOUSE_LIMIT,
-                ),
-            ],
-        );
-    }
-
     /**
      * Диагностический метод получения справочника типов точек.
      *
