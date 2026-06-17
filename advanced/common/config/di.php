@@ -87,26 +87,9 @@ return [
             lockTimeoutSeconds: (int)(\Yii::$app->params['keycrm.rateLimitLockTimeout'] ?? 10),
         );
     },
-    \common\integrations\novaposhta\NovaPoshtaApiClient::class => static function () {
-        $apiKey = trim((string)(
-            \Yii::$app->params['novaPoshta.apiKey'] ?? ''
-        ));
-
-        if ($apiKey === '') {
-            throw new \yii\base\InvalidConfigException(
-                'Nova Poshta API key is not configured.'
-            );
-        }
-
-        return new \common\integrations\novaposhta\NovaPoshtaApiClient(
-            baseUrl: (string)(
-                \Yii::$app->params['novaPoshta.baseUrl']
-                ?? 'https://api.novaposhta.ua/v2.0/json/'
-            ),
-            apiKey: $apiKey,
-            timeout: (int)(
-                \Yii::$app->params['novaPoshta.timeout'] ?? 15
-            ),
+    \common\services\novaposhta\NovaPoshtaApiService::class => static function (\yii\di\Container $container) {
+        return new \common\services\novaposhta\NovaPoshtaApiService(
+            $container->get(\common\integrations\novaposhta\NovaPoshtaApiClient::class)
         );
     },
 ];
