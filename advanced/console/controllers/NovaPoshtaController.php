@@ -51,15 +51,15 @@ final class NovaPoshtaController extends Controller
      * Пример:
      * php yii nova-poshta/warehouses <DELIVERY_CITY_REF>
      */
-    public function actionWarehouses(
-        string $cityRef,
-        int $page = 1,
-        int $limit = 100,
-    ): int {
+
+    public function actionWarehouses(string $cityRef, ?string $warehouseTypeRef = null,
+                                     int $page = 1, int $limit = 100): int
+    {
         return $this->execute(
             title: 'Nova Poshta warehouses response',
             callback: static function () use (
                 $cityRef,
+                $warehouseTypeRef,
                 $page,
                 $limit,
             ): array {
@@ -70,6 +70,7 @@ final class NovaPoshtaController extends Controller
 
                 return $client->getWarehouses(
                     cityRef: $cityRef,
+                    warehouseTypeRef: $warehouseTypeRef,
                     page: $page,
                     limit: $limit,
                 );

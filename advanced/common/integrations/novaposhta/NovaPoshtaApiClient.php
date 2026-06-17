@@ -55,25 +55,30 @@ final class NovaPoshtaApiClient
      * Поиск по номеру и адресу пока намеренно не передаём в API:
      * полный список города будет кешироваться и фильтроваться нашим сервисом.
      */
-    public function getWarehouses(
-        string $cityRef,
-        int $page = 1,
-        int $limit = 500,
-    ): array {
+    public function getWarehouses(string $cityRef, ?string $warehouseTypeRef = null, int $page = 1, int $limit = 500): array {
         $cityRef = trim($cityRef);
+        $warehouseTypeRef = trim((string)$warehouseTypeRef);
 
         if ($cityRef === '') {
-            throw new RuntimeException('Nova Poshta city reference must not be empty.');
+            throw new RuntimeException(
+                'Nova Poshta city reference must not be empty.'
+            );
+        }
+
+        $methodProperties = [
+            'CityRef' => $cityRef,
+            'Page' => max(1, $page),
+            'Limit' => max(1, min($limit, 500)),
+        ];
+
+        if ($warehouseTypeRef !== '') {
+            $methodProperties['TypeOfWarehouseRef'] = $warehouseTypeRef;
         }
 
         $response = $this->call(
             modelName: self::MODEL_ADDRESS,
             calledMethod: self::METHOD_GET_WAREHOUSES,
-            methodProperties: [
-                'CityRef' => $cityRef,
-                'Page' => max(1, $page),
-                'Limit' => max(1, min($limit, 500)),
-            ],
+            methodProperties: $methodProperties,
         );
 
         return $this->extractData($response);
