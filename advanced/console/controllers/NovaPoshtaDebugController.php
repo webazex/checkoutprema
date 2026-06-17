@@ -342,4 +342,12 @@ final class NovaPoshtaDebugController extends Controller
             }
         );
     }
+
+    private function getDeliveryService(): NovaPoshtaDeliveryService
+    {
+        /** @var NovaPoshtaDeliveryService $service */
+        $service = Yii::$container->get(NovaPoshtaDeliveryService::class);
+
+        return $service;
+    }
 }
