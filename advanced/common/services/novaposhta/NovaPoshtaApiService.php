@@ -4,8 +4,8 @@ declare(strict_types=1);
 
 namespace common\services\novaposhta;
 
+use common\enums\novaposhta\NovaPoshtaWarehouseType;
 use common\integrations\novaposhta\NovaPoshtaApiClient;
-use common\enums\novaposhta\NovaPoshtaBranchType;
 use InvalidArgumentException;
 
 final class NovaPoshtaApiService
@@ -16,15 +16,6 @@ final class NovaPoshtaApiService
     private const METHOD_GET_WAREHOUSES = 'getWarehouses';
     private const METHOD_GET_WAREHOUSE_TYPES = 'getWarehouseTypes';
 
-    /**
-     * Обычное почтовое отделение.
-     *
-     * Исключаются:
-     * - Parcel Shop;
-     * - грузовые отделения;
-     * - почтоматы;
-     * - почтоматы ПриватБанка.
-     */
     private const DEFAULT_SETTLEMENT_LIMIT = 20;
     private const MAX_SETTLEMENT_LIMIT = 100;
 
@@ -37,61 +28,42 @@ final class NovaPoshtaApiService
     }
 
     /**
-     * Получает только обычные почтовые отделения выбранного города.
+     * Возвращает сырой ответ Nova Poshta API
+     * с обычными почтовыми отделениями выбранного города.
      *
-     * В $deliveryCityRef передаётся DeliveryCity из результата
-     * searchSettlements().
-     *
-     * Возвращает сырой ответ Nova Poshta API.
+     * В $deliveryCityRef передаётся DeliveryCity
+     * из результата searchSettlements().
      *
      * @return array<string, mixed>
      */
-
-
     public function getPostOffices(string $deliveryCityRef, ?int $page = null, ?int $limit = null): array
     {
         return $this->getWarehousesByType(
             $deliveryCityRef,
-            NovaPoshtaBranchType::POST_OFFICE,
+            NovaPoshtaWarehouseType::POST_OFFICE,
             $page,
             $limit
         );
     }
 
+    /**
+     * Возвращает сырой ответ Nova Poshta API
+     * со складами грузового типа выбранного города.
+     *
+     * Ответ может содержать не только клиентские отделения,
+     * но и другие категории складов, например Fulfillment.
+     *
+     * @return array<string, mixed>
+     */
     public function getCargoBranches(string $deliveryCityRef, ?int $page = null, ?int $limit = null): array
     {
         return $this->getWarehousesByType(
             $deliveryCityRef,
-            NovaPoshtaBranchType::CARGO_BRANCH,
+            NovaPoshtaWarehouseType::CARGO_BRANCH,
             $page,
             $limit
         );
     }
-
-    private function getWarehousesByType(string $deliveryCityRef, NovaPoshtaBranchType $type, ?int $page = null, ?int $limit = null): array
-    {
-        $deliveryCityRef = trim($deliveryCityRef);
-
-        if ($deliveryCityRef === '') {
-            throw new \InvalidArgumentException('Nova Poshta delivery city reference must not be empty.');
-        }
-
-        return $this->apiClient->call(
-            modelName: self::MODEL_ADDRESS,
-            calledMethod: self::METHOD_GET_WAREHOUSES,
-            methodProperties: [
-                'CityRef' => $deliveryCityRef,
-                'TypeOfWarehouseRef' => $type->value,
-                'Page' => $this->normalizePage($page),
-                'Limit' => $this->normalizeLimit(
-                    $limit,
-                    self::DEFAULT_WAREHOUSE_LIMIT,
-                    self::MAX_WAREHOUSE_LIMIT
-                ),
-            ],
-        );
-    }
-
 
     /**
      * Возвращает сырой ответ Nova Poshta API.
@@ -112,15 +84,16 @@ final class NovaPoshtaApiService
             methodProperties: [
                 'CityName' => $query,
                 'Limit' => $this->normalizeLimit(
-                    value: $limit,
-                    default: self::DEFAULT_SETTLEMENT_LIMIT,
-                    maximum: self::MAX_SETTLEMENT_LIMIT,
+                    $limit,
+                    self::DEFAULT_SETTLEMENT_LIMIT,
+                    self::MAX_SETTLEMENT_LIMIT
                 ),
             ],
         );
     }
+
     /**
-     * Диагностический метод получения справочника типов точек.
+     * Диагностический метод получения справочника типов складов.
      *
      * @return array<string, mixed>
      */
@@ -129,6 +102,42 @@ final class NovaPoshtaApiService
         return $this->apiClient->call(
             modelName: self::MODEL_ADDRESS,
             calledMethod: self::METHOD_GET_WAREHOUSE_TYPES,
+        );
+    }
+
+    /**
+     * Возвращает сырой ответ getWarehouses
+     * для одного типа склада.
+     *
+     * @return array<string, mixed>
+     */
+    private function getWarehousesByType(
+        string $deliveryCityRef,
+        NovaPoshtaWarehouseType $type,
+        ?int $page = null,
+        ?int $limit = null
+    ): array {
+        $deliveryCityRef = trim($deliveryCityRef);
+
+        if ($deliveryCityRef === '') {
+            throw new InvalidArgumentException(
+                'Nova Poshta delivery city reference must not be empty.'
+            );
+        }
+
+        return $this->apiClient->call(
+            modelName: self::MODEL_ADDRESS,
+            calledMethod: self::METHOD_GET_WAREHOUSES,
+            methodProperties: [
+                'CityRef' => $deliveryCityRef,
+                'TypeOfWarehouseRef' => $type->value,
+                'Page' => $this->normalizePage($page),
+                'Limit' => $this->normalizeLimit(
+                    $limit,
+                    self::DEFAULT_WAREHOUSE_LIMIT,
+                    self::MAX_WAREHOUSE_LIMIT
+                ),
+            ],
         );
     }
 
