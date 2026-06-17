@@ -17,7 +17,7 @@ final class NovaPoshtaDebugController extends Controller
      * Возвращает полный сырой ответ поиска населённых пунктов.
      *
      * Пример:
-     * php yii nova-poshta-debug/raw-settlements "Одеса" 20
+     * php yii nova-poshta-debug/raw-settlements "Киев" 20
      */
     public function actionRawSettlements(string $query, int $limit = 20): int
     {
