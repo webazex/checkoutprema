@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace common\services\novaposhta;
 
 use common\integrations\novaposhta\NovaPoshtaApiClient;
+use common\enums\novaposhta\NovaPoshtaBranchType;
 use InvalidArgumentException;
 
 final class NovaPoshtaApiService
@@ -24,9 +25,6 @@ final class NovaPoshtaApiService
      * - почтоматы;
      * - почтоматы ПриватБанка.
      */
-    private const WAREHOUSE_TYPE_POST_OFFICE_REF = '841339c7-591a-42e2-8233-7a0a00f0ed6f';
-    private const WAREHOUSE_TYPE_CARGO_BRANCH_REF = '9a68df70-0267-42a8-bb5c-37f427e36ee4';
-
     private const DEFAULT_SETTLEMENT_LIMIT = 20;
     private const MAX_SETTLEMENT_LIMIT = 100;
 
@@ -54,7 +52,7 @@ final class NovaPoshtaApiService
     {
         return $this->getWarehousesByType(
             $deliveryCityRef,
-            self::WAREHOUSE_TYPE_POST_OFFICE_REF,
+            NovaPoshtaBranchType::POST_OFFICE,
             $page,
             $limit
         );
@@ -64,24 +62,18 @@ final class NovaPoshtaApiService
     {
         return $this->getWarehousesByType(
             $deliveryCityRef,
-            self::WAREHOUSE_TYPE_CARGO_BRANCH_REF,
+            NovaPoshtaBranchType::CARGO_BRANCH,
             $page,
             $limit
         );
     }
 
-    private function getWarehousesByType(
-        string $deliveryCityRef,
-        string $warehouseTypeRef,
-        ?int $page = null,
-        ?int $limit = null
-    ): array {
+    private function getWarehousesByType(string $deliveryCityRef, NovaPoshtaBranchType $type, ?int $page = null, ?int $limit = null): array
+    {
         $deliveryCityRef = trim($deliveryCityRef);
 
         if ($deliveryCityRef === '') {
-            throw new InvalidArgumentException(
-                'Nova Poshta delivery city reference must not be empty.'
-            );
+            throw new \InvalidArgumentException('Nova Poshta delivery city reference must not be empty.');
         }
 
         return $this->apiClient->call(
@@ -89,7 +81,7 @@ final class NovaPoshtaApiService
             calledMethod: self::METHOD_GET_WAREHOUSES,
             methodProperties: [
                 'CityRef' => $deliveryCityRef,
-                'TypeOfWarehouseRef' => $warehouseTypeRef,
+                'TypeOfWarehouseRef' => $type->value,
                 'Page' => $this->normalizePage($page),
                 'Limit' => $this->normalizeLimit(
                     $limit,
