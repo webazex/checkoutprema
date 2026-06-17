@@ -95,4 +95,10 @@ return [
 
     \common\services\novaposhta\NovaPoshtaApiService::class
     => \common\services\novaposhta\NovaPoshtaApiService::class,
+
+    \common\mappers\novaposhta\NovaPoshtaResponseMapper::class
+    => \common\mappers\novaposhta\NovaPoshtaResponseMapper::class,
+
+    \common\services\novaposhta\NovaPoshtaDeliveryService::class
+    => \common\services\novaposhta\NovaPoshtaDeliveryService::class,
 ];

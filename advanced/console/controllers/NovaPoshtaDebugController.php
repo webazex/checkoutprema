@@ -15,6 +15,8 @@ use Yii;
 use yii\console\Controller;
 use yii\console\ExitCode;
 use yii\helpers\Json;
+use common\dto\novaposhta\NovaPoshtaDeliveryPointDto;
+use common\services\novaposhta\NovaPoshtaDeliveryService;
 
 final class NovaPoshtaDebugController extends Controller
 {
@@ -266,5 +268,78 @@ final class NovaPoshtaDebugController extends Controller
         $mapper = Yii::$container->get(NovaPoshtaResponseMapper::class);
 
         return $mapper;
+    }
+
+    /**
+     * @return array<string, mixed>
+     */
+    private function deliveryPointToArray(NovaPoshtaDeliveryPointDto $point): array
+    {
+        return [
+            'ref' => $point->ref,
+            'number' => $point->number,
+            'type' => $point->type->name,
+            'typeRef' => $point->type->value,
+            'description' => $point->description,
+            'shortAddress' => $point->shortAddress,
+            'cityRef' => $point->cityRef,
+            'settlementRef' => $point->settlementRef,
+            'settlementName' => $point->settlementName,
+            'areaName' => $point->areaName,
+            'regionName' => $point->regionName,
+            'latitude' => $point->latitude,
+            'longitude' => $point->longitude,
+            'hasCoordinates' => $point->hasCoordinates(),
+            'totalMaxWeightAllowed' => $point->totalMaxWeightAllowed,
+            'placeMaxWeightAllowed' => $point->placeMaxWeightAllowed,
+            'sendingDimensions' => $this->dimensionsToArray(
+                $point->sendingDimensions
+            ),
+            'receivingDimensions' => $this->dimensionsToArray(
+                $point->receivingDimensions
+            ),
+        ];
+    }
+
+    /**
+     * Возвращает точки, разрешённые для выбора в checkout.
+     *
+     * Пример:
+     * php yii nova-poshta-debug/selectable-delivery-points <DELIVERY_CITY_REF> 10
+     */
+    public function actionSelectableDeliveryPoints(string $deliveryCityRef, int $previewLimit = 10): int
+    {
+        return $this->execute(
+            'Nova Poshta selectable delivery points',
+            function () use ($deliveryCityRef, $previewLimit): array {
+                if ($previewLimit < 1) {
+                    throw new InvalidArgumentException(
+                        'Delivery point preview limit must be greater than zero.'
+                    );
+                }
+
+                $points = $this->getDeliveryService()->getSelectableDeliveryPoints(
+                    $deliveryCityRef
+                );
+
+                $countsByType = [];
+
+                foreach ($points as $point) {
+                    $type = $point->type->name;
+                    $countsByType[$type] = ($countsByType[$type] ?? 0) + 1;
+                }
+
+                return [
+                    'totalCount' => count($points),
+                    'countsByType' => $countsByType,
+                    'previewLimit' => $previewLimit,
+                    'items' => array_map(
+                        fn (NovaPoshtaDeliveryPointDto $point): array
+                        => $this->deliveryPointToArray($point),
+                        array_slice($points, 0, $previewLimit)
+                    ),
+                ];
+            }
+        );
     }
 }
