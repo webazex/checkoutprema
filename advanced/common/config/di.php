@@ -87,9 +87,12 @@ return [
             lockTimeoutSeconds: (int)(\Yii::$app->params['keycrm.rateLimitLockTimeout'] ?? 10),
         );
     },
-    \common\services\novaposhta\NovaPoshtaApiService::class => static function (\yii\di\Container $container) {
-        return new \common\services\novaposhta\NovaPoshtaApiService(
-            $container->get(\common\integrations\novaposhta\NovaPoshtaApiClient::class)
-        );
-    },
+    \common\integrations\novaposhta\NovaPoshtaApiClient::class => static fn () => new \common\integrations\novaposhta\NovaPoshtaApiClient(
+        baseUrl: (string)(\Yii::$app->params['novaPoshta.baseUrl'] ?? ''),
+        apiKey: (string)(\Yii::$app->params['novaPoshta.apiKey'] ?? ''),
+        timeout: (int)(\Yii::$app->params['novaPoshta.timeout'] ?? 15),
+    ),
+
+    \common\services\novaposhta\NovaPoshtaApiService::class
+    => \common\services\novaposhta\NovaPoshtaApiService::class,
 ];
