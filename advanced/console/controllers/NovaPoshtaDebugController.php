@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 namespace console\controllers;
 
+use common\integrations\novaposhta\exceptions\NovaPoshtaApiException;
+use common\integrations\novaposhta\NovaPoshtaApiClient;
 use common\dto\novaposhta\NovaPoshtaDimensionsDto;
 use common\dto\novaposhta\NovaPoshtaWarehouseDto;
 use common\dto\novaposhta\NovaPoshtaWarehousePageDto;
@@ -17,7 +19,6 @@ use yii\console\ExitCode;
 use yii\helpers\Json;
 use common\dto\novaposhta\NovaPoshtaDeliveryPointDto;
 use common\services\novaposhta\NovaPoshtaDeliveryService;
-use common\integrations\novaposhta\exceptions\NovaPoshtaApiException;
 
 final class NovaPoshtaDebugController extends Controller
 {
@@ -370,5 +371,40 @@ final class NovaPoshtaDebugController extends Controller
         $service = Yii::$container->get(NovaPoshtaDeliveryService::class);
 
         return $service;
+    }
+
+    /**
+     * Проверяет retry-классификацию NovaPoshtaApiClient
+     * через локальный mock server.
+     *
+     * Пример:
+     * php yii nova-poshta-debug/probe-client \
+     *     http://127.0.0.1:18080/rate-limit-then-success
+     */
+    public function actionProbeClient(string $baseUrl): int
+    {
+        return $this->execute(
+            'Nova Poshta API client probe',
+            function () use ($baseUrl): array {
+                $client = new NovaPoshtaApiClient(
+                    baseUrl: $baseUrl,
+                    apiKey: 'local-test-key',
+                    timeout: 2,
+                    rateLimiter: null,
+                    maxAttempts: 3,
+                    retryBaseDelayMs: 100,
+                    retryMaxDelayMs: 200,
+                    retryJitterMs: 0,
+                );
+
+                return $client->call(
+                    modelName: 'TestModel',
+                    calledMethod: 'testMethod',
+                    methodProperties: [
+                        'probe' => true,
+                    ],
+                );
+            }
+        );
     }
 }
