@@ -17,6 +17,7 @@ use yii\console\ExitCode;
 use yii\helpers\Json;
 use common\dto\novaposhta\NovaPoshtaDeliveryPointDto;
 use common\services\novaposhta\NovaPoshtaDeliveryService;
+use common\integrations\novaposhta\exceptions\NovaPoshtaApiException;
 
 final class NovaPoshtaDebugController extends Controller
 {
@@ -162,9 +163,29 @@ final class NovaPoshtaDebugController extends Controller
             );
 
             return ExitCode::OK;
-        } catch (Throwable $e) {
+        } catch (NovaPoshtaApiException $exception) {
             $this->stderr(
-                'Nova Poshta debug request failed: ' . $e->getMessage() . PHP_EOL
+                Json::encode(
+                    [
+                        'success' => false,
+                        'message' => $exception->getMessage(),
+                        'error' => $exception->context(),
+                    ],
+                    JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES
+                ) . PHP_EOL
+            );
+
+            return ExitCode::UNAVAILABLE;
+        } catch (Throwable $exception) {
+            $this->stderr(
+                Json::encode(
+                    [
+                        'success' => false,
+                        'message' => $exception->getMessage(),
+                        'exception' => $exception::class,
+                    ],
+                    JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES
+                ) . PHP_EOL
             );
 
             return ExitCode::UNSPECIFIED_ERROR;

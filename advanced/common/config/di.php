@@ -87,11 +87,25 @@ return [
             lockTimeoutSeconds: (int)(\Yii::$app->params['keycrm.rateLimitLockTimeout'] ?? 10),
         );
     },
-    \common\integrations\novaposhta\NovaPoshtaApiClient::class => static fn () => new \common\integrations\novaposhta\NovaPoshtaApiClient(
-        baseUrl: (string)(\Yii::$app->params['novaPoshta.baseUrl'] ?? ''),
-        apiKey: (string)(\Yii::$app->params['novaPoshta.apiKey'] ?? ''),
-        timeout: (int)(\Yii::$app->params['novaPoshta.timeout'] ?? 15),
-    ),
+    \common\services\novaposhta\NovaPoshtaRateLimiter::class => static function () {
+        return new \common\services\novaposhta\NovaPoshtaRateLimiter(
+            minIntervalMs: (int)(\Yii::$app->params['novaPoshta.rateLimitIntervalMs'] ?? 1000),
+            lockTimeoutSeconds: (int)(\Yii::$app->params['novaPoshta.rateLimitLockTimeout'] ?? 10),
+        );
+    },
+
+    \common\integrations\novaposhta\NovaPoshtaApiClient::class => static function (\yii\di\Container $container) {
+        return new \common\integrations\novaposhta\NovaPoshtaApiClient(
+            baseUrl: (string)(\Yii::$app->params['novaPoshta.baseUrl'] ?? ''),
+            apiKey: (string)(\Yii::$app->params['novaPoshta.apiKey'] ?? ''),
+            timeout: (int)(\Yii::$app->params['novaPoshta.timeout'] ?? 15),
+            rateLimiter: $container->get(\common\services\novaposhta\NovaPoshtaRateLimiter::class),
+            maxAttempts: (int)(\Yii::$app->params['novaPoshta.maxAttempts'] ?? 3),
+            retryBaseDelayMs: (int)(\Yii::$app->params['novaPoshta.retryBaseDelayMs'] ?? 500),
+            retryMaxDelayMs: (int)(\Yii::$app->params['novaPoshta.retryMaxDelayMs'] ?? 5000),
+            retryJitterMs: (int)(\Yii::$app->params['novaPoshta.retryJitterMs'] ?? 250),
+        );
+    },
 
     \common\services\novaposhta\NovaPoshtaApiService::class
     => \common\services\novaposhta\NovaPoshtaApiService::class,

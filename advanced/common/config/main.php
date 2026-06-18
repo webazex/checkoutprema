@@ -22,6 +22,22 @@ return [
         'mutex' => [
             'class' => \yii\mutex\MysqlMutex::class,
         ],
+        'log' => [
+            'targets' => [
+                [
+                    'class' => \yii\log\FileTarget::class,
+                    'levels' => ['info', 'warning', 'error'],
+                    'categories' => [
+                        'novaposhta.api.*',
+                    ],
+                    'logFile' => '@runtime/logs/novaposhta-api.log',
+                    'logVars' => [],
+                    'prefix' => static fn ($message): string => '',
+                    'maxFileSize' => 10240,
+                    'maxLogFiles' => 10,
+                ],
+            ],
+        ],
 
         'i18n' => [
             'translations' => [
