@@ -64,7 +64,7 @@ final readonly class DeliverySyncStateStorage
 
         try {
             $this->saveModel($model);
-        } catch (IntegrityException $exception) {
+        } catch (IntegrityException|RuntimeException $exception) {
             $model = $this->findModel(
                 providerId: $provider->id,
                 scope: $scope,
