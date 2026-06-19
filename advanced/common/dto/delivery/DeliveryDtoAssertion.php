@@ -109,6 +109,26 @@ final class DeliveryDtoAssertion
         }
     }
 
+    public static function positiveInt(int $value, string $field): void
+    {
+        if ($value < 1) {
+            throw new InvalidArgumentException(sprintf(
+                'Delivery field "%s" must be greater than zero.',
+                $field
+            ));
+        }
+    }
+
+    public static function nonNegativeInt(int $value, string $field): void
+    {
+        if ($value < 0) {
+            throw new InvalidArgumentException(sprintf(
+                'Delivery field "%s" must not be negative.',
+                $field
+            ));
+        }
+    }
+
     public static function jsonEncodable(array $value, string $field): void
     {
         try {

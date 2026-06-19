@@ -40,7 +40,6 @@ class DeliveryPointScheduleModel extends BaseModel
                     'delivery_point_id',
                     'weekday',
                     'interval_no',
-                    'is_closed',
                     'source_seen_at',
                     'synced_at',
                 ],

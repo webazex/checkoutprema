@@ -113,6 +113,7 @@ class DeliverySyncStateModel extends BaseModel
             [
                 ['scope_external_ref'],
                 'unique',
+                'skipOnEmpty' => false,
                 'targetAttribute' => [
                     'provider_id',
                     'scope',
