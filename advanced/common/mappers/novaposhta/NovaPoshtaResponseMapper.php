@@ -9,6 +9,9 @@ use common\dto\novaposhta\NovaPoshtaWarehouseDto;
 use common\dto\novaposhta\NovaPoshtaWarehousePageDto;
 use common\enums\novaposhta\NovaPoshtaWarehouseType;
 use common\dto\novaposhta\NovaPoshtaWeeklyScheduleDto;
+use common\dto\novaposhta\NovaPoshtaAreaDto;
+use common\dto\novaposhta\NovaPoshtaSettlementDto;
+use common\dto\novaposhta\NovaPoshtaSettlementPageDto;
 use InvalidArgumentException;
 use UnexpectedValueException;
 
@@ -67,9 +70,101 @@ final class NovaPoshtaResponseMapper
 
         return new NovaPoshtaWarehousePageDto(
             items: $items,
-            apiTotalCount: $this->extractTotalCount($response),
+            apiTotalCount: $this->extractTotalCount(
+                $response,
+                'warehouse'
+            ),
             page: $page,
             limit: $limit
+        );
+    }
+
+    /**
+     * @param array<string, mixed> $response
+     *
+     * @return list<NovaPoshtaAreaDto>
+     */
+    public function mapAreas(array $response): array
+    {
+        $this->assertSuccessfulResponse($response);
+
+        $data = $this->extractDataList(
+            $response,
+            'area'
+        );
+
+        $result = [];
+
+        foreach ($data as $index => $areaData) {
+            $result[] = new NovaPoshtaAreaDto(
+                ref: $this->requiredString(
+                    $areaData,
+                    'Ref',
+                    $index
+                ),
+                name: $this->requiredString(
+                    $areaData,
+                    'Description',
+                    $index
+                ),
+                centerRef: $this->optionalString(
+                    $areaData,
+                    'AreasCenter'
+                ),
+                nameRu: $this->optionalString(
+                    $areaData,
+                    'DescriptionRu'
+                ),
+            );
+        }
+
+        return $result;
+    }
+
+    /**
+     * @param array<string, mixed> $response
+     */
+    public function mapSettlementPage(
+        array $response,
+        int $page,
+        int $limit
+    ): NovaPoshtaSettlementPageDto {
+        if ($page < 1) {
+            throw new InvalidArgumentException(
+                'Nova Poshta settlement page must be greater than zero.'
+            );
+        }
+
+        if ($limit < 1) {
+            throw new InvalidArgumentException(
+                'Nova Poshta settlement limit must be greater than zero.'
+            );
+        }
+
+        $this->assertSuccessfulResponse($response);
+
+        $data = $this->extractDataList(
+            $response,
+            'settlement'
+        );
+
+        $items = [];
+
+        foreach ($data as $index => $settlementData) {
+            $items[] = $this->mapSettlement(
+                $settlementData,
+                $index
+            );
+        }
+
+        return new NovaPoshtaSettlementPageDto(
+            items: $items,
+            apiTotalCount: $this->extractTotalCount(
+                $response,
+                'settlement'
+            ),
+            page: $page,
+            limit: $limit,
         );
     }
 
@@ -207,14 +302,17 @@ final class NovaPoshtaResponseMapper
     /**
      * @param array<string, mixed> $response
      */
-    private function extractTotalCount(array $response): int
-    {
+    private function extractTotalCount(
+        array $response,
+        string $context
+    ): int {
         $info = $response['info'] ?? null;
 
         if (!is_array($info)) {
-            throw new UnexpectedValueException(
-                'Nova Poshta warehouse response field "info" must be an object.'
-            );
+            throw new UnexpectedValueException(sprintf(
+                'Nova Poshta %s response field "info" must be an object.',
+                $context
+            ));
         }
 
         $totalCount = $info['totalCount'] ?? null;
@@ -224,9 +322,10 @@ final class NovaPoshtaResponseMapper
             || !is_numeric($totalCount)
             || (int)$totalCount < 0
         ) {
-            throw new UnexpectedValueException(
-                'Nova Poshta warehouse response field "info.totalCount" must be a non-negative integer.'
-            );
+            throw new UnexpectedValueException(sprintf(
+                'Nova Poshta %s response field "info.totalCount" must be a non-negative integer.',
+                $context
+            ));
         }
 
         return (int)$totalCount;
@@ -465,4 +564,227 @@ final class NovaPoshtaResponseMapper
             ? null
             : $schedule;
     }
+
+    /**
+     * @param array<string, mixed> $data
+     */
+    private function mapSettlement(
+        array $data,
+        int $index
+    ): NovaPoshtaSettlementDto {
+        return new NovaPoshtaSettlementDto(
+            ref: $this->requiredString(
+                $data,
+                'Ref',
+                $index
+            ),
+            areaRef: $this->requiredString(
+                $data,
+                'Area',
+                $index
+            ),
+            name: $this->requiredString(
+                $data,
+                'Description',
+                $index
+            ),
+            areaName: $this->optionalString(
+                $data,
+                'AreaDescription'
+            ),
+            regionRef: $this->optionalString(
+                $data,
+                'Region'
+            ),
+            regionName: $this->optionalString(
+                $data,
+                'RegionsDescription'
+            ),
+            settlementTypeRef: $this->optionalString(
+                $data,
+                'SettlementType'
+            ),
+            settlementTypeName: $this->optionalString(
+                $data,
+                'SettlementTypeDescription'
+            ),
+            latitude: $this->optionalFloat(
+                $data,
+                'Latitude'
+            ),
+            longitude: $this->optionalFloat(
+                $data,
+                'Longitude'
+            ),
+            hasWarehouse: $this->requiredBooleanFlag(
+                $data,
+                'Warehouse',
+                $index
+            ),
+            addressDeliveryAllowed: $this->requiredBooleanFlag(
+                $data,
+                'AddressDeliveryAllowed',
+                $index
+            ),
+            metadata: $this->mapSettlementMetadata(
+                $data
+            ),
+        );
+    }
+
+    /**
+     * @param array<string, mixed> $data
+     *
+     * @return array<string, mixed>
+     */
+    private function mapSettlementMetadata(array $data): array
+    {
+        return $this->removeNullValues([
+            'nameRu' => $this->optionalString(
+                $data,
+                'DescriptionRu'
+            ),
+            'nameTranslit' => $this->optionalString(
+                $data,
+                'DescriptionTranslit'
+            ),
+            'areaNameRu' => $this->optionalString(
+                $data,
+                'AreaDescriptionRu'
+            ),
+            'areaNameTranslit' => $this->optionalString(
+                $data,
+                'AreaDescriptionTranslit'
+            ),
+            'regionNameRu' => $this->optionalString(
+                $data,
+                'RegionsDescriptionRu'
+            ),
+            'regionNameTranslit' => $this->optionalString(
+                $data,
+                'RegionsDescriptionTranslit'
+            ),
+            'settlementTypeNameRu' => $this->optionalString(
+                $data,
+                'SettlementTypeDescriptionRu'
+            ),
+            'settlementTypeNameTranslit' => $this->optionalString(
+                $data,
+                'SettlementTypeDescriptionTranslit'
+            ),
+            'index1' => $this->optionalString(
+                $data,
+                'Index1'
+            ),
+            'index2' => $this->optionalString(
+                $data,
+                'Index2'
+            ),
+            'indexCoatsu1' => $this->optionalString(
+                $data,
+                'IndexCOATSU1'
+            ),
+            'deliveryDays' => $this->mapSettlementDeliveryDays(
+                $data
+            ),
+            'radiusHomeDelivery' => $this->optionalFloat(
+                $data,
+                'RadiusHomeDelivery'
+            ),
+            'radiusExpressPickUp' => $this->optionalFloat(
+                $data,
+                'RadiusExpressPickUp'
+            ),
+            'radiusDrop' => $this->optionalFloat(
+                $data,
+                'RadiusDrop'
+            ),
+        ]);
+    }
+
+    /**
+     * @param array<string, mixed> $data
+     *
+     * @return array<int, bool>
+     */
+    private function mapSettlementDeliveryDays(array $data): array
+    {
+        $result = [];
+
+        for ($weekday = 1; $weekday <= 7; $weekday++) {
+            $value = $data['Delivery' . $weekday] ?? null;
+
+            if ($value === null || $value === '') {
+                $result[$weekday] = false;
+
+                continue;
+            }
+
+            if ($value === true || $value === 1 || $value === '1') {
+                $result[$weekday] = true;
+
+                continue;
+            }
+
+            if ($value === false || $value === 0 || $value === '0') {
+                $result[$weekday] = false;
+
+                continue;
+            }
+
+            $result[$weekday] = false;
+        }
+
+        return $result;
+    }
+
+    /**
+     * @param array<string, mixed> $response
+     *
+     * @return list<array<string, mixed>>
+     */
+    private function extractDataList(
+        array $response,
+        string $context
+    ): array {
+        $data = $response['data'] ?? null;
+
+        if (!is_array($data) || !array_is_list($data)) {
+            throw new UnexpectedValueException(sprintf(
+                'Nova Poshta %s response field "data" must be a list.',
+                $context
+            ));
+        }
+
+        $result = [];
+
+        foreach ($data as $index => $record) {
+            if (!is_array($record)) {
+                throw new UnexpectedValueException(sprintf(
+                    'Nova Poshta %s record at index %d must be an object.',
+                    $context,
+                    $index
+                ));
+            }
+
+            $result[] = $record;
+        }
+
+        return $result;
+    }
+
+    /**
+     * @param array<string, mixed> $values
+     *
+     * @return array<string, mixed>
+     */
+    private function removeNullValues(array $values): array
+    {
+        return array_filter(
+            $values,
+            static fn (mixed $value): bool => $value !== null
+        );
+    }
+
+
 }

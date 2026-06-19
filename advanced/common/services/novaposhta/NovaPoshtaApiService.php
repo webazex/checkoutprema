@@ -24,6 +24,13 @@ final class NovaPoshtaApiService
     private const DEFAULT_WAREHOUSE_PAGE = 1;
     private const DEFAULT_WAREHOUSE_LIMIT = self::MAX_WAREHOUSE_LIMIT;
 
+    private const METHOD_GET_AREAS = 'getAreas';
+    private const METHOD_GET_SETTLEMENTS = 'getSettlements';
+
+    private const DEFAULT_DIRECTORY_PAGE = 1;
+    private const DEFAULT_DIRECTORY_LIMIT = 500;
+    private const MAX_DIRECTORY_LIMIT = 500;
+
     public function __construct(private readonly NovaPoshtaApiClient $apiClient)
     {
     }
@@ -45,6 +52,21 @@ final class NovaPoshtaApiService
     }
 
     /**
+     * Возвращает полный справочник областей Nova Poshta.
+     *
+     * API возвращает области одним списком без пагинации.
+     *
+     * @return array<string, mixed>
+     */
+    public function getAreas(): array
+    {
+        return $this->apiClient->call(
+            modelName: self::MODEL_ADDRESS,
+            calledMethod: self::METHOD_GET_AREAS,
+        );
+    }
+
+    /**
      * Возвращает сырой ответ Nova Poshta API
      * со складами грузового типа выбранного города.
      *
@@ -60,6 +82,54 @@ final class NovaPoshtaApiService
             NovaPoshtaWarehouseType::CARGO_BRANCH,
             $page,
             $limit
+        );
+    }
+
+    /**
+     * Возвращает одну глобальную страницу населённых пунктов.
+     *
+     * @return array<string, mixed>
+     */
+    public function getSettlements(?int $page = null, ?int $limit = null): array
+    {
+        return $this->apiClient->call(
+            modelName: self::MODEL_ADDRESS,
+            calledMethod: self::METHOD_GET_SETTLEMENTS,
+            methodProperties: [
+                'Page' => $this->normalizePage($page),
+                'Limit' => $this->normalizeLimit(
+                    $limit,
+                    self::DEFAULT_DIRECTORY_LIMIT,
+                    self::MAX_DIRECTORY_LIMIT
+                ),
+            ],
+        );
+    }
+
+    /**
+     * Возвращает глобальную страницу отделений одного разрешённого типа.
+     *
+     * CityRef намеренно не передаётся.
+     *
+     * @return array<string, mixed>
+     */
+    public function getGlobalWarehouses(
+        NovaPoshtaWarehouseType $type,
+        ?int $page = null,
+        ?int $limit = null
+    ): array {
+        return $this->apiClient->call(
+            modelName: self::MODEL_ADDRESS,
+            calledMethod: self::METHOD_GET_WAREHOUSES,
+            methodProperties: [
+                'TypeOfWarehouseRef' => $type->value,
+                'Page' => $this->normalizePage($page),
+                'Limit' => $this->normalizeLimit(
+                    $limit,
+                    self::DEFAULT_WAREHOUSE_LIMIT,
+                    self::MAX_WAREHOUSE_LIMIT
+                ),
+            ],
         );
     }
 
