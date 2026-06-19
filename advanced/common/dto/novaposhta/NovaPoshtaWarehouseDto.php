@@ -27,7 +27,10 @@ final readonly class NovaPoshtaWarehouseDto
         public ?float $totalMaxWeightAllowed,
         public ?float $placeMaxWeightAllowed,
         public ?NovaPoshtaDimensionsDto $sendingDimensions,
-        public ?NovaPoshtaDimensionsDto $receivingDimensions
+        public ?NovaPoshtaDimensionsDto $receivingDimensions,
+        public ?NovaPoshtaWeeklyScheduleDto $schedule = null,
+        public ?NovaPoshtaWeeklyScheduleDto $receptionSchedule = null,
+        public ?NovaPoshtaWeeklyScheduleDto $deliverySchedule = null,
     ) {
     }
 }

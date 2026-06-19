@@ -8,11 +8,21 @@ use common\dto\novaposhta\NovaPoshtaDimensionsDto;
 use common\dto\novaposhta\NovaPoshtaWarehouseDto;
 use common\dto\novaposhta\NovaPoshtaWarehousePageDto;
 use common\enums\novaposhta\NovaPoshtaWarehouseType;
+use common\dto\novaposhta\NovaPoshtaWeeklyScheduleDto;
 use InvalidArgumentException;
 use UnexpectedValueException;
 
 final class NovaPoshtaResponseMapper
 {
+    private const SCHEDULE_DAYS = [
+        'Monday',
+        'Tuesday',
+        'Wednesday',
+        'Thursday',
+        'Friday',
+        'Saturday',
+        'Sunday',
+    ];
     /**
      * Преобразует полный сырой ответ getWarehouses
      * в типизированную страницу складов Nova Poshta.
@@ -66,10 +76,16 @@ final class NovaPoshtaResponseMapper
     /**
      * @param array<string, mixed> $data
      */
-    private function mapWarehouse(array $data, int $index): NovaPoshtaWarehouseDto
-    {
-        $description = $this->optionalString($data, 'Description');
-        $shortAddress = $this->optionalString($data, 'ShortAddress');
+    private function mapWarehouse(array $data, int $index): NovaPoshtaWarehouseDto {
+        $description = $this->optionalString(
+            $data,
+            'Description'
+        );
+
+        $shortAddress = $this->optionalString(
+            $data,
+            'ShortAddress'
+        );
 
         if ($description === null && $shortAddress === null) {
             throw new UnexpectedValueException(sprintf(
@@ -82,25 +98,97 @@ final class NovaPoshtaResponseMapper
         $shortAddress ??= $description;
 
         return new NovaPoshtaWarehouseDto(
-            ref: $this->requiredString($data, 'Ref', $index),
-            number: $this->requiredString($data, 'Number', $index),
-            type: $this->mapWarehouseType($data, $index),
-            category: $this->requiredString($data, 'CategoryOfWarehouse', $index),
+            ref: $this->requiredString(
+                $data,
+                'Ref',
+                $index
+            ),
+            number: $this->requiredString(
+                $data,
+                'Number',
+                $index
+            ),
+            type: $this->mapWarehouseType(
+                $data,
+                $index
+            ),
+            category: $this->requiredString(
+                $data,
+                'CategoryOfWarehouse',
+                $index
+            ),
             description: $description,
             shortAddress: $shortAddress,
-            cityRef: $this->requiredString($data, 'CityRef', $index),
-            settlementRef: $this->requiredString($data, 'SettlementRef', $index),
-            settlementName: $this->requiredString($data, 'SettlementDescription', $index),
-            areaName: $this->optionalString($data, 'SettlementAreaDescription') ?? '',
-            regionName: $this->optionalString($data, 'SettlementRegionsDescription'),
-            latitude: $this->optionalFloat($data, 'Latitude'),
-            longitude: $this->optionalFloat($data, 'Longitude'),
-            status: $this->requiredString($data, 'WarehouseStatus', $index),
-            denyToSelect: $this->requiredBooleanFlag($data, 'DenyToSelect', $index),
-            totalMaxWeightAllowed: $this->optionalFloat($data, 'TotalMaxWeightAllowed'),
-            placeMaxWeightAllowed: $this->optionalFloat($data, 'PlaceMaxWeightAllowed'),
-            sendingDimensions: $this->mapDimensions($data['SendingLimitationsOnDimensions'] ?? null),
-            receivingDimensions: $this->mapDimensions($data['ReceivingLimitationsOnDimensions'] ?? null)
+            cityRef: $this->requiredString(
+                $data,
+                'CityRef',
+                $index
+            ),
+            settlementRef: $this->requiredString(
+                $data,
+                'SettlementRef',
+                $index
+            ),
+            settlementName: $this->requiredString(
+                $data,
+                'SettlementDescription',
+                $index
+            ),
+            areaName: $this->optionalString(
+            $data,
+            'SettlementAreaDescription'
+        ) ?? '',
+            regionName: $this->optionalString(
+                $data,
+                'SettlementRegionsDescription'
+            ),
+            latitude: $this->optionalFloat(
+                $data,
+                'Latitude'
+            ),
+            longitude: $this->optionalFloat(
+                $data,
+                'Longitude'
+            ),
+            status: $this->requiredString(
+                $data,
+                'WarehouseStatus',
+                $index
+            ),
+            denyToSelect: $this->requiredBooleanFlag(
+                $data,
+                'DenyToSelect',
+                $index
+            ),
+            totalMaxWeightAllowed: $this->optionalFloat(
+                $data,
+                'TotalMaxWeightAllowed'
+            ),
+            placeMaxWeightAllowed: $this->optionalFloat(
+                $data,
+                'PlaceMaxWeightAllowed'
+            ),
+            sendingDimensions: $this->mapDimensions(
+                $data['SendingLimitationsOnDimensions'] ?? null
+            ),
+            receivingDimensions: $this->mapDimensions(
+                $data['ReceivingLimitationsOnDimensions'] ?? null
+            ),
+            schedule: $this->mapWeeklySchedule(
+                $data['Schedule'] ?? null,
+                'Schedule',
+                $index
+            ),
+            receptionSchedule: $this->mapWeeklySchedule(
+                $data['Reception'] ?? null,
+                'Reception',
+                $index
+            ),
+            deliverySchedule: $this->mapWeeklySchedule(
+                $data['Delivery'] ?? null,
+                'Delivery',
+                $index
+            ),
         );
     }
 
@@ -295,5 +383,86 @@ final class NovaPoshtaResponseMapper
         $value = preg_replace('/\s+/u', ' ', $value) ?? $value;
 
         return preg_replace('/\s*,\s*/u', ', ', $value) ?? $value;
+    }
+
+    private function mapWeeklySchedule(
+        mixed $value,
+        string $field,
+        int $index
+    ): ?NovaPoshtaWeeklyScheduleDto {
+        if ($value === null || $value === []) {
+            return null;
+        }
+
+        if (!is_array($value) || array_is_list($value)) {
+            throw new UnexpectedValueException(sprintf(
+                'Nova Poshta warehouse record at index %d field "%s" must be an object.',
+                $index,
+                $field
+            ));
+        }
+
+        $unknownDays = array_diff(
+            array_keys($value),
+            self::SCHEDULE_DAYS
+        );
+
+        if ($unknownDays !== []) {
+            throw new UnexpectedValueException(sprintf(
+                'Nova Poshta warehouse record at index %d field "%s" contains unsupported keys: %s.',
+                $index,
+                $field,
+                implode(
+                    ', ',
+                    array_map(
+                        static fn (mixed $day): string => (string)$day,
+                        $unknownDays
+                    )
+                )
+            ));
+        }
+
+        $intervals = [];
+
+        foreach (self::SCHEDULE_DAYS as $day) {
+            $rawInterval = $value[$day] ?? null;
+
+            if ($rawInterval === null || $rawInterval === '') {
+                $intervals[$day] = null;
+
+                continue;
+            }
+
+            if (!is_scalar($rawInterval)) {
+                throw new UnexpectedValueException(sprintf(
+                    'Nova Poshta warehouse record at index %d field "%s.%s" must be a scalar value.',
+                    $index,
+                    $field,
+                    $day
+                ));
+            }
+
+            $interval = $this->normalizeText(
+                (string)$rawInterval
+            );
+
+            $intervals[$day] = $interval !== ''
+                ? $interval
+                : null;
+        }
+
+        $schedule = new NovaPoshtaWeeklyScheduleDto(
+            monday: $intervals['Monday'],
+            tuesday: $intervals['Tuesday'],
+            wednesday: $intervals['Wednesday'],
+            thursday: $intervals['Thursday'],
+            friday: $intervals['Friday'],
+            saturday: $intervals['Saturday'],
+            sunday: $intervals['Sunday'],
+        );
+
+        return $schedule->isEmpty()
+            ? null
+            : $schedule;
     }
 }
