@@ -144,4 +144,7 @@ return [
 
     \common\storages\delivery\DeliverySyncStateStorage::class
     => \common\storages\delivery\DeliverySyncStateStorage::class,
+
+    \common\mappers\novaposhta\NovaPoshtaDirectoryMapper::class
+    => \common\mappers\novaposhta\NovaPoshtaDirectoryMapper::class,
 ];
