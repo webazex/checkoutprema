@@ -10,6 +10,11 @@ use common\dto\novaposhta\NovaPoshtaDimensionsDto;
 use common\dto\novaposhta\NovaPoshtaWarehouseDto;
 use common\dto\novaposhta\NovaPoshtaWeeklyScheduleDto;
 use common\enums\novaposhta\NovaPoshtaWarehouseType;
+use common\dto\delivery\DeliveryAreaSyncDto;
+use common\dto\delivery\DeliverySettlementSyncDto;
+use common\dto\novaposhta\NovaPoshtaAreaDto;
+use common\dto\novaposhta\NovaPoshtaSettlementDto;
+
 use InvalidArgumentException;
 use UnexpectedValueException;
 
@@ -32,6 +37,107 @@ final class NovaPoshtaDirectoryMapper
         'не працює',
         'не работает',
     ];
+
+    public function mapArea(NovaPoshtaAreaDto $area): DeliveryAreaSyncDto
+    {
+        return new DeliveryAreaSyncDto(
+            providerCode: self::PROVIDER_CODE,
+            externalRef: $area->ref,
+            name: $area->name,
+            metadata: [
+                'novaPoshta' => $this->removeNullValues([
+                    'centerRef' => $area->centerRef,
+                    'nameRu' => $area->nameRu,
+                ]),
+            ],
+        );
+    }
+
+    /**
+     * @param list<NovaPoshtaAreaDto> $areas
+     *
+     * @return list<DeliveryAreaSyncDto>
+     */
+    public function mapAreas(array $areas): array
+    {
+        if (!array_is_list($areas)) {
+            throw new InvalidArgumentException(
+                'Nova Poshta areas must be provided as a list.'
+            );
+        }
+
+        $result = [];
+
+        foreach ($areas as $area) {
+            if (!$area instanceof NovaPoshtaAreaDto) {
+                throw new InvalidArgumentException(
+                    'Nova Poshta areas list contains an invalid object.'
+                );
+            }
+
+            $result[] = $this->mapArea($area);
+        }
+
+        return $result;
+    }
+
+    public function mapSettlement(NovaPoshtaSettlementDto $settlement): DeliverySettlementSyncDto
+    {
+        $metadata = array_merge(
+            $settlement->metadata,
+            $this->removeNullValues([
+                'areaName' => $settlement->areaName,
+                'regionRef' => $settlement->regionRef,
+                'settlementTypeName' => $settlement->settlementTypeName,
+                'hasWarehouse' => $settlement->hasWarehouse,
+                'addressDeliveryAllowed' => $settlement->addressDeliveryAllowed,
+            ])
+        );
+
+        return new DeliverySettlementSyncDto(
+            providerCode: self::PROVIDER_CODE,
+            areaExternalRef: $settlement->areaRef,
+            externalRef: $settlement->ref,
+            deliveryRef: null,
+            name: $settlement->name,
+            present: null,
+            settlementTypeCode: $settlement->settlementTypeRef,
+            districtName: $settlement->regionName,
+            latitude: $settlement->latitude,
+            longitude: $settlement->longitude,
+            metadata: [
+                'novaPoshta' => $metadata,
+            ],
+        );
+    }
+
+    /**
+     * @param list<NovaPoshtaSettlementDto> $settlements
+     *
+     * @return list<DeliverySettlementSyncDto>
+     */
+    public function mapSettlements(array $settlements): array
+    {
+        if (!array_is_list($settlements)) {
+            throw new InvalidArgumentException(
+                'Nova Poshta settlements must be provided as a list.'
+            );
+        }
+
+        $result = [];
+
+        foreach ($settlements as $settlement) {
+            if (!$settlement instanceof NovaPoshtaSettlementDto) {
+                throw new InvalidArgumentException(
+                    'Nova Poshta settlements list contains an invalid object.'
+                );
+            }
+
+            $result[] = $this->mapSettlement($settlement);
+        }
+
+        return $result;
+    }
 
     /**
      * Преобразует provider-specific DTO отделения

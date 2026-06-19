@@ -147,4 +147,19 @@ return [
 
     \common\mappers\novaposhta\NovaPoshtaDirectoryMapper::class
     => \common\mappers\novaposhta\NovaPoshtaDirectoryMapper::class,
+
+    \common\integrations\novaposhta\NovaPoshtaDirectorySource::class
+    => \common\integrations\novaposhta\NovaPoshtaDirectorySource::class,
+
+    \common\integrations\novaposhta\NovaPoshtaDeliveryProvider::class
+    => \common\integrations\novaposhta\NovaPoshtaDeliveryProvider::class,
+
+    \common\services\delivery\DeliveryProviderRegistry::class
+    => static function (\yii\di\Container $container): \common\services\delivery\DeliveryProviderRegistry {
+        return new \common\services\delivery\DeliveryProviderRegistry([
+            $container->get(
+                \common\integrations\novaposhta\NovaPoshtaDeliveryProvider::class
+            ),
+        ]);
+    },
 ];
