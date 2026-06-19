@@ -154,6 +154,9 @@ return [
     \common\integrations\novaposhta\NovaPoshtaDeliveryProvider::class
     => \common\integrations\novaposhta\NovaPoshtaDeliveryProvider::class,
 
+    \common\storages\delivery\DeliveryDirectoryWriteStorage::class
+    => \common\storages\delivery\DeliveryDirectoryWriteStorage::class,
+
     \common\services\delivery\DeliveryProviderRegistry::class
     => static function (\yii\di\Container $container): \common\services\delivery\DeliveryProviderRegistry {
         return new \common\services\delivery\DeliveryProviderRegistry([

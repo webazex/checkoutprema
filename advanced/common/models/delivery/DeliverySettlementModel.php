@@ -108,6 +108,7 @@ class DeliverySettlementModel extends BaseModel
             [
                 ['latitude'],
                 'validateCoordinatesPair',
+                'skipOnEmpty' => false,
             ],
         ]);
     }

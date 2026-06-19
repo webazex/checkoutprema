@@ -132,6 +132,7 @@ class DeliveryPointModel extends BaseModel
             [
                 ['latitude'],
                 'validateCoordinatesPair',
+                'skipOnEmpty' => false,
             ],
         ]);
     }

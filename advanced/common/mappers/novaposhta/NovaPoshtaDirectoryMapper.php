@@ -38,6 +38,12 @@ final class NovaPoshtaDirectoryMapper
         'не работает',
     ];
 
+    private const SETTLEMENT_TYPE_CITY = 'city';
+    private const SETTLEMENT_TYPE_VILLAGE = 'village';
+    private const SETTLEMENT_TYPE_SETTLEMENT = 'settlement';
+    private const SETTLEMENT_TYPE_URBAN = 'urban_type_settlement';
+    private const SETTLEMENT_TYPE_OTHER = 'other';
+
     public function mapArea(NovaPoshtaAreaDto $area): DeliveryAreaSyncDto
     {
         return new DeliveryAreaSyncDto(
@@ -88,6 +94,7 @@ final class NovaPoshtaDirectoryMapper
             $this->removeNullValues([
                 'areaName' => $settlement->areaName,
                 'regionRef' => $settlement->regionRef,
+                'settlementTypeRef' => $settlement->settlementTypeRef,
                 'settlementTypeName' => $settlement->settlementTypeName,
                 'hasWarehouse' => $settlement->hasWarehouse,
                 'addressDeliveryAllowed' => $settlement->addressDeliveryAllowed,
@@ -101,7 +108,9 @@ final class NovaPoshtaDirectoryMapper
             deliveryRef: null,
             name: $settlement->name,
             present: null,
-            settlementTypeCode: $settlement->settlementTypeRef,
+            settlementTypeCode: $this->mapSettlementTypeCode(
+                $settlement->settlementTypeName
+            ),
             districtName: $settlement->regionName,
             latitude: $settlement->latitude,
             longitude: $settlement->longitude,
@@ -527,5 +536,31 @@ final class NovaPoshtaDirectoryMapper
             $values,
             static fn (mixed $value): bool => $value !== null
         );
+    }
+
+    private function mapSettlementTypeCode(?string $typeName): string
+    {
+        if ($typeName === null) {
+            return self::SETTLEMENT_TYPE_OTHER;
+        }
+
+        $typeName = mb_strtolower(trim($typeName), 'UTF-8');
+        $typeName = preg_replace('/\s+/u', ' ', $typeName) ?? $typeName;
+
+        return match ($typeName) {
+            'місто',
+            'город' => self::SETTLEMENT_TYPE_CITY,
+
+            'село' => self::SETTLEMENT_TYPE_VILLAGE,
+
+            'селище',
+            'поселок' => self::SETTLEMENT_TYPE_SETTLEMENT,
+
+            'селище міського типу',
+            'поселок городского типа',
+            'смт' => self::SETTLEMENT_TYPE_URBAN,
+
+            default => self::SETTLEMENT_TYPE_OTHER,
+        };
     }
 }
