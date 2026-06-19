@@ -109,10 +109,7 @@ final readonly class DeliverySyncStateStorage
         return $this->reload((int)$model->id);
     }
 
-    public function startRun(
-        string $providerCode,
-        DeliverySyncScope $scope,
-        string $scopeExternalRef = '',
+    public function startRun(string $providerCode, DeliverySyncScope $scope, string $scopeExternalRef = '',
         bool $resume = false,
         int $staleAfterSeconds = 900
     ): DeliverySyncStateReadDto {
