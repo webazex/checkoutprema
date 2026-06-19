@@ -9,9 +9,10 @@ use common\mappers\delivery\DeliveryReadMapper;
 use common\models\delivery\DeliveryPointModel;
 use common\models\delivery\DeliveryPointQuery;
 use common\models\delivery\DeliveryProviderModel;
+use common\contracts\delivery\DeliveryPointStorageInterface;
 use OutOfBoundsException;
 
-final readonly class DeliveryPointStorage
+final readonly class DeliveryPointStorage implements DeliveryPointStorageInterface
 {
     public function __construct(
         private DeliveryProviderStorage $providers,

@@ -16,4 +16,6 @@ interface DeliveryPointStorageInterface
         string $providerCode,
         string $externalRef
     ): ?DeliveryPointReadDto;
+
+    public function getSelectableById(int $id): DeliveryPointReadDto;
 }

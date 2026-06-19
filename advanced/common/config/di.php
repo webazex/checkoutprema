@@ -115,4 +115,33 @@ return [
 
     \common\services\novaposhta\NovaPoshtaDeliveryService::class
     => \common\services\novaposhta\NovaPoshtaDeliveryService::class,
+
+
+    \common\mappers\delivery\DeliveryReadMapper::class
+    => \common\mappers\delivery\DeliveryReadMapper::class,
+
+    \common\storages\delivery\DeliveryProviderStorage::class
+    => \common\storages\delivery\DeliveryProviderStorage::class,
+
+    \common\storages\delivery\DeliveryPointTypeStorage::class
+    => \common\storages\delivery\DeliveryPointTypeStorage::class,
+
+    \common\storages\delivery\DeliveryAreaStorage::class
+    => \common\storages\delivery\DeliveryAreaStorage::class,
+
+    \common\storages\delivery\DeliverySettlementStorage::class
+    => \common\storages\delivery\DeliverySettlementStorage::class,
+
+    \common\storages\delivery\DeliveryPointStorage::class
+    => \common\storages\delivery\DeliveryPointStorage::class,
+
+    \common\contracts\delivery\DeliveryPointStorageInterface::class
+    => static function (\yii\di\Container $container) {
+        return $container->get(
+            \common\storages\delivery\DeliveryPointStorage::class
+        );
+    },
+
+    \common\storages\delivery\DeliverySyncStateStorage::class
+    => \common\storages\delivery\DeliverySyncStateStorage::class,
 ];
