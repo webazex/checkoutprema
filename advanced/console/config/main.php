@@ -10,7 +10,11 @@ $params = array_merge(
 return [
     'id' => 'app-console',
     'basePath' => dirname(__DIR__),
-    'bootstrap' => ['log', 'queue'],
+    'bootstrap' => [
+        'log',
+        'queue',
+        'deliveryQueue',
+    ],
     'controllerNamespace' => 'console\controllers',
     'aliases' => [
         '@bower' => '@vendor/bower-asset',
@@ -27,10 +31,6 @@ return [
             'migrationNamespaces' => [
                 'yii\queue\db\migrations',
             ],
-        ],
-        'delivery-queue' => [
-            'class' => \yii\queue\cli\Command::class,
-            'queue' => 'deliveryQueue',
         ],
     ],
     'components' => [
