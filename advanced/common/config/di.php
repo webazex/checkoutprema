@@ -172,4 +172,7 @@ return [
             ),
         ]);
     },
+
+    \common\services\delivery\DeliverySyncStatusService::class
+    => \common\services\delivery\DeliverySyncStatusService::class,
 ];
