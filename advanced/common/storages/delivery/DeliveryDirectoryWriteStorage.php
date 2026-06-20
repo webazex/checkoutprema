@@ -17,6 +17,7 @@ use InvalidArgumentException;
 use OutOfBoundsException;
 use Throwable;
 use Yii;
+use LogicException;
 
 final readonly class DeliveryDirectoryWriteStorage
 {
@@ -239,6 +240,119 @@ final readonly class DeliveryDirectoryWriteStorage
                 $existingMap
             );
         });
+    }
+
+    public function archiveUnseenAreas(string $providerCode, int $sourceSeenAt): int
+    {
+        $this->assertSourceSeenAt($sourceSeenAt);
+        $this->assertArchiveTransaction();
+
+        $providerId = $this->providers->getByCode($providerCode)->id;
+        $now = time();
+
+        return DeliveryAreaModel::updateAll(
+            [
+                'archived_at' => $now,
+                'updated_at' => $now,
+            ],
+            [
+                'and',
+                [
+                    'provider_id' => $providerId,
+                    'archived_at' => null,
+                ],
+                ['<', 'source_seen_at', $sourceSeenAt],
+            ]
+        );
+    }
+
+    public function archiveUnseenSettlements(
+        string $providerCode, int $sourceSeenAt, ?string $areaExternalRef = null
+    ): int {
+        $this->assertSourceSeenAt($sourceSeenAt);
+        $this->assertArchiveTransaction();
+
+        $areaExternalRef = $this->normalizeArchiveScopeRef(
+            $areaExternalRef,
+            'areaExternalRef'
+        );
+
+        $providerId = $this->providers->getByCode($providerCode)->id;
+
+        $condition = [
+            'and',
+            [
+                'provider_id' => $providerId,
+                'archived_at' => null,
+            ],
+            ['<', 'source_seen_at', $sourceSeenAt],
+        ];
+
+        if ($areaExternalRef !== null) {
+            $areaIds = $this->resolveAreaIds(
+                $providerId,
+                [$areaExternalRef]
+            );
+
+            $condition[] = [
+                'area_id' => $areaIds[$areaExternalRef],
+            ];
+        }
+
+        $now = time();
+
+        return DeliverySettlementModel::updateAll(
+            [
+                'archived_at' => $now,
+                'updated_at' => $now,
+            ],
+            $condition
+        );
+    }
+
+    public function archiveUnseenPoints(
+        string $providerCode, int $sourceSeenAt,
+        ?string $settlementDeliveryRef = null
+    ): int {
+        $this->assertSourceSeenAt($sourceSeenAt);
+        $this->assertArchiveTransaction();
+
+        $settlementDeliveryRef = $this->normalizeArchiveScopeRef(
+            $settlementDeliveryRef,
+            'settlementDeliveryRef'
+        );
+
+        $providerId = $this->providers->getByCode($providerCode)->id;
+
+        $condition = [
+            'and',
+            [
+                'provider_id' => $providerId,
+                'archived_at' => null,
+            ],
+            ['<', 'source_seen_at', $sourceSeenAt],
+        ];
+
+        if ($settlementDeliveryRef !== null) {
+            $condition[] = [
+                'settlement_id' => $this->resolveSettlementIdsByDeliveryRef(
+                    $providerId,
+                    $settlementDeliveryRef
+                ),
+            ];
+        }
+
+        $now = time();
+
+        return DeliveryPointModel::updateAll(
+            [
+                'is_active' => 0,
+                'is_selectable' => 0,
+                'archived_at' => $now,
+                'updated_at' => $now,
+            ],
+            $condition
+        );
     }
 
     /**
@@ -1118,5 +1232,72 @@ final readonly class DeliveryDirectoryWriteStorage
 
             throw $exception;
         }
+    }
+
+    /**
+     * @return list<int>
+     */
+    private function resolveSettlementIdsByDeliveryRef(
+        int $providerId, string $deliveryRef
+    ): array {
+        $ids = DeliverySettlementModel::find()
+            ->select('id')
+            ->where([
+                'provider_id' => $providerId,
+                'delivery_ref' => $deliveryRef,
+            ])
+            ->column();
+
+        $ids = array_values(array_unique(
+            array_map('intval', $ids)
+        ));
+
+        if ($ids === []) {
+            throw new OutOfBoundsException(sprintf(
+                'Delivery settlements with delivery reference "%s" were not found.',
+                $deliveryRef
+            ));
+        }
+
+        return $ids;
+    }
+
+    private function normalizeArchiveScopeRef(
+        ?string $value, string $field
+    ): ?string {
+        if ($value === null) {
+            return null;
+        }
+
+        $value = trim($value);
+
+        if ($value === '') {
+            throw new InvalidArgumentException(sprintf(
+                'Delivery archive %s must not be empty.',
+                $field
+            ));
+        }
+
+        if (strlen($value) > 128) {
+            throw new InvalidArgumentException(sprintf(
+                'Delivery archive %s is too long.',
+                $field
+            ));
+        }
+
+        return $value;
+    }
+
+    private function assertArchiveTransaction(): void
+    {
+        $transaction = Yii::$app->db->getTransaction();
+
+        if ($transaction !== null && $transaction->getIsActive()) {
+            return;
+        }
+
+        throw new LogicException(
+            'Delivery archival can be executed only inside an active transaction.'
+        );
     }
 }
