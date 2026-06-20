@@ -87,6 +87,25 @@ final class NovaPoshtaDirectoryMapper
         return $result;
     }
 
+    public function mapAreaFromSettlement(NovaPoshtaSettlementDto $settlement, ?NovaPoshtaAreaDto $directoryArea = null): DeliveryAreaSyncDto {
+        $areaName = $this->nullableText($settlement->areaName);
+        if ($areaName === null)
+        {
+            throw new UnexpectedValueException(sprintf( 'Nova Poshta settlement "%s" does not contain an area name.', $settlement->ref ));
+        }
+        return new DeliveryAreaSyncDto( providerCode: self::PROVIDER_CODE, externalRef: $settlement->areaRef, name: $areaName, metadata:
+            [
+                'novaPoshta' => $this->removeNullValues(
+                    [
+                        'directoryRef' => $directoryArea?->ref,
+                        'centerRef' => $directoryArea?->centerRef,
+                        'nameRu' => $directoryArea?->nameRu ?? ($settlement->metadata['areaNameRu'] ?? null),
+                        'nameTranslit' => $settlement->metadata['areaNameTranslit'] ?? null,
+                    ]),
+            ],
+        );
+    }
+
     public function mapSettlement(NovaPoshtaSettlementDto $settlement): DeliverySettlementSyncDto
     {
         $metadata = array_merge(
