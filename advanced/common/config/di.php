@@ -161,6 +161,9 @@ return [
     \common\services\delivery\DeliverySyncService::class
     => \common\services\delivery\DeliverySyncService::class,
 
+    \common\services\delivery\DeliverySyncSchedulerService::class
+    => \common\services\delivery\DeliverySyncSchedulerService::class,
+
     \common\services\delivery\DeliveryProviderRegistry::class
     => static function (\yii\di\Container $container): \common\services\delivery\DeliveryProviderRegistry {
         return new \common\services\delivery\DeliveryProviderRegistry([

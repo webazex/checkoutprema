@@ -36,6 +36,18 @@ return [
                     'maxFileSize' => 10240,
                     'maxLogFiles' => 10,
                 ],
+                [
+                    'class' => \yii\log\FileTarget::class,
+                    'levels' => ['error', 'warning', 'info'],
+                    'categories' => [
+                        'delivery.sync*',
+                    ],
+                    'logFile' => '@console/runtime/logs/delivery-sync.log',
+                    'logVars' => [],
+                    'prefix' => static fn ($message): string => '',
+                    'maxFileSize' => 10240,
+                    'maxLogFiles' => 10,
+                ],
             ],
         ],
 
@@ -61,6 +73,10 @@ return [
                 'class' => \yii\mutex\MysqlMutex::class,
             ],
             'as log' => \yii\queue\LogBehavior::class,
+        ],
+        'delivery-queue' => [
+            'class' => \yii\queue\cli\Command::class,
+            'queue' => 'deliveryQueue',
         ],
     ],
 
