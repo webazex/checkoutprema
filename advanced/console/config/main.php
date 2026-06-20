@@ -28,6 +28,10 @@ return [
                 'yii\queue\db\migrations',
             ],
         ],
+        'delivery-queue' => [
+            'class' => \yii\queue\cli\Command::class,
+            'queue' => 'deliveryQueue',
+        ],
     ],
     'components' => [
         'log' => [
@@ -41,6 +45,18 @@ return [
                     'logFile' => '@console/runtime/logs/keycrm-sync.log',
                     'logVars' => [],
                     'prefix' => static fn ($message): string => '',
+                ],
+                [
+                    'class' => \yii\log\FileTarget::class,
+                    'levels' => ['error', 'warning', 'info'],
+                    'categories' => [
+                        'delivery.sync*',
+                    ],
+                    'logFile' => '@console/runtime/logs/delivery-sync.log',
+                    'logVars' => [],
+                    'prefix' => static fn ($message): string => '',
+                    'maxFileSize' => 10240,
+                    'maxLogFiles' => 10,
                 ],
             ],
         ],

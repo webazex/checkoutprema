@@ -42,7 +42,6 @@ return [
                     'categories' => [
                         'delivery.sync*',
                     ],
-                    'logFile' => '@console/runtime/logs/delivery-sync.log',
                     'logVars' => [],
                     'prefix' => static fn ($message): string => '',
                     'maxFileSize' => 10240,
@@ -74,9 +73,15 @@ return [
             ],
             'as log' => \yii\queue\LogBehavior::class,
         ],
-        'delivery-queue' => [
-            'class' => \yii\queue\cli\Command::class,
-            'queue' => 'deliveryQueue',
+        'deliveryQueue' => [
+            'class' => \yii\queue\db\Queue::class,
+            'db' => 'db',
+            'tableName' => '{{%queue}}',
+            'channel' => 'delivery',
+            'mutex' => [
+                'class' => \yii\mutex\MysqlMutex::class,
+            ],
+            'as log' => \yii\queue\LogBehavior::class,
         ],
     ],
 
