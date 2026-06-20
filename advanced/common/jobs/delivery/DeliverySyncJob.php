@@ -12,6 +12,7 @@ use Throwable;
 use Yii;
 use yii\base\BaseObject;
 use yii\queue\JobInterface;
+use common\services\delivery\DeliverySyncLogFormatter;
 
 final class DeliverySyncJob extends BaseObject implements JobInterface
 {
@@ -36,14 +37,16 @@ final class DeliverySyncJob extends BaseObject implements JobInterface
         $lockName = 'delivery:sync:' . sha1($providerCode);
 
         if (!Yii::$app->mutex->acquire($lockName, 0)) {
-            Yii::warning([
-                'event' => 'job_skipped_locked',
-                'providerCode' => $providerCode,
-                'scope' => $this->scope,
-                'scopeExternalRef' => $scopeExternalRef,
-                'uniqueKey' => $this->uniqueKey,
-                'lockName' => $lockName,
-            ], self::LOG_CATEGORY);
+            Yii::warning(
+                DeliverySyncLogFormatter::event('job', 'SKIP_LOCKED', [
+                    'provider' => $providerCode,
+                    'scope' => $this->scope,
+                    'scopeRef' => $scopeExternalRef,
+                    'key' => $this->uniqueKey,
+                    'lock' => $lockName,
+                ]),
+                self::LOG_CATEGORY
+            );
 
             return;
         }
@@ -51,16 +54,18 @@ final class DeliverySyncJob extends BaseObject implements JobInterface
         try {
             $scopes = $this->resolveScopes($scopeExternalRef);
 
-            Yii::info([
-                'event' => 'job_started',
-                'providerCode' => $providerCode,
-                'scope' => $this->scope,
-                'scopeExternalRef' => $scopeExternalRef,
-                'resume' => $this->resume,
-                'limit' => $this->limit,
-                'staleAfterSeconds' => $this->staleAfterSeconds,
-                'uniqueKey' => $this->uniqueKey,
-            ], self::LOG_CATEGORY);
+            Yii::info(
+                DeliverySyncLogFormatter::event('job', 'STARTED', [
+                    'provider' => $providerCode,
+                    'scope' => $this->scope,
+                    'scopeRef' => $scopeExternalRef,
+                    'resume' => $this->resume,
+                    'limit' => $this->limit,
+                    'staleAfter' => $this->staleAfterSeconds,
+                    'key' => $this->uniqueKey,
+                ]),
+                self::LOG_CATEGORY
+            );
 
             /** @var DeliverySyncService $service */
             $service = Yii::$container->get(DeliverySyncService::class);
@@ -69,23 +74,27 @@ final class DeliverySyncJob extends BaseObject implements JobInterface
                 $service->sync(providerCode: $providerCode, scope: $scope, scopeExternalRef: $scopeExternalRef, resume: $this->resume, limit: $this->limit, staleAfterSeconds: $this->staleAfterSeconds);
             }
 
-            Yii::info([
-                'event' => 'job_completed',
-                'providerCode' => $providerCode,
-                'scope' => $this->scope,
-                'scopeExternalRef' => $scopeExternalRef,
-                'uniqueKey' => $this->uniqueKey,
-            ], self::LOG_CATEGORY);
+            Yii::info(
+                DeliverySyncLogFormatter::event('job', 'DONE', [
+                    'provider' => $providerCode,
+                    'scope' => $this->scope,
+                    'scopeRef' => $scopeExternalRef,
+                    'key' => $this->uniqueKey,
+                ]),
+                self::LOG_CATEGORY
+            );
         } catch (Throwable $exception) {
-            Yii::error([
-                'event' => 'job_failed',
-                'providerCode' => $providerCode,
-                'scope' => $this->scope,
-                'scopeExternalRef' => $scopeExternalRef,
-                'uniqueKey' => $this->uniqueKey,
-                'exception' => $exception::class,
-                'message' => $exception->getMessage(),
-            ], self::LOG_CATEGORY);
+            Yii::error(
+                DeliverySyncLogFormatter::event('job', 'FAILED', [
+                    'provider' => $providerCode,
+                    'scope' => $this->scope,
+                    'scopeRef' => $scopeExternalRef,
+                    'key' => $this->uniqueKey,
+                    'exception' => $exception::class,
+                    'error' => $exception->getMessage(),
+                ]),
+                self::LOG_CATEGORY
+            );
 
             throw $exception;
         } finally {

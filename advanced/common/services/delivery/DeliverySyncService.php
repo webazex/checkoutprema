@@ -26,6 +26,8 @@ use Yii;
 
 final readonly class DeliverySyncService
 {
+    private const LOG_CATEGORY = 'delivery.sync';
+
     public function __construct(
         private DeliveryProviderRegistry $providers,
         private DeliveryDirectoryWriteStorage $writer,
@@ -33,20 +35,13 @@ final readonly class DeliverySyncService
     ) {
     }
 
-    public function sync(
-        string $providerCode, DeliverySyncScope $scope, string $scopeExternalRef = '',
-        bool $resume = false, int $limit = 500, int $staleAfterSeconds = 900
-    ): DeliverySyncStateReadDto {
+    public function sync(string $providerCode, DeliverySyncScope $scope, string $scopeExternalRef = '', bool $resume = false, int $limit = 500, int $staleAfterSeconds = 900): DeliverySyncStateReadDto
+    {
         if ($limit < 1) {
-            throw new InvalidArgumentException(
-                'Delivery sync limit must be greater than zero.'
-            );
+            throw new InvalidArgumentException('Delivery sync limit must be greater than zero.');
         }
 
-        $scopeExternalRef = $this->normalizeScopeExternalRef(
-            $scope,
-            $scopeExternalRef
-        );
+        $scopeExternalRef = $this->normalizeScopeExternalRef($scope, $scopeExternalRef);
 
         $provider = $this->providers->get($providerCode);
         $this->assertProviderSupportsScope($provider, $scope);
@@ -59,14 +54,8 @@ final readonly class DeliverySyncService
          *
          * Успешный run или failed run без cursor запускаются заново.
          */
-        $existingState = $this->states->find(
-            $providerCode,
-            $scope,
-            $scopeExternalRef
-        );
-
-        $resumeProgress = $resume
-            && $this->isResumable($existingState);
+        $existingState = $this->states->find($providerCode, $scope, $scopeExternalRef);
+        $resumeProgress = $resume && $this->isResumable($existingState);
 
         $state = $this->states->startRun(
             providerCode: $providerCode,
@@ -80,21 +69,21 @@ final readonly class DeliverySyncService
         $sourceSeenAt = $state->startedAt;
 
         if ($runToken === null || $sourceSeenAt === null) {
-            throw new LogicException(
-                'Running delivery sync state must contain run token and started timestamp.'
-            );
+            throw new LogicException('Running delivery sync state must contain run token and started timestamp.');
         }
 
-        Yii::info([
-            'event' => 'started',
-            'providerCode' => $providerCode,
-            'scope' => $scope->value,
-            'scopeExternalRef' => $scopeExternalRef,
-            'stateId' => $state->id,
-            'resumeRequested' => $resume,
-            'resumeProgress' => $resumeProgress,
-            'cursor' => $state->cursor,
-        ], 'delivery.sync');
+        Yii::info(
+            DeliverySyncLogFormatter::event('sync', 'STARTED', [
+                'provider' => $providerCode,
+                'scope' => $scope->value,
+                'scopeRef' => $scopeExternalRef,
+                'stateId' => $state->id,
+                'resumeRequested' => $resume,
+                'resumeProgress' => $resumeProgress,
+                'cursor' => $state->cursor,
+            ]),
+            self::LOG_CATEGORY
+        );
 
         try {
             return $this->runPages(
@@ -107,30 +96,27 @@ final readonly class DeliverySyncService
                 limit: $limit
             );
         } catch (Throwable $exception) {
-            $this->failRunSafely(
-                $state->id,
-                $runToken,
-                $exception
-            );
+            $this->failRunSafely($state->id, $runToken, $exception);
 
-            Yii::error([
-                'event' => 'failed',
-                'providerCode' => $providerCode,
-                'scope' => $scope->value,
-                'scopeExternalRef' => $scopeExternalRef,
-                'stateId' => $state->id,
-                'exception' => $exception::class,
-                'message' => $exception->getMessage(),
-            ], 'delivery.sync');
+            Yii::error(
+                DeliverySyncLogFormatter::event('sync', 'FAILED', [
+                    'provider' => $providerCode,
+                    'scope' => $scope->value,
+                    'scopeRef' => $scopeExternalRef,
+                    'stateId' => $state->id,
+                    'exception' => $exception::class,
+                    'error' => $exception->getMessage(),
+                ]),
+                self::LOG_CATEGORY
+            );
 
             throw $exception;
         }
     }
 
     private function runPages(
-        DeliveryDirectorySourceInterface $source, string $providerCode,
-        DeliverySyncStateReadDto $state, string $runToken,
-        int $sourceSeenAt, bool $archivalAllowed, int $limit
+        DeliveryDirectorySourceInterface $source, string $providerCode, DeliverySyncStateReadDto $state,
+        string $runToken, int $sourceSeenAt, bool $archivalAllowed, int $limit
     ): DeliverySyncStateReadDto {
         $cursor = $state->cursor;
         $seenCursors = [];
@@ -152,10 +138,7 @@ final readonly class DeliverySyncService
             /*
              * Обновляем heartbeat перед потенциально долгим API request.
              */
-            $this->states->heartbeat(
-                $state->id,
-                $runToken
-            );
+            $this->states->heartbeat($state->id, $runToken);
 
             $page = $this->fetchPage(
                 source: $source,
@@ -184,22 +167,25 @@ final readonly class DeliverySyncService
                 archivalAllowed: $archivalAllowed
             );
 
-            Yii::info([
-                'event' => $isFinalPage
-                    ? 'completed'
-                    : 'page_committed',
-
-                'providerCode' => $state->providerCode,
-                'scope' => $state->scope->value,
-                'scopeExternalRef' => $state->scopeExternalRef,
-                'stateId' => $state->id,
-                'pageNumber' => $pageNumber,
-                'nextCursor' => $page->nextCursor,
-                'processedCount' => $state->processedCount,
-                'createdCount' => $state->createdCount,
-                'updatedCount' => $state->updatedCount,
-                'archivedCount' => $state->archivedCount,
-            ], 'delivery.sync');
+            Yii::info(
+                DeliverySyncLogFormatter::event(
+                    'sync',
+                    $isFinalPage ? 'DONE' : 'PAGE_COMMITTED',
+                    [
+                        'provider' => $state->providerCode,
+                        'scope' => $state->scope->value,
+                        'scopeRef' => $state->scopeExternalRef,
+                        'stateId' => $state->id,
+                        'page' => $pageNumber,
+                        'nextCursor' => $page->nextCursor,
+                        'processed' => $state->processedCount,
+                        'created' => $state->createdCount,
+                        'updated' => $state->updatedCount,
+                        'archived' => $state->archivedCount,
+                    ]
+                ),
+                self::LOG_CATEGORY
+            );
 
             if ($isFinalPage) {
                 return $state;
@@ -208,17 +194,14 @@ final readonly class DeliverySyncService
             $cursor = $state->cursor;
 
             if ($cursor === null) {
-                throw new LogicException(
-                    'Non-final delivery sync page must persist its next cursor.'
-                );
+                throw new LogicException('Non-final delivery sync page must persist its next cursor.');
             }
         }
     }
 
     private function processPage(
-        DeliverySyncStateReadDto $state, string $runToken,
-        DeliverySyncPageDto $page, int $sourceSeenAt,
-        bool $isFinalPage, bool $archivalAllowed
+        DeliverySyncStateReadDto $state, string $runToken, DeliverySyncPageDto $page,
+        int $sourceSeenAt, bool $isFinalPage, bool $archivalAllowed
     ): DeliverySyncStateReadDto {
         return $this->transactional(function () use (
             $state,
@@ -234,11 +217,7 @@ final readonly class DeliverySyncService
              * Если worker потерял run_token, recordBatch() выбросит
              * ownershipLost, после чего page upsert будет откатан.
              */
-            $writeResult = $this->writePage(
-                $page,
-                $state->scope,
-                $sourceSeenAt
-            );
+            $writeResult = $this->writePage($page, $state->scope, $sourceSeenAt);
 
             $recordedState = $this->states->recordBatch(
                 stateId: $state->id,
@@ -257,10 +236,7 @@ final readonly class DeliverySyncService
              * в одной транзакции.
              */
             $archivedCount = $archivalAllowed
-                ? $this->archiveScope(
-                    $recordedState,
-                    $sourceSeenAt
-                )
+                ? $this->archiveScope($recordedState, $sourceSeenAt)
                 : 0;
 
             return $this->states->completeRun(
@@ -282,19 +258,13 @@ final readonly class DeliverySyncService
             ),
 
             DeliverySyncScope::SETTLEMENTS => $source->fetchSettlements(
-                areaExternalRef: $scopeExternalRef === ''
-                    ? null
-                    : $scopeExternalRef,
-
+                areaExternalRef: $scopeExternalRef === '' ? null : $scopeExternalRef,
                 cursor: $cursor,
                 limit: $limit
             ),
 
             DeliverySyncScope::POINTS => $source->fetchPoints(
-                settlementDeliveryRef: $scopeExternalRef === ''
-                    ? null
-                    : $scopeExternalRef,
-
+                settlementDeliveryRef: $scopeExternalRef === '' ? null : $scopeExternalRef,
                 cursor: $cursor,
                 limit: $limit
             ),
@@ -305,25 +275,12 @@ final readonly class DeliverySyncService
         };
     }
 
-    private function writePage(
-        DeliverySyncPageDto $page, DeliverySyncScope $scope,
-        int $sourceSeenAt
-    ): DeliveryWriteBatchResultDto {
+    private function writePage(DeliverySyncPageDto $page, DeliverySyncScope $scope, int $sourceSeenAt): DeliveryWriteBatchResultDto
+    {
         return match ($scope) {
-            DeliverySyncScope::AREAS => $this->writer->upsertAreas(
-                $page->items,
-                $sourceSeenAt
-            ),
-
-            DeliverySyncScope::SETTLEMENTS => $this->writer->upsertSettlements(
-                $page->items,
-                $sourceSeenAt
-            ),
-
-            DeliverySyncScope::POINTS => $this->writer->upsertPoints(
-                $page->items,
-                $sourceSeenAt
-            ),
+            DeliverySyncScope::AREAS => $this->writer->upsertAreas($page->items, $sourceSeenAt),
+            DeliverySyncScope::SETTLEMENTS => $this->writer->upsertSettlements($page->items, $sourceSeenAt),
+            DeliverySyncScope::POINTS => $this->writer->upsertPoints($page->items, $sourceSeenAt),
 
             DeliverySyncScope::SCHEDULES => throw new LogicException(
                 'Schedule sync is performed as part of point sync.'
@@ -331,32 +288,24 @@ final readonly class DeliverySyncService
         };
     }
 
-    private function archiveScope(
-        DeliverySyncStateReadDto $state, int $sourceSeenAt
-    ): int {
+    private function archiveScope(DeliverySyncStateReadDto $state, int $sourceSeenAt): int
+    {
         return match ($state->scope) {
-            DeliverySyncScope::AREAS =>
-            $this->writer->archiveUnseenAreas(
+            DeliverySyncScope::AREAS => $this->writer->archiveUnseenAreas(
                 $state->providerCode,
                 $sourceSeenAt
             ),
 
-            DeliverySyncScope::SETTLEMENTS =>
-            $this->writer->archiveUnseenSettlements(
+            DeliverySyncScope::SETTLEMENTS => $this->writer->archiveUnseenSettlements(
                 $state->providerCode,
                 $sourceSeenAt,
-                $state->scopeExternalRef === ''
-                    ? null
-                    : $state->scopeExternalRef
+                $state->scopeExternalRef === '' ? null : $state->scopeExternalRef
             ),
 
-            DeliverySyncScope::POINTS =>
-            $this->writer->archiveUnseenPoints(
+            DeliverySyncScope::POINTS => $this->writer->archiveUnseenPoints(
                 $state->providerCode,
                 $sourceSeenAt,
-                $state->scopeExternalRef === ''
-                    ? null
-                    : $state->scopeExternalRef
+                $state->scopeExternalRef === '' ? null : $state->scopeExternalRef
             ),
 
             DeliverySyncScope::SCHEDULES => throw new LogicException(
@@ -369,14 +318,10 @@ final readonly class DeliverySyncService
      * @param array<string, true> $seenCursors
      */
     private function assertPage(
-        DeliverySyncPageDto $page, DeliverySyncScope $scope,
-        string $scopeExternalRef, string $providerCode,
-        array $seenCursors
+        DeliverySyncPageDto $page, DeliverySyncScope $scope, string $scopeExternalRef,
+        string $providerCode, array $seenCursors
     ): void {
-        if (
-            $page->nextCursor !== null
-            && trim($page->nextCursor) !== $page->nextCursor
-        ) {
+        if ($page->nextCursor !== null && trim($page->nextCursor) !== $page->nextCursor) {
             throw new UnexpectedValueException(
                 'Delivery source cursor must not contain surrounding whitespace.'
             );
@@ -384,11 +329,7 @@ final readonly class DeliverySyncService
 
         if (
             $page->nextCursor !== null
-            && isset(
-                $seenCursors[
-                $this->cursorKey($page->nextCursor)
-                ]
-            )
+            && isset($seenCursors[$this->cursorKey($page->nextCursor)])
         ) {
             throw new UnexpectedValueException(sprintf(
                 'Delivery source returned repeated cursor "%s".',
@@ -397,14 +338,9 @@ final readonly class DeliverySyncService
         }
 
         $expectedClass = match ($scope) {
-            DeliverySyncScope::AREAS =>
-            DeliveryAreaSyncDto::class,
-
-            DeliverySyncScope::SETTLEMENTS =>
-            DeliverySettlementSyncDto::class,
-
-            DeliverySyncScope::POINTS =>
-            DeliveryPointSyncDto::class,
+            DeliverySyncScope::AREAS => DeliveryAreaSyncDto::class,
+            DeliverySyncScope::SETTLEMENTS => DeliverySettlementSyncDto::class,
+            DeliverySyncScope::POINTS => DeliveryPointSyncDto::class,
 
             DeliverySyncScope::SCHEDULES => throw new LogicException(
                 'Schedule sync is performed as part of point sync.'
@@ -455,9 +391,8 @@ final readonly class DeliverySyncService
         }
     }
 
-    private function isResumable(
-        ?DeliverySyncStateReadDto $state
-    ): bool {
+    private function isResumable(?DeliverySyncStateReadDto $state): bool
+    {
         if ($state === null) {
             return false;
         }
@@ -475,17 +410,13 @@ final readonly class DeliverySyncService
             return false;
         }
 
-        return $state->startedAt !== null
-            && $state->cursor !== null;
+        return $state->startedAt !== null && $state->cursor !== null;
     }
 
-    private function assertProviderSupportsScope(
-        DeliveryProviderInterface $provider, DeliverySyncScope $scope
-    ): void {
+    private function assertProviderSupportsScope(DeliveryProviderInterface $provider, DeliverySyncScope $scope): void
+    {
         if ($scope === DeliverySyncScope::SCHEDULES) {
-            throw new LogicException(
-                'Schedule sync is performed as part of point sync.'
-            );
+            throw new LogicException('Schedule sync is performed as part of point sync.');
         }
 
         if (
@@ -503,9 +434,8 @@ final readonly class DeliverySyncService
         }
     }
 
-    private function normalizeScopeExternalRef(
-        DeliverySyncScope $scope, string $scopeExternalRef
-    ): string {
+    private function normalizeScopeExternalRef(DeliverySyncScope $scope, string $scopeExternalRef): string
+    {
         $normalized = trim($scopeExternalRef);
 
         if ($scopeExternalRef !== '' && $normalized === '') {
@@ -520,21 +450,15 @@ final readonly class DeliverySyncService
             );
         }
 
-        if (
-            $scope === DeliverySyncScope::AREAS
-            && $normalized !== ''
-        ) {
-            throw new InvalidArgumentException(
-                'Area sync does not support scopeExternalRef.'
-            );
+        if ($scope === DeliverySyncScope::AREAS && $normalized !== '') {
+            throw new InvalidArgumentException('Area sync does not support scopeExternalRef.');
         }
 
         return $normalized;
     }
 
-    private function failRunSafely(
-        int $stateId, string $runToken, Throwable $exception
-    ): void {
+    private function failRunSafely(int $stateId, string $runToken, Throwable $exception): void
+    {
         try {
             $this->states->failRunFromThrowable(
                 stateId: $stateId,
@@ -546,22 +470,21 @@ final readonly class DeliverySyncService
              * Ownership уже перехвачен другим worker.
              */
         } catch (Throwable $stateException) {
-            Yii::error([
-                'event' => 'state_failure_not_recorded',
-                'stateId' => $stateId,
-                'originalException' => $exception::class,
-                'stateException' => $stateException::class,
-                'stateExceptionMessage'
-                => $stateException->getMessage(),
-            ], 'delivery.sync');
+            Yii::error(
+                DeliverySyncLogFormatter::event('state', 'FAILURE_NOT_RECORDED', [
+                    'stateId' => $stateId,
+                    'originalException' => $exception::class,
+                    'stateException' => $stateException::class,
+                    'error' => $stateException->getMessage(),
+                ]),
+                self::LOG_CATEGORY
+            );
         }
     }
 
     private function cursorKey(?string $cursor): string
     {
-        return $cursor === null
-            ? '__initial__'
-            : 'cursor:' . $cursor;
+        return $cursor === null ? '__initial__' : 'cursor:' . $cursor;
     }
 
     private function transactional(callable $callback): mixed
@@ -569,10 +492,7 @@ final readonly class DeliverySyncService
         $db = Yii::$app->db;
         $activeTransaction = $db->getTransaction();
 
-        if (
-            $activeTransaction !== null
-            && $activeTransaction->getIsActive()
-        ) {
+        if ($activeTransaction !== null && $activeTransaction->getIsActive()) {
             return $callback();
         }
 

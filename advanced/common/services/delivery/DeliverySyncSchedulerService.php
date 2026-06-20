@@ -52,13 +52,15 @@ final readonly class DeliverySyncSchedulerService
 
         try {
             if (!$force && $this->hasActiveQueueJob($uniqueKey)) {
-                Yii::info([
-                    'event' => 'job_skipped_duplicate',
-                    'providerCode' => $providerCode,
-                    'scope' => $scope,
-                    'scopeExternalRef' => $scopeExternalRef,
-                    'uniqueKey' => $uniqueKey,
-                ], self::LOG_CATEGORY);
+                Yii::info(
+                    DeliverySyncLogFormatter::event('scheduler', 'SKIP_DUPLICATE', [
+                        'provider' => $providerCode,
+                        'scope' => $scope,
+                        'scopeRef' => $scopeExternalRef,
+                        'key' => $uniqueKey,
+                    ]),
+                    self::LOG_CATEGORY
+                );
 
                 return null;
             }
@@ -77,30 +79,34 @@ final readonly class DeliverySyncSchedulerService
             $queue = Yii::$app->get('deliveryQueue');
             $jobId = $queue->push($job);
 
-            Yii::info([
-                'event' => 'job_pushed',
-                'providerCode' => $providerCode,
-                'scope' => $scope,
-                'scopeExternalRef' => $scopeExternalRef,
-                'resume' => $resume,
-                'force' => $force,
-                'limit' => $limit,
-                'staleAfterSeconds' => $staleAfterSeconds,
-                'uniqueKey' => $uniqueKey,
-                'jobId' => $jobId,
-            ], self::LOG_CATEGORY);
+            Yii::info(
+                DeliverySyncLogFormatter::event('scheduler', 'PUSHED', [
+                    'provider' => $providerCode,
+                    'scope' => $scope,
+                    'scopeRef' => $scopeExternalRef,
+                    'resume' => $resume,
+                    'force' => $force,
+                    'limit' => $limit,
+                    'staleAfter' => $staleAfterSeconds,
+                    'key' => $uniqueKey,
+                    'jobId' => $jobId,
+                ]),
+                self::LOG_CATEGORY
+            );
 
             return $jobId;
         } catch (Throwable $exception) {
-            Yii::error([
-                'event' => 'job_push_failed',
-                'providerCode' => $providerCode,
-                'scope' => $scope,
-                'scopeExternalRef' => $scopeExternalRef,
-                'uniqueKey' => $uniqueKey,
-                'exception' => $exception::class,
-                'message' => $exception->getMessage(),
-            ], self::LOG_CATEGORY);
+            Yii::error(
+                DeliverySyncLogFormatter::event('scheduler', 'PUSH_FAILED', [
+                    'provider' => $providerCode,
+                    'scope' => $scope,
+                    'scopeRef' => $scopeExternalRef,
+                    'key' => $uniqueKey,
+                    'exception' => $exception::class,
+                    'error' => $exception->getMessage(),
+                ]),
+                self::LOG_CATEGORY
+            );
 
             throw $exception;
         } finally {
