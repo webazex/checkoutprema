@@ -14,6 +14,7 @@ use common\dto\novaposhta\NovaPoshtaSettlementDto;
 use common\dto\novaposhta\NovaPoshtaSettlementPageDto;
 use InvalidArgumentException;
 use UnexpectedValueException;
+use yii\helpers\Json;
 
 final class NovaPoshtaResponseMapper
 {
@@ -455,7 +456,7 @@ final class NovaPoshtaResponseMapper
         }
 
         throw new UnexpectedValueException(sprintf(
-            'Nova Poshta warehouse record at index %d contains invalid boolean flag "%s".',
+            'Nova Poshta record at index %d contains invalid boolean flag "%s".',
             $index,
             $key
         ));
@@ -568,10 +569,7 @@ final class NovaPoshtaResponseMapper
     /**
      * @param array<string, mixed> $data
      */
-    private function mapSettlement(
-        array $data,
-        int $index
-    ): NovaPoshtaSettlementDto {
+    private function mapSettlement(array $data, int $index): NovaPoshtaSettlementDto {
         return new NovaPoshtaSettlementDto(
             ref: $this->requiredString(
                 $data,
@@ -621,7 +619,7 @@ final class NovaPoshtaResponseMapper
                 'Warehouse',
                 $index
             ),
-            addressDeliveryAllowed: $this->requiredBooleanFlag(
+            addressDeliveryAllowed: $this->optionalBooleanFlag(
                 $data,
                 'AddressDeliveryAllowed',
                 $index
@@ -784,6 +782,45 @@ final class NovaPoshtaResponseMapper
             $values,
             static fn (mixed $value): bool => $value !== null
         );
+    }
+    private function optionalBooleanFlag(array $data, string $key, int $index, bool $default = false): bool
+    {
+        if (!array_key_exists($key, $data) || $data[$key] === null) {
+            return $default;
+        }
+
+        $value = $data[$key];
+
+        if ($value === true || $value === 1 || $value === '1') {
+            return true;
+        }
+
+        if ($value === false || $value === 0 || $value === '0') {
+            return false;
+        }
+
+        if (is_string($value)) {
+            $normalized = mb_strtolower(trim($value), 'UTF-8');
+
+            if ($normalized === '') {
+                return $default;
+            }
+
+            if ($normalized === 'true') {
+                return true;
+            }
+
+            if ($normalized === 'false') {
+                return false;
+            }
+        }
+
+        throw new UnexpectedValueException(sprintf(
+            'Nova Poshta record at index %d contains invalid boolean flag "%s" with value %s.',
+            $index,
+            $key,
+            Json::encode($value, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES)
+        ));
     }
 
 
