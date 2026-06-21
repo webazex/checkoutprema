@@ -24,8 +24,8 @@ $quantity = ProductPageViewHelper::getQuantity($product);
 $accordionItems = ProductPageViewHelper::buildAccordionItems($product);
 
 echo $this->render('_schema', [
-    'schemaJson' => $schemaJson,
-    'breadcrumbSchemaJson' => $breadcrumbSchemaJson,
+        'schemaJson' => $schemaJson,
+        'breadcrumbSchemaJson' => $breadcrumbSchemaJson,
 ]);
 ?>
 
@@ -35,22 +35,23 @@ echo $this->render('_schema', [
     <section class="product-design">
         <div class="product-design__media js-product-gallery">
             <?php if ($mainImage !== null): ?>
-                <div class="product-design__thumbs" aria-label="<?= Html::encode(Yii::t('frontend', 'Product images')) ?>">
+                <div class="product-design__thumbs"
+                     aria-label="<?= Html::encode(Yii::t('frontend', 'Product images')) ?>">
                     <?php foreach ($thumbImages as $index => $imageUrl): ?>
                         <?php $imageNumber = $index + 2; ?>
 
                         <button
-                            class="product-design__thumb-button js-product-gallery-thumb"
-                            type="button"
-                            data-src="<?= Html::encode($imageUrl) ?>"
-                            data-alt="<?= Html::encode($alt . ' #' . $imageNumber) ?>"
-                            aria-label="<?= Html::encode(Yii::t('frontend', 'Show product image {number}', ['number' => $imageNumber])) ?>"
+                                class="product-design__thumb-button js-product-gallery-thumb"
+                                type="button"
+                                data-src="<?= Html::encode($imageUrl) ?>"
+                                data-alt="<?= Html::encode($alt . ' #' . $imageNumber) ?>"
+                                aria-label="<?= Html::encode(Yii::t('frontend', 'Show product image {number}', ['number' => $imageNumber])) ?>"
                         >
                             <img
-                                class="product-design__thumb-image"
-                                src="<?= Html::encode($imageUrl) ?>"
-                                alt="<?= Html::encode($alt . ' #' . $imageNumber) ?>"
-                                loading="lazy"
+                                    class="product-design__thumb-image"
+                                    src="<?= Html::encode($imageUrl) ?>"
+                                    alt="<?= Html::encode($alt . ' #' . $imageNumber) ?>"
+                                    loading="lazy"
                             >
                         </button>
                     <?php endforeach; ?>
@@ -58,12 +59,12 @@ echo $this->render('_schema', [
 
                 <div class="product-design__main-media">
                     <img
-                        class="product-design__main-image js-product-gallery-main"
-                        src="<?= Html::encode($mainImage) ?>"
-                        alt="<?= Html::encode($alt) ?>"
-                        width="720"
-                        height="720"
-                        loading="eager"
+                            class="product-design__main-image js-product-gallery-main"
+                            src="<?= Html::encode($mainImage) ?>"
+                            alt="<?= Html::encode($alt) ?>"
+                            width="720"
+                            height="720"
+                            loading="eager"
                     >
                 </div>
             <?php else: ?>
@@ -98,8 +99,8 @@ echo $this->render('_schema', [
             <?php if ($product->getIsAvailable()): ?>
                 <div class="product-design__actions">
                     <?= Html::beginForm(['/cart/add'], 'post', [
-                        'class' => 'product-design__form js-catalog-add-to-cart',
-                        'data-product-name' => $product->name,
+                            'class' => 'product-design__form js-catalog-add-to-cart',
+                            'data-product-name' => $product->name,
                     ]) ?>
                     <?= Html::hiddenInput('product_id', (int)$product->id) ?>
                     <?= Html::hiddenInput('qty', 1) ?>
@@ -109,7 +110,7 @@ echo $this->render('_schema', [
                     <?= Html::endForm() ?>
 
                     <?= Html::beginForm(['/cart/buy-now'], 'post', [
-                        'class' => 'product-design__form product-design__form--buy-now',
+                            'class' => 'product-design__form product-design__form--buy-now',
                     ]) ?>
                     <?= Html::hiddenInput('product_id', (int)$product->id) ?>
                     <?= Html::hiddenInput('qty', 1) ?>
@@ -134,7 +135,7 @@ echo $this->render('_schema', [
             <?php endif; ?>
 
             <?= $this->render('_product_accordion', [
-                'items' => $accordionItems,
+                    'items' => $accordionItems,
             ]) ?>
         </div>
     </section>

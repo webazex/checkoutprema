@@ -11,7 +11,13 @@ final class BreadcrumbsProvider
 {
     public function __construct(
         private readonly NavigationProvider $navigationProvider = new NavigationProvider(),
-    ) {
+    )
+    {
+    }
+
+    public function forCatalogIndex(bool $absolute = true): array
+    {
+        return $this->forNavigationKey(NavigationProvider::KEY_CATALOG, $absolute);
     }
 
     public function forNavigationKey(string $key, bool $absolute = true): array
@@ -25,53 +31,19 @@ final class BreadcrumbsProvider
         return $this->buildFromPath($path, $absolute);
     }
 
-    public function forCatalogIndex(bool $absolute = true): array
+    private function homeOnly(bool $absolute): array
     {
-        return $this->forNavigationKey(NavigationProvider::KEY_CATALOG, $absolute);
-    }
-
-    public function forCatalogCategory(CatalogCategoryModel $category, bool $absolute = true): array
-    {
-        $key = $this->navigationProvider->getCatalogCategoryKey((int)$category->id);
-        $path = $this->navigationProvider->findPathByKey($key);
-
-        if ($path === null) {
-            return [
-                $this->homeItem($absolute),
-                [
-                    'label' => Yii::t('frontend', 'Каталог'),
-                    'url' => Url::to(['/catalog/index'], $absolute),
-                ],
-                [
-                    'label' => (string)$category->name,
-                    'url' => Url::to([
-                        '/catalog/category',
-                        'categorySlug' => $category->slug,
-                    ], $absolute),
-                ],
-            ];
-        }
-
-        return $this->buildFromPath($path, $absolute);
-    }
-
-    public function forProduct(
-        CatalogCategoryModel $category,
-        ProductModel $product,
-        bool $absolute = true
-    ): array {
-        $breadcrumbs = $this->forCatalogCategory($category, $absolute);
-
-        $breadcrumbs[] = [
-            'label' => (string)$product->name,
-            'url' => Url::to([
-                '/catalog/product',
-                'categorySlug' => $category->slug,
-                'productSlug' => $product->slug,
-            ], $absolute),
+        return [
+            $this->homeItem($absolute),
         ];
+    }
 
-        return $breadcrumbs;
+    private function homeItem(bool $absolute): array
+    {
+        return [
+            'label' => Yii::t('frontend', 'Головна'),
+            'url' => Url::home($absolute),
+        ];
     }
 
     private function buildFromPath(array $path, bool $absolute): array
@@ -98,21 +70,6 @@ final class BreadcrumbsProvider
         return $breadcrumbs;
     }
 
-    private function homeOnly(bool $absolute): array
-    {
-        return [
-            $this->homeItem($absolute),
-        ];
-    }
-
-    private function homeItem(bool $absolute): array
-    {
-        return [
-            'label' => Yii::t('frontend', 'Головна'),
-            'url' => Url::home($absolute),
-        ];
-    }
-
     private function normalizeUrl(string $url, bool $absolute): string
     {
         if (!$absolute) {
@@ -124,5 +81,50 @@ final class BreadcrumbsProvider
         }
 
         return Url::to($url, true);
+    }
+
+    public function forProduct(
+        CatalogCategoryModel $category,
+        ProductModel         $product,
+        bool                 $absolute = true
+    ): array
+    {
+        $breadcrumbs = $this->forCatalogCategory($category, $absolute);
+
+        $breadcrumbs[] = [
+            'label' => (string)$product->name,
+            'url' => Url::to([
+                '/catalog/product',
+                'categorySlug' => $category->slug,
+                'productSlug' => $product->slug,
+            ], $absolute),
+        ];
+
+        return $breadcrumbs;
+    }
+
+    public function forCatalogCategory(CatalogCategoryModel $category, bool $absolute = true): array
+    {
+        $key = $this->navigationProvider->getCatalogCategoryKey((int)$category->id);
+        $path = $this->navigationProvider->findPathByKey($key);
+
+        if ($path === null) {
+            return [
+                $this->homeItem($absolute),
+                [
+                    'label' => Yii::t('frontend', 'Каталог'),
+                    'url' => Url::to(['/catalog/index'], $absolute),
+                ],
+                [
+                    'label' => (string)$category->name,
+                    'url' => Url::to([
+                        '/catalog/category',
+                        'categorySlug' => $category->slug,
+                    ], $absolute),
+                ],
+            ];
+        }
+
+        return $this->buildFromPath($path, $absolute);
     }
 }

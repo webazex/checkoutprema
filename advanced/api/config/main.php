@@ -1,5 +1,9 @@
 <?php
 
+use api\modules\v1\Module;
+use common\models\User;
+use yii\log\FileTarget;
+
 $params = array_merge(
     require __DIR__ . '/../../common/config/params.php',
     require __DIR__ . '/../../common/config/params-local.php',
@@ -18,7 +22,7 @@ return [
     ],
     'modules' => [
         'v1' => [
-            'class' => \api\modules\v1\Module::class,
+            'class' => Module::class,
         ],
     ],
     'components' => [
@@ -30,7 +34,7 @@ return [
             ],
         ],
         'user' => [
-            'identityClass' => \common\models\User::class,
+            'identityClass' => User::class,
             'enableAutoLogin' => false,
             'enableSession' => false,
             'loginUrl' => null,
@@ -42,18 +46,18 @@ return [
             'traceLevel' => YII_DEBUG ? 3 : 0,
             'targets' => [
                 [
-                    'class' => \yii\log\FileTarget::class,
+                    'class' => FileTarget::class,
                     'levels' => ['error', 'warning'],
                 ],
                 [
-                    'class' => \yii\log\FileTarget::class,
+                    'class' => FileTarget::class,
                     'levels' => ['info', 'warning', 'error'],
                     'categories' => [
                         'keycrm.stock.webhook',
                     ],
                     'logFile' => '@api/runtime/logs/keycrm-stock-webhook.log',
                     'logVars' => [],
-                    'prefix' => static fn ($message): string => '',
+                    'prefix' => static fn($message): string => '',
                 ],
             ],
         ],

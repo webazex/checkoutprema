@@ -59,6 +59,37 @@ final class DeliveryReadMapper
         );
     }
 
+    private function requireProvider(
+        DeliveryAreaModel|DeliverySettlementModel|DeliveryPointModel|DeliverySyncStateModel $model
+    ): DeliveryProviderModel
+    {
+        $relation = $this->requireRelation($model, 'provider');
+
+        if (!$relation instanceof DeliveryProviderModel) {
+            throw new LogicException(sprintf(
+                'Relation "%s.provider" must contain DeliveryProviderModel.',
+                $model::class
+            ));
+        }
+
+        return $relation;
+    }
+
+    private function requireRelation(BaseActiveRecord $model, string $relation): mixed
+    {
+        if (!$model->isRelationPopulated($relation)) {
+            throw new LogicException(sprintf(
+                'Relation "%s.%s" must be eager-loaded before mapping.',
+                $model::class,
+                $relation
+            ));
+        }
+
+        $relations = $model->getRelatedRecords();
+
+        return $relations[$relation] ?? null;
+    }
+
     public function mapSettlement(DeliverySettlementModel $model): DeliverySettlementReadDto
     {
         $provider = $this->requireProvider($model);
@@ -82,17 +113,38 @@ final class DeliveryReadMapper
         );
     }
 
-    public function mapSchedule(DeliveryPointScheduleModel $model): DeliveryPointScheduleReadDto
+    private function requireArea(DeliverySettlementModel $model): DeliveryAreaModel
     {
-        return new DeliveryPointScheduleReadDto(
-            weekday: (int)$model->weekday,
-            intervalNo: (int)$model->interval_no,
-            opensAt: $this->nullableString($model->opens_at),
-            closesAt: $this->nullableString($model->closes_at),
-            isClosed: $model->getIsClosed(),
-            validFrom: $this->nullableString($model->valid_from),
-            validTo: $this->nullableString($model->valid_to),
-        );
+        $relation = $this->requireRelation($model, 'area');
+
+        if (!$relation instanceof DeliveryAreaModel) {
+            throw new LogicException(sprintf(
+                'Relation "%s.area" must contain DeliveryAreaModel.',
+                $model::class
+            ));
+        }
+
+        return $relation;
+    }
+
+    private function nullableString(mixed $value): ?string
+    {
+        if ($value === null) {
+            return null;
+        }
+
+        $value = (string)$value;
+
+        return trim($value) === '' ? null : $value;
+    }
+
+    private function nullableFloat(mixed $value): ?float
+    {
+        if ($value === null || $value === '') {
+            return null;
+        }
+
+        return (float)$value;
     }
 
     public function mapPoint(DeliveryPointModel $model): DeliveryPointReadDto
@@ -142,64 +194,6 @@ final class DeliveryReadMapper
             ),
             schedules: $schedules,
         );
-    }
-
-    public function mapSyncState(DeliverySyncStateModel $model): DeliverySyncStateReadDto
-    {
-        $provider = $this->requireProvider($model);
-
-        return new DeliverySyncStateReadDto(
-            id: (int)$model->id,
-            providerId: (int)$model->provider_id,
-            providerCode: (string)$provider->code,
-            scope: $model->getScopeEnum(),
-            scopeExternalRef: (string)$model->scope_external_ref,
-            status: $model->getStatusEnum(),
-            runToken: $this->nullableString($model->run_token),
-            cursor: $this->nullableString($model->cursor),
-            startedAt: $this->nullableInt($model->started_at),
-            heartbeatAt: $this->nullableInt($model->heartbeat_at),
-            finishedAt: $this->nullableInt($model->finished_at),
-            lastSuccessAt: $this->nullableInt($model->last_success_at),
-            lastErrorAt: $this->nullableInt($model->last_error_at),
-            lastErrorType: $this->nullableString($model->last_error_type),
-            lastErrorCode: $this->nullableString($model->last_error_code),
-            lastErrorMessage: $this->nullableString($model->last_error_message),
-            sourceTotalCount: $this->nullableInt($model->source_total_count),
-            processedCount: (int)$model->processed_count,
-            createdCount: (int)$model->created_count,
-            updatedCount: (int)$model->updated_count,
-            archivedCount: (int)$model->archived_count,
-        );
-    }
-
-    private function requireProvider(
-        DeliveryAreaModel|DeliverySettlementModel|DeliveryPointModel|DeliverySyncStateModel $model
-    ): DeliveryProviderModel {
-        $relation = $this->requireRelation($model, 'provider');
-
-        if (!$relation instanceof DeliveryProviderModel) {
-            throw new LogicException(sprintf(
-                'Relation "%s.provider" must contain DeliveryProviderModel.',
-                $model::class
-            ));
-        }
-
-        return $relation;
-    }
-
-    private function requireArea(DeliverySettlementModel $model): DeliveryAreaModel
-    {
-        $relation = $this->requireRelation($model, 'area');
-
-        if (!$relation instanceof DeliveryAreaModel) {
-            throw new LogicException(sprintf(
-                'Relation "%s.area" must contain DeliveryAreaModel.',
-                $model::class
-            ));
-        }
-
-        return $relation;
     }
 
     private function requireSettlement(DeliveryPointModel $model): DeliverySettlementModel
@@ -256,19 +250,17 @@ final class DeliveryReadMapper
         return $relation;
     }
 
-    private function requireRelation(BaseActiveRecord $model, string $relation): mixed
+    public function mapSchedule(DeliveryPointScheduleModel $model): DeliveryPointScheduleReadDto
     {
-        if (!$model->isRelationPopulated($relation)) {
-            throw new LogicException(sprintf(
-                'Relation "%s.%s" must be eager-loaded before mapping.',
-                $model::class,
-                $relation
-            ));
-        }
-
-        $relations = $model->getRelatedRecords();
-
-        return $relations[$relation] ?? null;
+        return new DeliveryPointScheduleReadDto(
+            weekday: (int)$model->weekday,
+            intervalNo: (int)$model->interval_no,
+            opensAt: $this->nullableString($model->opens_at),
+            closesAt: $this->nullableString($model->closes_at),
+            isClosed: $model->getIsClosed(),
+            validFrom: $this->nullableString($model->valid_from),
+            validTo: $this->nullableString($model->valid_to),
+        );
     }
 
     /**
@@ -315,24 +307,33 @@ final class DeliveryReadMapper
         return $decoded;
     }
 
-    private function nullableString(mixed $value): ?string
+    public function mapSyncState(DeliverySyncStateModel $model): DeliverySyncStateReadDto
     {
-        if ($value === null) {
-            return null;
-        }
+        $provider = $this->requireProvider($model);
 
-        $value = (string)$value;
-
-        return trim($value) === '' ? null : $value;
-    }
-
-    private function nullableFloat(mixed $value): ?float
-    {
-        if ($value === null || $value === '') {
-            return null;
-        }
-
-        return (float)$value;
+        return new DeliverySyncStateReadDto(
+            id: (int)$model->id,
+            providerId: (int)$model->provider_id,
+            providerCode: (string)$provider->code,
+            scope: $model->getScopeEnum(),
+            scopeExternalRef: (string)$model->scope_external_ref,
+            status: $model->getStatusEnum(),
+            runToken: $this->nullableString($model->run_token),
+            cursor: $this->nullableString($model->cursor),
+            startedAt: $this->nullableInt($model->started_at),
+            heartbeatAt: $this->nullableInt($model->heartbeat_at),
+            finishedAt: $this->nullableInt($model->finished_at),
+            lastSuccessAt: $this->nullableInt($model->last_success_at),
+            lastErrorAt: $this->nullableInt($model->last_error_at),
+            lastErrorType: $this->nullableString($model->last_error_type),
+            lastErrorCode: $this->nullableString($model->last_error_code),
+            lastErrorMessage: $this->nullableString($model->last_error_message),
+            sourceTotalCount: $this->nullableInt($model->source_total_count),
+            processedCount: (int)$model->processed_count,
+            createdCount: (int)$model->created_count,
+            updatedCount: (int)$model->updated_count,
+            archivedCount: (int)$model->archived_count,
+        );
     }
 
     private function nullableInt(mixed $value): ?int

@@ -15,8 +15,9 @@ final class NovaPoshtaLogFormatter
     public static function event(
         string $component,
         string $status,
-        array $context = []
-    ): string {
+        array  $context = []
+    ): string
+    {
         $component = trim($component);
         $status = trim($status);
 
@@ -35,20 +36,6 @@ final class NovaPoshtaLogFormatter
             $component,
             $status,
             $contextLine
-        );
-    }
-
-    /**
-     * @return array<string, mixed>
-     */
-    public static function exceptionContext(
-        NovaPoshtaApiException $exception
-    ): array {
-        return array_merge(
-            [
-                'message' => $exception->getMessage(),
-            ],
-            $exception->context()
         );
     }
 
@@ -105,5 +92,20 @@ final class NovaPoshtaLogFormatter
         }
 
         return $value;
+    }
+
+    /**
+     * @return array<string, mixed>
+     */
+    public static function exceptionContext(
+        NovaPoshtaApiException $exception
+    ): array
+    {
+        return array_merge(
+            [
+                'message' => $exception->getMessage(),
+            ],
+            $exception->context()
+        );
     }
 }

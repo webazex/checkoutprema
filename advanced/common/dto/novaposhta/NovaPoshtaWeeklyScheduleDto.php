@@ -16,7 +16,8 @@ final readonly class NovaPoshtaWeeklyScheduleDto
         public ?string $friday = null,
         public ?string $saturday = null,
         public ?string $sunday = null,
-    ) {
+    )
+    {
         foreach ($this->intervalsByWeekday() as $weekday => $interval) {
             if (trim($interval) === '') {
                 throw new InvalidArgumentException(sprintf(
@@ -46,7 +47,7 @@ final readonly class NovaPoshtaWeeklyScheduleDto
                 6 => $this->saturday,
                 7 => $this->sunday,
             ],
-            static fn (?string $interval): bool => $interval !== null
+            static fn(?string $interval): bool => $interval !== null
         );
     }
 

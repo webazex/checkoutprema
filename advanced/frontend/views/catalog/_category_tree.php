@@ -1,14 +1,17 @@
 <?php
 
-/** @var array<int, array{category: \common\models\catalog\CatalogCategoryModel, children: array, hasProducts: bool}> $categoryTree */
+/** @var array<int, array{category: CatalogCategoryModel, children: array, hasProducts: bool}> $categoryTree */
+
+use common\models\catalog\CatalogCategoryModel;
+
 ?>
 
 <section class="catalog-categories" aria-label="Категорії товарів">
     <ul class="catalog-category-menu">
         <?php foreach ($categoryTree as $node): ?>
             <?= $this->render('_category_node', [
-                'node' => $node,
-                'level' => 0,
+                    'node' => $node,
+                    'level' => 0,
             ]) ?>
         <?php endforeach; ?>
     </ul>

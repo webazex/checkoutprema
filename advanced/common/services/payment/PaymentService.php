@@ -13,20 +13,23 @@ use common\models\payment\PaymentLogModel;
 use common\models\payment\PaymentModel;
 use RuntimeException;
 use common\services\order\OrderPostPaymentProcessor;
+use Throwable;
 use Yii;
 
 final class PaymentService
 {
     public function __construct(
         private readonly PaymentGatewayRegistry $gatewayRegistry,
-    ) {
+    )
+    {
     }
 
     public function buildCreateRequest(
         PaymentModel $payment,
-        string $returnUrl,
-        string $callbackUrl
-    ): PaymentCreateRequestDto {
+        string       $returnUrl,
+        string       $callbackUrl
+    ): PaymentCreateRequestDto
+    {
         $order = $payment->order;
 
         if (!$order instanceof OrderModel) {
@@ -74,10 +77,20 @@ final class PaymentService
         );
     }
 
+    private function buildDescription(OrderModel $order): string
+    {
+        if (!empty($order->hash)) {
+            return sprintf('Order #%s', $order->hash);
+        }
+
+        return sprintf('Order #%d', $order->id);
+    }
+
     public function createPayment(
-        PaymentModel $payment,
+        PaymentModel            $payment,
         PaymentCreateRequestDto $request
-    ): PaymentCreateResultDto {
+    ): PaymentCreateResultDto
+    {
         $this->assertProviderConsistency($payment, $request->provider);
 
         $gateway = $this->gatewayRegistry->get($payment->provider);
@@ -118,10 +131,168 @@ final class PaymentService
         return $result;
     }
 
+    private function assertProviderConsistency(PaymentModel $payment, string $provider): void
+    {
+        if ($payment->provider !== $provider) {
+            throw new RuntimeException(
+                "Payment provider mismatch. Payment #{$payment->id} has provider {$payment->provider}, request provider is {$provider}."
+            );
+        }
+    }
+
+    private function applyPaymentTerminalTimestamps(
+        PaymentModel $payment,
+        string       $status,
+        int          $now
+    ): void
+    {
+        if ($status === PaymentModel::STATUS_PAID && empty($payment->paid_at)) {
+            $payment->paid_at = $now;
+        }
+
+        if (
+            in_array($status, [
+                PaymentModel::STATUS_FAILED,
+                PaymentModel::STATUS_CANCELLED,
+            ], true)
+            && empty($payment->failed_at)
+        ) {
+            $payment->failed_at = $now;
+        }
+    }
+
+    private function syncOrderPaymentState(PaymentModel $payment, int $now): void
+    {
+        $order = $payment->order;
+
+        if (!$order instanceof OrderModel) {
+            return;
+        }
+
+        $order->payment_status = $payment->status;
+
+        if (!empty($payment->payment_method)) {
+            $order->payment_method = $payment->payment_method;
+        }
+
+        if ($payment->status === PaymentModel::STATUS_PAID && empty($order->paid_at)) {
+            $order->paid_at = $payment->paid_at ?: $now;
+        }
+
+        $order->updated_at = $now;
+        $order->save(false);
+    }
+
+    /**
+     * @param array<string, mixed> $payload
+     */
+    private function writeLog(
+        PaymentModel $payment,
+        string       $eventType,
+        string       $direction,
+        string       $status,
+        array        $payload = [],
+        ?string      $errorMessage = null,
+        ?string      $externalId = null
+    ): void
+    {
+        $log = new PaymentLogModel();
+        $log->order_id = $payment->order_id;
+        $log->payment_id = $payment->id;
+        $log->provider = $payment->provider;
+        $log->event_type = $eventType;
+        $log->direction = $direction;
+        $log->external_id = $externalId;
+        $log->status = $status;
+        $log->amount = $payment->amount;
+        $log->currency = $payment->currency;
+        $log->payment_method = $payment->payment_method;
+        $log->response_data = $this->encodeData($payload);
+        $log->error_message = $errorMessage;
+        $log->created_at = time();
+        $log->updated_at = time();
+        $log->save(false);
+    }
+
+    private function encodeData(array $payload): ?string
+    {
+        $json = json_encode($payload, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);
+
+        return $json === false ? null : $json;
+    }
+
+    /**
+     * @return array<string, mixed>
+     */
+    private function serializeCreateRequest(PaymentCreateRequestDto $request): array
+    {
+        return [
+            'paymentId' => $request->paymentId,
+            'orderId' => $request->orderId,
+            'provider' => $request->provider,
+            'orderReference' => $request->orderReference,
+            'orderDate' => $request->orderDate,
+            'amount' => $request->amount,
+            'currency' => $request->currency,
+            'description' => $request->description,
+            'items' => array_map(
+                static fn(PaymentLineItemDto $item): array => [
+                    'name' => $item->name,
+                    'quantity' => $item->quantity,
+                    'price' => $item->price,
+                    'sku' => $item->sku,
+                ],
+                $request->items
+            ),
+            'returnUrl' => $request->returnUrl,
+            'callbackUrl' => $request->callbackUrl,
+            'customerEmail' => $request->customerEmail,
+            'customerPhone' => $request->customerPhone,
+            'customerFirstName' => $request->customerFirstName,
+            'customerLastName' => $request->customerLastName,
+            'metadata' => $request->metadata,
+        ];
+    }
+
+    /**
+     * @return array<string, mixed>
+     */
+    private function serializeCreateResult(PaymentCreateResultDto $result): array
+    {
+        return [
+            'provider' => $result->provider,
+            'status' => $result->status,
+            'externalId' => $result->externalId,
+            'externalOrderId' => $result->externalOrderId,
+            'redirectUrl' => $result->redirectUrl,
+            'nextAction' => $this->serializeNextAction($result->nextAction),
+            'errorMessage' => $result->errorMessage,
+            'rawResponse' => $result->rawResponse,
+        ];
+    }
+
+    /**
+     * @return array<string, mixed>|null
+     */
+    private function serializeNextAction(?PaymentNextActionDto $nextAction): ?array
+    {
+        if ($nextAction === null) {
+            return null;
+        }
+
+        return [
+            'type' => $nextAction->type,
+            'url' => $nextAction->url,
+            'method' => $nextAction->method,
+            'payload' => $nextAction->payload,
+        ];
+    }
+
     public function handleCallback(
         string $provider,
-        array $payload
-    ): PaymentCallbackResultDto {
+        array  $payload
+    ): PaymentCallbackResultDto
+    {
         $gateway = $this->gatewayRegistry->get($provider);
         $result = $gateway->parseCallback($payload);
 
@@ -235,28 +406,11 @@ final class PaymentService
         return $result;
     }
 
-    public function buildCallbackResponse(
-        string $provider,
-        PaymentCallbackResultDto $result
-    ): PaymentCallbackResponseDto {
-        return $this->gatewayRegistry
-            ->get($provider)
-            ->buildCallbackResponse($result);
-    }
-
-    private function assertProviderConsistency(PaymentModel $payment, string $provider): void
-    {
-        if ($payment->provider !== $provider) {
-            throw new RuntimeException(
-                "Payment provider mismatch. Payment #{$payment->id} has provider {$payment->provider}, request provider is {$provider}."
-            );
-        }
-    }
-
     private function findPaymentForCallback(
-        string $provider,
+        string                   $provider,
         PaymentCallbackResultDto $result
-    ): ?PaymentModel {
+    ): ?PaymentModel
+    {
         if ($result->externalOrderId !== null && $result->externalOrderId !== '') {
             $payment = PaymentModel::find()
                 ->provider($provider)
@@ -282,137 +436,6 @@ final class PaymentService
         return null;
     }
 
-    private function applyPaymentTerminalTimestamps(
-        PaymentModel $payment,
-        string $status,
-        int $now
-    ): void {
-        if ($status === PaymentModel::STATUS_PAID && empty($payment->paid_at)) {
-            $payment->paid_at = $now;
-        }
-
-        if (
-            in_array($status, [
-                PaymentModel::STATUS_FAILED,
-                PaymentModel::STATUS_CANCELLED,
-            ], true)
-            && empty($payment->failed_at)
-        ) {
-            $payment->failed_at = $now;
-        }
-    }
-
-    private function syncOrderPaymentState(PaymentModel $payment, int $now): void
-    {
-        $order = $payment->order;
-
-        if (!$order instanceof OrderModel) {
-            return;
-        }
-
-        $order->payment_status = $payment->status;
-
-        if (!empty($payment->payment_method)) {
-            $order->payment_method = $payment->payment_method;
-        }
-
-        if ($payment->status === PaymentModel::STATUS_PAID && empty($order->paid_at)) {
-            $order->paid_at = $payment->paid_at ?: $now;
-        }
-
-        $order->updated_at = $now;
-        $order->save(false);
-    }
-
-    /**
-     * @param array<string, mixed> $payload
-     */
-    private function writeLog(
-        PaymentModel $payment,
-        string $eventType,
-        string $direction,
-        string $status,
-        array $payload = [],
-        ?string $errorMessage = null,
-        ?string $externalId = null
-    ): void {
-        $log = new PaymentLogModel();
-        $log->order_id = $payment->order_id;
-        $log->payment_id = $payment->id;
-        $log->provider = $payment->provider;
-        $log->event_type = $eventType;
-        $log->direction = $direction;
-        $log->external_id = $externalId;
-        $log->status = $status;
-        $log->amount = $payment->amount;
-        $log->currency = $payment->currency;
-        $log->payment_method = $payment->payment_method;
-        $log->response_data = $this->encodeData($payload);
-        $log->error_message = $errorMessage;
-        $log->created_at = time();
-        $log->updated_at = time();
-        $log->save(false);
-    }
-
-    private function buildDescription(OrderModel $order): string
-    {
-        if (!empty($order->hash)) {
-            return sprintf('Order #%s', $order->hash);
-        }
-
-        return sprintf('Order #%d', $order->id);
-    }
-
-    /**
-     * @return array<string, mixed>
-     */
-    private function serializeCreateRequest(PaymentCreateRequestDto $request): array
-    {
-        return [
-            'paymentId' => $request->paymentId,
-            'orderId' => $request->orderId,
-            'provider' => $request->provider,
-            'orderReference' => $request->orderReference,
-            'orderDate' => $request->orderDate,
-            'amount' => $request->amount,
-            'currency' => $request->currency,
-            'description' => $request->description,
-            'items' => array_map(
-                static fn (PaymentLineItemDto $item): array => [
-                    'name' => $item->name,
-                    'quantity' => $item->quantity,
-                    'price' => $item->price,
-                    'sku' => $item->sku,
-                ],
-                $request->items
-            ),
-            'returnUrl' => $request->returnUrl,
-            'callbackUrl' => $request->callbackUrl,
-            'customerEmail' => $request->customerEmail,
-            'customerPhone' => $request->customerPhone,
-            'customerFirstName' => $request->customerFirstName,
-            'customerLastName' => $request->customerLastName,
-            'metadata' => $request->metadata,
-        ];
-    }
-
-    /**
-     * @return array<string, mixed>
-     */
-    private function serializeCreateResult(PaymentCreateResultDto $result): array
-    {
-        return [
-            'provider' => $result->provider,
-            'status' => $result->status,
-            'externalId' => $result->externalId,
-            'externalOrderId' => $result->externalOrderId,
-            'redirectUrl' => $result->redirectUrl,
-            'nextAction' => $this->serializeNextAction($result->nextAction),
-            'errorMessage' => $result->errorMessage,
-            'rawResponse' => $result->rawResponse,
-        ];
-    }
-
     /**
      * @return array<string, mixed>
      */
@@ -433,53 +456,11 @@ final class PaymentService
         ];
     }
 
-    /**
-     * @return array<string, mixed>|null
-     */
-    private function serializeNextAction(?PaymentNextActionDto $nextAction): ?array
-    {
-        if ($nextAction === null) {
-            return null;
-        }
-
-        return [
-            'type' => $nextAction->type,
-            'url' => $nextAction->url,
-            'method' => $nextAction->method,
-            'payload' => $nextAction->payload,
-        ];
-    }
-
-    private function encodeData(array $payload): ?string
-    {
-        $json = json_encode($payload, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);
-
-        return $json === false ? null : $json;
-    }
-    private function processSuccessfulOrderExport(PaymentModel $payment): void
-    {
-        if ($payment->status !== PaymentModel::STATUS_PAID) {
-            return;
-        }
-
-        $order = $payment->order;
-
-        if (!$order instanceof OrderModel) {
-            throw new RuntimeException(sprintf(
-                'Payment #%d is not linked to a valid order for post-payment processing.',
-                (int)$payment->id
-            ));
-        }
-
-        /** @var OrderPostPaymentProcessor $processor */
-        $processor = Yii::$container->get(OrderPostPaymentProcessor::class);
-        $processor->process($order);
-    }
     private function tryProcessSuccessfulOrderExport(PaymentModel $payment): void
     {
         try {
             $this->processSuccessfulOrderExport($payment);
-        } catch (\Throwable $e) {
+        } catch (Throwable $e) {
             Yii::error([
                 'message' => 'Post-payment order export failed.',
                 'paymentId' => (int)$payment->id,
@@ -501,5 +482,35 @@ final class PaymentService
                 externalId: $payment->external_id,
             );
         }
+    }
+
+    private function processSuccessfulOrderExport(PaymentModel $payment): void
+    {
+        if ($payment->status !== PaymentModel::STATUS_PAID) {
+            return;
+        }
+
+        $order = $payment->order;
+
+        if (!$order instanceof OrderModel) {
+            throw new RuntimeException(sprintf(
+                'Payment #%d is not linked to a valid order for post-payment processing.',
+                (int)$payment->id
+            ));
+        }
+
+        /** @var OrderPostPaymentProcessor $processor */
+        $processor = Yii::$container->get(OrderPostPaymentProcessor::class);
+        $processor->process($order);
+    }
+
+    public function buildCallbackResponse(
+        string                   $provider,
+        PaymentCallbackResultDto $result
+    ): PaymentCallbackResponseDto
+    {
+        return $this->gatewayRegistry
+            ->get($provider)
+            ->buildCallbackResponse($result);
     }
 }

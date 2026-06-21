@@ -7,12 +7,13 @@ namespace common\dto\delivery;
 final readonly class DeliveryAreaReadDto
 {
     public function __construct(
-        public int $id,
-        public int $providerId,
+        public int    $id,
+        public int    $providerId,
         public string $providerCode,
         public string $externalRef,
         public string $name,
-    ) {
+    )
+    {
         DeliveryDtoAssertion::positiveInt($id, 'id');
         DeliveryDtoAssertion::positiveInt($providerId, 'providerId');
         DeliveryDtoAssertion::providerCode($providerCode);

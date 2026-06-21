@@ -12,14 +12,6 @@ use yii\rest\OptionsAction;
 
 final class CatalogController extends ApiController
 {
-    protected function verbs(): array
-    {
-        return [
-            'index' => ['GET'],
-            'view' => ['GET'],
-        ];
-    }
-
     public function behaviors(): array
     {
         $behaviors = parent::behaviors();
@@ -50,7 +42,6 @@ final class CatalogController extends ApiController
             ],
         ]);
     }
-
 
     public function actionIndex(): array
     {
@@ -99,6 +90,14 @@ final class CatalogController extends ApiController
             'status' => 'ok',
             'message' => 'Catalog version loaded successfully.',
             'data' => $service->getVersion(),
+        ];
+    }
+
+    protected function verbs(): array
+    {
+        return [
+            'index' => ['GET'],
+            'view' => ['GET'],
         ];
     }
 }

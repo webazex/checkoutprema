@@ -13,7 +13,8 @@ final readonly class DeliveryProviderStorage
 {
     public function __construct(
         private DeliveryReadMapper $mapper
-    ) {
+    )
+    {
     }
 
     /**
@@ -27,16 +28,28 @@ final readonly class DeliveryProviderStorage
             ->all();
 
         return array_map(
-            fn (
+            fn(
                 DeliveryProviderModel $model
             ): DeliveryProviderReadDto => $this->mapper->mapProvider($model),
             $models
         );
     }
 
+    public function getByCode(
+        string $code
+    ): DeliveryProviderReadDto
+    {
+        return $this->findByCode($code)
+            ?? throw new OutOfBoundsException(sprintf(
+                'Delivery provider "%s" was not found.',
+                $code
+            ));
+    }
+
     public function findByCode(
         string $code
-    ): ?DeliveryProviderReadDto {
+    ): ?DeliveryProviderReadDto
+    {
         $model = DeliveryProviderModel::find()
             ->byCode($code)
             ->one();
@@ -46,9 +59,21 @@ final readonly class DeliveryProviderStorage
             : $this->mapper->mapProvider($model);
     }
 
+    public function getActiveByCode(
+        string $code
+    ): DeliveryProviderReadDto
+    {
+        return $this->findActiveByCode($code)
+            ?? throw new OutOfBoundsException(sprintf(
+                'Active delivery provider "%s" was not found.',
+                $code
+            ));
+    }
+
     public function findActiveByCode(
         string $code
-    ): ?DeliveryProviderReadDto {
+    ): ?DeliveryProviderReadDto
+    {
         $model = DeliveryProviderModel::find()
             ->byCode($code)
             ->active()
@@ -57,25 +82,5 @@ final readonly class DeliveryProviderStorage
         return $model === null
             ? null
             : $this->mapper->mapProvider($model);
-    }
-
-    public function getByCode(
-        string $code
-    ): DeliveryProviderReadDto {
-        return $this->findByCode($code)
-            ?? throw new OutOfBoundsException(sprintf(
-                'Delivery provider "%s" was not found.',
-                $code
-            ));
-    }
-
-    public function getActiveByCode(
-        string $code
-    ): DeliveryProviderReadDto {
-        return $this->findActiveByCode($code)
-            ?? throw new OutOfBoundsException(sprintf(
-                'Active delivery provider "%s" was not found.',
-                $code
-            ));
     }
 }

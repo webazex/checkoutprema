@@ -14,7 +14,8 @@ final readonly class NovaPoshtaDeliveryProvider implements DeliveryProviderInter
 
     public function __construct(
         private NovaPoshtaDirectorySource $directorySource
-    ) {
+    )
+    {
     }
 
     public function code(): string

@@ -1,5 +1,12 @@
 <?php
 
+use yii\caching\FileCache;
+use yii\i18n\PhpMessageSource;
+use yii\log\FileTarget;
+use yii\mutex\MysqlMutex;
+use yii\queue\db\Queue;
+use yii\queue\LogBehavior;
+
 $diPath = __DIR__ . '/di.php';
 $singlePath = __DIR__ . '/singletones.php';
 
@@ -9,41 +16,41 @@ $singletones = file_exists($singlePath) ? require $singlePath : [];
 return [
     'aliases' => [
         '@bower' => '@vendor/bower-asset',
-        '@npm'   => '@vendor/npm-asset',
+        '@npm' => '@vendor/npm-asset',
     ],
 
     'vendorPath' => dirname(dirname(__DIR__)) . '/vendor',
 
     'components' => [
         'cache' => [
-            'class' => \yii\caching\FileCache::class,
+            'class' => FileCache::class,
         ],
 
         'mutex' => [
-            'class' => \yii\mutex\MysqlMutex::class,
+            'class' => MysqlMutex::class,
         ],
         'log' => [
             'targets' => [
                 [
-                    'class' => \yii\log\FileTarget::class,
+                    'class' => FileTarget::class,
                     'levels' => ['info', 'warning', 'error'],
                     'categories' => [
                         'novaposhta.api.*',
                     ],
                     'logFile' => '@runtime/logs/novaposhta-api.log',
                     'logVars' => [],
-                    'prefix' => static fn ($message): string => '',
+                    'prefix' => static fn($message): string => '',
                     'maxFileSize' => 10240,
                     'maxLogFiles' => 10,
                 ],
                 [
-                    'class' => \yii\log\FileTarget::class,
+                    'class' => FileTarget::class,
                     'levels' => ['error', 'warning', 'info'],
                     'categories' => [
                         'delivery.sync*',
                     ],
                     'logVars' => [],
-                    'prefix' => static fn ($message): string => '',
+                    'prefix' => static fn($message): string => '',
                     'maxFileSize' => 10240,
                     'maxLogFiles' => 10,
                 ],
@@ -53,7 +60,7 @@ return [
         'i18n' => [
             'translations' => [
                 'frontend*' => [
-                    'class' => \yii\i18n\PhpMessageSource::class,
+                    'class' => PhpMessageSource::class,
                     'basePath' => '@common/messages',
                     'sourceLanguage' => 'en-US',
                     'fileMap' => [
@@ -64,24 +71,24 @@ return [
         ],
 
         'queue' => [
-            'class' => \yii\queue\db\Queue::class,
+            'class' => Queue::class,
             'db' => 'db',
             'tableName' => '{{%queue}}',
             'channel' => 'keycrm',
             'mutex' => [
-                'class' => \yii\mutex\MysqlMutex::class,
+                'class' => MysqlMutex::class,
             ],
-            'as log' => \yii\queue\LogBehavior::class,
+            'as log' => LogBehavior::class,
         ],
         'deliveryQueue' => [
-            'class' => \yii\queue\db\Queue::class,
+            'class' => Queue::class,
             'db' => 'db',
             'tableName' => '{{%queue}}',
             'channel' => 'delivery',
             'mutex' => [
-                'class' => \yii\mutex\MysqlMutex::class,
+                'class' => MysqlMutex::class,
             ],
-            'as log' => \yii\queue\LogBehavior::class,
+            'as log' => LogBehavior::class,
         ],
     ],
 

@@ -43,6 +43,11 @@ class ProductModel extends BaseModel
         return '{{%product}}';
     }
 
+    public static function find(): ProductQuery
+    {
+        return new ProductQuery(static::class);
+    }
+
     public function rules(): array
     {
         return array_merge(parent::rules(), [
@@ -117,18 +122,13 @@ class ProductModel extends BaseModel
         return $this->hasMany(OrderItemModel::class, ['product_id' => 'id']);
     }
 
-    public function getIsArchived(): bool
-    {
-        return (bool)$this->is_archived;
-    }
-
     public function getIsAvailable(): bool
     {
         return !$this->getIsArchived() && (int)$this->quantity > 0;
     }
 
-    public static function find(): ProductQuery
+    public function getIsArchived(): bool
     {
-        return new ProductQuery(static::class);
+        return (bool)$this->is_archived;
     }
 }

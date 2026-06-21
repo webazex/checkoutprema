@@ -8,9 +8,10 @@ final readonly class DeliveryPointSearchResultDto
 {
     public function __construct(
         public DeliveryPointReadDto $point,
-        public string $label,
-        public ?int $distanceMeters = null,
-    ) {
+        public string               $label,
+        public ?int                 $distanceMeters = null,
+    )
+    {
         DeliveryDtoAssertion::requiredString($label, 'label');
 
         if ($distanceMeters !== null) {

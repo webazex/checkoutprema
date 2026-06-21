@@ -10,15 +10,15 @@ class m260318_133105_create_meta_table extends Migration
     public function safeUp()
     {
         $this->createTable('{{%meta}}', [
-            'id'           => $this->primaryKey(),
-            'entity_type'  => $this->string(32)->notNull()->comment('customer, product, order, order_item, payment'),
-            'entity_id'    => $this->bigInteger()->unsigned()->notNull(),
-            'key'          => $this->string(128)->notNull(),
-            'value'        => $this->text()->null(),
-            'value_int'    => $this->bigInteger()->null()->comment('для быстрого поиска чисел'),
-            'value_decimal'=> $this->decimal(15,4)->null(),
-            'created_at'   => $this->integer()->unsigned()->notNull(),
-            'updated_at'   => $this->integer()->unsigned()->notNull(),
+            'id' => $this->primaryKey(),
+            'entity_type' => $this->string(32)->notNull()->comment('customer, product, order, order_item, payment'),
+            'entity_id' => $this->bigInteger()->unsigned()->notNull(),
+            'key' => $this->string(128)->notNull(),
+            'value' => $this->text()->null(),
+            'value_int' => $this->bigInteger()->null()->comment('для быстрого поиска чисел'),
+            'value_decimal' => $this->decimal(15, 4)->null(),
+            'created_at' => $this->integer()->unsigned()->notNull(),
+            'updated_at' => $this->integer()->unsigned()->notNull(),
         ]);
 
         // Уникальность по сущности + ключ

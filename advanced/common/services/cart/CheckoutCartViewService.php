@@ -13,7 +13,8 @@ final class CheckoutCartViewService
 {
     public function __construct(
         private readonly CheckoutCartMapper $mapper,
-    ) {
+    )
+    {
     }
 
     public function getActiveCartByHash(string $hash): CheckoutCartDto

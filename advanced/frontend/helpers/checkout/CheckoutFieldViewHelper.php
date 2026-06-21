@@ -12,41 +12,13 @@ final class CheckoutFieldViewHelper
 {
     public function __construct(
         private readonly CheckoutForm $model
-    ) {
+    )
+    {
     }
 
     public function textInput(string $attribute, ?string $label = null, array $options = []): string
     {
         return $this->input('text', $attribute, $label, $options);
-    }
-
-    public function telInput(string $attribute, ?string $label = null, array $options = []): string
-    {
-        $options = array_merge([
-            'autocomplete' => 'tel',
-            'inputmode' => 'tel',
-        ], $options);
-
-        return $this->input('tel', $attribute, $label, $options);
-    }
-
-    public function emailInput(string $attribute, ?string $label = null, array $options = []): string
-    {
-        $options = array_merge([
-            'autocomplete' => 'email',
-            'inputmode' => 'email',
-        ], $options);
-
-        return $this->input('email', $attribute, $label, $options);
-    }
-
-    public function hiddenInput(string $attribute, ?string $value = null, array $options = []): string
-    {
-        return Html::hiddenInput(
-            $attribute,
-            $value ?? $this->value($attribute),
-            $options
-        );
     }
 
     private function input(string $type, string $attribute, ?string $label = null, array $options = []): string
@@ -84,6 +56,21 @@ final class CheckoutFieldViewHelper
         );
     }
 
+    private function error(string $attribute): string
+    {
+        return (string)$this->model->getFirstError($attribute);
+    }
+
+    private function errorId(string $inputId): string
+    {
+        return $inputId . '-error';
+    }
+
+    private function value(string $attribute): string
+    {
+        return Html::encode((string)($this->model->{$attribute} ?? ''));
+    }
+
     private function label(string $attribute, ?string $label = null): string
     {
         return Html::tag(
@@ -104,20 +91,6 @@ final class CheckoutFieldViewHelper
         return $this->model->getAttributeLabel($attribute);
     }
 
-    private function labelClass(string $attribute): string
-    {
-        $classes = [
-            'order-form__label',
-            'checkout-field',
-        ];
-
-        if ($this->model->hasErrors($attribute)) {
-            $classes[] = 'checkout-field--error';
-        }
-
-        return implode(' ', $classes);
-    }
-
     private function errorTag(string $inputId, string $error): string
     {
         if ($error === '') {
@@ -134,18 +107,46 @@ final class CheckoutFieldViewHelper
         );
     }
 
-    private function error(string $attribute): string
+    private function labelClass(string $attribute): string
     {
-        return (string)$this->model->getFirstError($attribute);
+        $classes = [
+            'order-form__label',
+            'checkout-field',
+        ];
+
+        if ($this->model->hasErrors($attribute)) {
+            $classes[] = 'checkout-field--error';
+        }
+
+        return implode(' ', $classes);
     }
 
-    private function value(string $attribute): string
+    public function telInput(string $attribute, ?string $label = null, array $options = []): string
     {
-        return Html::encode((string)($this->model->{$attribute} ?? ''));
+        $options = array_merge([
+            'autocomplete' => 'tel',
+            'inputmode' => 'tel',
+        ], $options);
+
+        return $this->input('tel', $attribute, $label, $options);
     }
 
-    private function errorId(string $inputId): string
+    public function emailInput(string $attribute, ?string $label = null, array $options = []): string
     {
-        return $inputId . '-error';
+        $options = array_merge([
+            'autocomplete' => 'email',
+            'inputmode' => 'email',
+        ], $options);
+
+        return $this->input('email', $attribute, $label, $options);
+    }
+
+    public function hiddenInput(string $attribute, ?string $value = null, array $options = []): string
+    {
+        return Html::hiddenInput(
+            $attribute,
+            $value ?? $this->value($attribute),
+            $options
+        );
     }
 }

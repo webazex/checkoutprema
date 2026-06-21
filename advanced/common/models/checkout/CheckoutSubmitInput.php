@@ -141,6 +141,43 @@ class CheckoutSubmitInput extends Model
         return true;
     }
 
+    private function normalizeStringFields(): void
+    {
+        foreach (self::TRIM_FIELDS as $attribute) {
+            if ($this->{$attribute} === null) {
+                continue;
+            }
+
+            $value = trim((string)$this->{$attribute});
+            $this->{$attribute} = $value === '' ? null : $value;
+        }
+    }
+
+    private function normalizeEmail(): void
+    {
+        if ($this->email === null) {
+            return;
+        }
+
+        $this->email = mb_strtolower($this->email);
+    }
+
+    private function normalizeBranchAlias(): void
+    {
+        if (!$this->isFilled($this->branch) && $this->isFilled($this->branch_number)) {
+            $this->branch = $this->branch_number;
+        }
+
+        if (!$this->isFilled($this->branch_number) && $this->isFilled($this->branch)) {
+            $this->branch_number = $this->branch;
+        }
+    }
+
+    private function isFilled(?string $value): bool
+    {
+        return trim((string)$value) !== '';
+    }
+
     public function validateCartIdentifier(string $attribute): void
     {
         if ($this->isFilled($this->cartHash) || $this->isFilled($this->sessionKey)) {
@@ -240,42 +277,5 @@ class CheckoutSubmitInput extends Model
             'payment_method' => $this->payment_method ?: self::DEFAULT_PAYMENT_METHOD,
             'returnUrl' => $this->returnUrl,
         ];
-    }
-
-    private function normalizeStringFields(): void
-    {
-        foreach (self::TRIM_FIELDS as $attribute) {
-            if ($this->{$attribute} === null) {
-                continue;
-            }
-
-            $value = trim((string)$this->{$attribute});
-            $this->{$attribute} = $value === '' ? null : $value;
-        }
-    }
-
-    private function normalizeEmail(): void
-    {
-        if ($this->email === null) {
-            return;
-        }
-
-        $this->email = mb_strtolower($this->email);
-    }
-
-    private function normalizeBranchAlias(): void
-    {
-        if (!$this->isFilled($this->branch) && $this->isFilled($this->branch_number)) {
-            $this->branch = $this->branch_number;
-        }
-
-        if (!$this->isFilled($this->branch_number) && $this->isFilled($this->branch)) {
-            $this->branch_number = $this->branch;
-        }
-    }
-
-    private function isFilled(?string $value): bool
-    {
-        return trim((string)$value) !== '';
     }
 }

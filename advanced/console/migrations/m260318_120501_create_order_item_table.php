@@ -13,16 +13,16 @@ class m260318_120501_create_order_item_table extends Migration
     public function safeUp()
     {
         $this->createTable('{{%order_item}}', [
-            'id'                => $this->primaryKey(),
-            'order_id'          => $this->integer()->notNull(),
-            'product_id'        => $this->integer()->null()->comment('ссылка на нашу таблицу product'),
+            'id' => $this->primaryKey(),
+            'order_id' => $this->integer()->notNull(),
+            'product_id' => $this->integer()->null()->comment('ссылка на нашу таблицу product'),
             'external_product_id' => $this->bigInteger()->unsigned()->null()->comment('ID товара из KeyCRM'),
-            'wix_product_id'    => $this->string(50)->null()->comment('ID из Wix, если был'),
-            'title'             => $this->string(255)->notNull(),
-            'price'             => $this->decimal(10, 2)->notNull(),
-            'quantity'          => $this->integer()->unsigned()->notNull(),
-            'subtotal'          => $this->decimal(12, 2)->notNull(),
-            'custom_fields'     => $this->json()->null()->comment('Метаданные позиции из CRM'),
+            'wix_product_id' => $this->string(50)->null()->comment('ID из Wix, если был'),
+            'title' => $this->string(255)->notNull(),
+            'price' => $this->decimal(10, 2)->notNull(),
+            'quantity' => $this->integer()->unsigned()->notNull(),
+            'subtotal' => $this->decimal(12, 2)->notNull(),
+            'custom_fields' => $this->json()->null()->comment('Метаданные позиции из CRM'),
         ]);
 
         $this->createIndex('idx_order_item_order', '{{%order_item}}', 'order_id');

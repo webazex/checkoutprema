@@ -1,8 +1,9 @@
 <?php
 
+use common\models\customer\CustomerModel;
 use yii\helpers\Html;
 
-/** @var \common\models\customer\CustomerModel $customer */
+/** @var CustomerModel $customer */
 /** @var string $resetUrl */
 ?>
 <p><?= Html::encode(Yii::t('frontend', 'Hello!')) ?></p>

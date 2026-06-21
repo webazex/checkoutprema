@@ -2,6 +2,7 @@
 
 namespace common\services\cart;
 
+use RuntimeException;
 use Yii;
 use common\models\Order;
 use common\models\OrderItem;
@@ -45,7 +46,7 @@ class CartMergeService
                     'errors' => $item->errors,
                 ], __METHOD__);
 
-                throw new \RuntimeException('Failed to merge item into draft order.');
+                throw new RuntimeException('Failed to merge item into draft order.');
             }
         }
 

@@ -52,6 +52,57 @@ final class NovaPoshtaApiService
     }
 
     /**
+     * Возвращает сырой ответ getWarehouses
+     * для одного типа склада.
+     *
+     * @return array<string, mixed>
+     */
+    public function getWarehouses(
+        string                  $deliveryCityRef,
+        NovaPoshtaWarehouseType $type,
+        ?int                    $page = null,
+        ?int                    $limit = null
+    ): array
+    {
+        $deliveryCityRef = trim($deliveryCityRef);
+
+        if ($deliveryCityRef === '') {
+            throw new InvalidArgumentException(
+                'Nova Poshta delivery city reference must not be empty.'
+            );
+        }
+
+        return $this->apiClient->call(
+            modelName: self::MODEL_ADDRESS,
+            calledMethod: self::METHOD_GET_WAREHOUSES,
+            methodProperties: [
+                'CityRef' => $deliveryCityRef,
+                'TypeOfWarehouseRef' => $type->value,
+                'Page' => $this->normalizePage($page),
+                'Limit' => $this->normalizeLimit(
+                    $limit,
+                    self::DEFAULT_WAREHOUSE_LIMIT,
+                    self::MAX_WAREHOUSE_LIMIT
+                ),
+            ],
+        );
+    }
+
+    private function normalizePage(?int $page): int
+    {
+        return $page === null
+            ? self::DEFAULT_WAREHOUSE_PAGE
+            : max(1, $page);
+    }
+
+    private function normalizeLimit(?int $value, int $default, int $maximum): int
+    {
+        return $value === null
+            ? $default
+            : max(1, min($value, $maximum));
+    }
+
+    /**
      * Возвращает полный справочник областей Nova Poshta.
      *
      * API возвращает области одним списком без пагинации.
@@ -115,49 +166,14 @@ final class NovaPoshtaApiService
      */
     public function getGlobalWarehouses(
         NovaPoshtaWarehouseType $type,
-        ?int $page = null,
-        ?int $limit = null
-    ): array {
+        ?int                    $page = null,
+        ?int                    $limit = null
+    ): array
+    {
         return $this->apiClient->call(
             modelName: self::MODEL_ADDRESS,
             calledMethod: self::METHOD_GET_WAREHOUSES,
             methodProperties: [
-                'TypeOfWarehouseRef' => $type->value,
-                'Page' => $this->normalizePage($page),
-                'Limit' => $this->normalizeLimit(
-                    $limit,
-                    self::DEFAULT_WAREHOUSE_LIMIT,
-                    self::MAX_WAREHOUSE_LIMIT
-                ),
-            ],
-        );
-    }
-
-    /**
-     * Возвращает сырой ответ getWarehouses
-     * для одного типа склада.
-     *
-     * @return array<string, mixed>
-     */
-    public function getWarehouses(
-        string $deliveryCityRef,
-        NovaPoshtaWarehouseType $type,
-        ?int $page = null,
-        ?int $limit = null
-    ): array {
-        $deliveryCityRef = trim($deliveryCityRef);
-
-        if ($deliveryCityRef === '') {
-            throw new InvalidArgumentException(
-                'Nova Poshta delivery city reference must not be empty.'
-            );
-        }
-
-        return $this->apiClient->call(
-            modelName: self::MODEL_ADDRESS,
-            calledMethod: self::METHOD_GET_WAREHOUSES,
-            methodProperties: [
-                'CityRef' => $deliveryCityRef,
                 'TypeOfWarehouseRef' => $type->value,
                 'Page' => $this->normalizePage($page),
                 'Limit' => $this->normalizeLimit(
@@ -209,19 +225,5 @@ final class NovaPoshtaApiService
             modelName: self::MODEL_ADDRESS,
             calledMethod: self::METHOD_GET_WAREHOUSE_TYPES,
         );
-    }
-
-    private function normalizePage(?int $page): int
-    {
-        return $page === null
-            ? self::DEFAULT_WAREHOUSE_PAGE
-            : max(1, $page);
-    }
-
-    private function normalizeLimit(?int $value, int $default, int $maximum): int
-    {
-        return $value === null
-            ? $default
-            : max(1, min($value, $maximum));
     }
 }

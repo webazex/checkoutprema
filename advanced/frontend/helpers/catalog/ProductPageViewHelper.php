@@ -61,52 +61,6 @@ final class ProductPageViewHelper
         return $gallery;
     }
 
-    public static function getMainImage(array $galleryImages): ?string
-    {
-        return $galleryImages[0] ?? null;
-    }
-
-    public static function getThumbnailImages(array $galleryImages): array
-    {
-        return array_slice($galleryImages, 1, self::GALLERY_SIZE - 1);
-    }
-
-    public static function formatPrice(ProductModel $product): string
-    {
-        $currency = trim((string)($product->currency ?: 'UAH'));
-
-        return number_format((float)$product->price, 0, '.', ' ') . ' ' . $currency;
-    }
-
-    public static function buildImageAlt(ProductModel $product, CatalogCategoryModel $category): string
-    {
-        return trim((string)$product->name . ', ' . (string)$category->name);
-    }
-
-    public static function getSku(ProductModel $product): string
-    {
-        return trim((string)$product->sku);
-    }
-
-    public static function getQuantity(ProductModel $product): int
-    {
-        return max(0, (int)$product->quantity);
-    }
-
-    public static function buildAccordionItems(ProductModel $product): array
-    {
-        $items = (new ProductAccordionBuilder())->build($product);
-
-        $items[] = [
-            'title' => Yii::t('frontend', 'Reviews'),
-            'type' => 'html',
-            'content' => '<p>' . Html::encode(Yii::t('frontend', 'Reviews will be added soon.')) . '</p>',
-            'open' => false,
-        ];
-
-        return $items;
-    }
-
     private static function collectImageUrls(mixed $value, array &$urls): void
     {
         if ($value === null || $value === '') {
@@ -204,21 +158,16 @@ final class ProductPageViewHelper
         return get_object_vars($value);
     }
 
-    private static function uniqueImageUrls(array $urls): array
+    private static function getPossibleUrlKeys(): array
     {
-        $result = [];
-
-        foreach ($urls as $url) {
-            $url = self::normalizeImageUrl((string)$url);
-
-            if ($url === null || isset($result[$url])) {
-                continue;
-            }
-
-            $result[$url] = $url;
-        }
-
-        return array_values($result);
+        return [
+            'url',
+            'src',
+            'thumbnail_url',
+            'image_url',
+            'original_url',
+            'full_url',
+        ];
     }
 
     private static function getPossibleGalleryAttributes(): array
@@ -242,15 +191,66 @@ final class ProductPageViewHelper
         ];
     }
 
-    private static function getPossibleUrlKeys(): array
+    private static function uniqueImageUrls(array $urls): array
     {
-        return [
-            'url',
-            'src',
-            'thumbnail_url',
-            'image_url',
-            'original_url',
-            'full_url',
+        $result = [];
+
+        foreach ($urls as $url) {
+            $url = self::normalizeImageUrl((string)$url);
+
+            if ($url === null || isset($result[$url])) {
+                continue;
+            }
+
+            $result[$url] = $url;
+        }
+
+        return array_values($result);
+    }
+
+    public static function getMainImage(array $galleryImages): ?string
+    {
+        return $galleryImages[0] ?? null;
+    }
+
+    public static function getThumbnailImages(array $galleryImages): array
+    {
+        return array_slice($galleryImages, 1, self::GALLERY_SIZE - 1);
+    }
+
+    public static function formatPrice(ProductModel $product): string
+    {
+        $currency = trim((string)($product->currency ?: 'UAH'));
+
+        return number_format((float)$product->price, 0, '.', ' ') . ' ' . $currency;
+    }
+
+    public static function buildImageAlt(ProductModel $product, CatalogCategoryModel $category): string
+    {
+        return trim((string)$product->name . ', ' . (string)$category->name);
+    }
+
+    public static function getSku(ProductModel $product): string
+    {
+        return trim((string)$product->sku);
+    }
+
+    public static function getQuantity(ProductModel $product): int
+    {
+        return max(0, (int)$product->quantity);
+    }
+
+    public static function buildAccordionItems(ProductModel $product): array
+    {
+        $items = (new ProductAccordionBuilder())->build($product);
+
+        $items[] = [
+            'title' => Yii::t('frontend', 'Reviews'),
+            'type' => 'html',
+            'content' => '<p>' . Html::encode(Yii::t('frontend', 'Reviews will be added soon.')) . '</p>',
+            'open' => false,
         ];
+
+        return $items;
     }
 }

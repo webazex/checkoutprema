@@ -20,24 +20,6 @@ final class MetaModel extends BaseModel
         return '{{%meta}}';
     }
 
-    public function rules(): array
-    {
-        return array_merge(parent::rules(), [
-            [['entity_type', 'entity_id', 'key'], 'required'],
-            [['entity_id', 'value_int', 'created_at', 'updated_at'], 'integer'],
-            [['value'], 'string'],
-            [['value_decimal'], 'number'],
-            [['entity_type'], 'string', 'max' => 32],
-            [['key'], 'string', 'max' => 128],
-            [['entity_type', 'entity_id', 'key'], 'unique', 'targetAttribute' => ['entity_type', 'entity_id', 'key']],
-        ]);
-    }
-
-    public static function find(): MetaQuery
-    {
-        return new MetaQuery(static::class);
-    }
-
     public static function upsertText(string $entityType, int $entityId, string $key, ?string $value): void
     {
         $meta = static::find()
@@ -58,6 +40,11 @@ final class MetaModel extends BaseModel
         $meta->save(false);
     }
 
+    public static function find(): MetaQuery
+    {
+        return new MetaQuery(static::class);
+    }
+
     /**
      * Synchronizes all text meta values belonging to one key prefix.
      *
@@ -74,10 +61,11 @@ final class MetaModel extends BaseModel
      */
     public static function syncTextValuesByPrefix(
         string $entityType,
-        int $entityId,
+        int    $entityId,
         string $prefix,
-        array $values,
-    ): array {
+        array  $values,
+    ): array
+    {
         if ($entityId < 1) {
             throw new RuntimeException('Meta entity ID must be greater than zero.');
         }
@@ -166,7 +154,7 @@ final class MetaModel extends BaseModel
 
                 if ($existingByKey !== []) {
                     $ids = array_map(
-                        static fn (self $row): int => (int)$row->id,
+                        static fn(self $row): int => (int)$row->id,
                         array_values($existingByKey),
                     );
 
@@ -214,5 +202,18 @@ final class MetaModel extends BaseModel
         }
 
         return $result;
+    }
+
+    public function rules(): array
+    {
+        return array_merge(parent::rules(), [
+            [['entity_type', 'entity_id', 'key'], 'required'],
+            [['entity_id', 'value_int', 'created_at', 'updated_at'], 'integer'],
+            [['value'], 'string'],
+            [['value_decimal'], 'number'],
+            [['entity_type'], 'string', 'max' => 32],
+            [['key'], 'string', 'max' => 128],
+            [['entity_type', 'entity_id', 'key'], 'unique', 'targetAttribute' => ['entity_type', 'entity_id', 'key']],
+        ]);
     }
 }

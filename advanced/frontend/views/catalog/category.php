@@ -11,8 +11,8 @@ use yii\helpers\Html;
 /** @var string $breadcrumbSchemaJson */
 
 echo $this->render('_schema', [
-    'schemaJson' => $schemaJson,
-    'breadcrumbSchemaJson' => $breadcrumbSchemaJson,
+        'schemaJson' => $schemaJson,
+        'breadcrumbSchemaJson' => $breadcrumbSchemaJson,
 ]);
 ?>
 
@@ -45,5 +45,5 @@ echo $this->render('_schema', [
             <?php endforeach; ?>
         </section>
     <?php endif; ?>
-    <?=$this->render('__cart-side-box'); ?>
+    <?= $this->render('__cart-side-box'); ?>
 </section>

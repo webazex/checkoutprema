@@ -30,6 +30,7 @@ class PaymentQuery extends ActiveQuery
     {
         return $this->andWhere(['provider' => $provider]);
     }
+
     public function byExternalId(string $externalId): self
     {
         return $this->andWhere(['external_id' => $externalId]);
@@ -45,14 +46,14 @@ class PaymentQuery extends ActiveQuery
         return $this->andWhere(['idempotency_key' => $idempotencyKey]);
     }
 
-    public function status(string $status): self
-    {
-        return $this->andWhere(['status' => $status]);
-    }
-
     public function statusNew(): self
     {
         return $this->status(PaymentModel::STATUS_NEW);
+    }
+
+    public function status(string $status): self
+    {
+        return $this->andWhere(['status' => $status]);
     }
 
     public function pending(): self

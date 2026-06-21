@@ -41,7 +41,8 @@ final class DeliveryController extends Controller
         string $providerCode,
         string $scope = DeliverySyncJob::SCOPE_ALL,
         string $scopeExternalRef = ''
-    ): int {
+    ): int
+    {
         /** @var DeliverySyncSchedulerService $scheduler */
         $scheduler = Yii::$container->get(
             DeliverySyncSchedulerService::class
@@ -120,12 +121,25 @@ final class DeliveryController extends Controller
             : ExitCode::UNSPECIFIED_ERROR;
     }
 
+    private function formatTimestamp(?int $timestamp): string
+    {
+        if ($timestamp === null) {
+            return 'null';
+        }
+
+        return Yii::$app->formatter->asDatetime(
+            $timestamp,
+            'php:Y-m-d H:i:s'
+        );
+    }
+
     private function writeScopeStatus(
-        string $scope,
+        string                    $scope,
         ?DeliverySyncStateReadDto $state,
-        bool $stale,
-        ?int $heartbeatAge
-    ): void {
+        bool                      $stale,
+        ?int                      $heartbeatAge
+    ): void
+    {
         $this->stdout($scope . "\n");
 
         if ($state === null) {
@@ -173,17 +187,5 @@ final class DeliveryController extends Controller
         }
 
         $this->stdout("\n");
-    }
-
-    private function formatTimestamp(?int $timestamp): string
-    {
-        if ($timestamp === null) {
-            return 'null';
-        }
-
-        return Yii::$app->formatter->asDatetime(
-            $timestamp,
-            'php:Y-m-d H:i:s'
-        );
     }
 }

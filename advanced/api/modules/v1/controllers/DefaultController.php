@@ -8,14 +8,6 @@ use api\components\ApiController;
 
 final class DefaultController extends ApiController
 {
-    protected function verbs(): array
-    {
-        return [
-            'index' => ['GET'],
-            'ping' => ['GET'],
-        ];
-    }
-
     public function actionIndex(): array
     {
         return [
@@ -36,6 +28,14 @@ final class DefaultController extends ApiController
             'status' => 'ok',
             'pong' => true,
             'time' => date('c'),
+        ];
+    }
+
+    protected function verbs(): array
+    {
+        return [
+            'index' => ['GET'],
+            'ping' => ['GET'],
         ];
     }
 }

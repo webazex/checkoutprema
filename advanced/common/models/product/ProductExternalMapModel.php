@@ -23,6 +23,11 @@ final class ProductExternalMapModel extends BaseModel
         return '{{%product_external_map}}';
     }
 
+    public static function find(): ProductExternalMapQuery
+    {
+        return new ProductExternalMapQuery(static::class);
+    }
+
     public function rules(): array
     {
         return array_merge(parent::rules(), [
@@ -47,10 +52,5 @@ final class ProductExternalMapModel extends BaseModel
     public function getProduct()
     {
         return $this->hasOne(ProductModel::class, ['id' => 'product_id']);
-    }
-
-    public static function find(): ProductExternalMapQuery
-    {
-        return new ProductExternalMapQuery(static::class);
     }
 }

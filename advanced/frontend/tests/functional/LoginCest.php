@@ -10,9 +10,9 @@ class LoginCest
     /**
      * Load fixtures before db transaction begin
      * Called in _before()
-     * @see \Codeception\Module\Yii2::_before()
-     * @see \Codeception\Module\Yii2::loadFixtures()
      * @return array
+     * @see \Codeception\Module\Yii2::loadFixtures()
+     * @see \Codeception\Module\Yii2::_before()
      */
     public function _fixtures()
     {
@@ -29,19 +29,19 @@ class LoginCest
         $I->amOnRoute('site/login');
     }
 
+    public function checkEmpty(FunctionalTester $I)
+    {
+        $I->submitForm('#login-form', $this->formParams('', ''));
+        $I->seeValidationError('Username cannot be blank.');
+        $I->seeValidationError('Password cannot be blank.');
+    }
+
     protected function formParams($login, $password)
     {
         return [
             'LoginForm[username]' => $login,
             'LoginForm[password]' => $password,
         ];
-    }
-
-    public function checkEmpty(FunctionalTester $I)
-    {
-        $I->submitForm('#login-form', $this->formParams('', ''));
-        $I->seeValidationError('Username cannot be blank.');
-        $I->seeValidationError('Password cannot be blank.');
     }
 
     public function checkWrongPassword(FunctionalTester $I)

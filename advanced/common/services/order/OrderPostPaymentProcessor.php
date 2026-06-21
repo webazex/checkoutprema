@@ -8,13 +8,16 @@ use common\models\order\OrderModel;
 use common\services\keycrm\KeyCrmCustomerSyncService;
 use common\services\keycrm\KeyCrmOrderExportService;
 use DomainException;
+use Throwable;
+use Yii;
 
 final class OrderPostPaymentProcessor
 {
     public function __construct(
         private readonly KeyCrmCustomerSyncService $customerSyncService,
-        private readonly KeyCrmOrderExportService $orderExportService,
-    ) {
+        private readonly KeyCrmOrderExportService  $orderExportService,
+    )
+    {
     }
 
     public function process(OrderModel $order): OrderModel
@@ -33,8 +36,8 @@ final class OrderPostPaymentProcessor
 
         try {
             $this->customerSyncService->sync($order->customer);
-        } catch (\Throwable $e) {
-            \Yii::warning([
+        } catch (Throwable $e) {
+            Yii::warning([
                 'message' => 'KeyCRM customer sync failed, continuing with order export.',
                 'orderId' => (int)$order->id,
                 'customerId' => (int)$order->customer->id,

@@ -8,6 +8,7 @@ use common\models\cart\CartItemModel;
 use common\models\cart\CartModel;
 use common\models\product\ProductModel;
 use RuntimeException;
+use Throwable;
 use yii\db\Query;
 use yii\helpers\Json;
 
@@ -40,8 +41,8 @@ final class BrokenCartItemCleanupService
         $cartIds = [];
 
         foreach ($brokenRows as $row) {
-            $brokenItemIds[] = (int) $row['id'];
-            $cartIds[] = (int) $row['cart_id'];
+            $brokenItemIds[] = (int)$row['id'];
+            $cartIds[] = (int)$row['cart_id'];
         }
 
         $cartIds = array_values(array_unique(array_filter($cartIds)));
@@ -49,7 +50,7 @@ final class BrokenCartItemCleanupService
 
         if ($brokenItemIds !== []) {
             $deleted = CartItemModel::deleteAll(['id' => $brokenItemIds]);
-            $stats['brokenItemsDeleted'] = (int) $deleted;
+            $stats['brokenItemsDeleted'] = (int)$deleted;
         }
 
         foreach ($cartIds as $cartId) {
@@ -61,12 +62,39 @@ final class BrokenCartItemCleanupService
             try {
                 $this->recalculateCart($cart);
                 $stats['recalculatedCarts']++;
-            } catch (\Throwable $e) {
+            } catch (Throwable $e) {
                 $stats['errors']++;
             }
         }
 
         return $stats;
+    }
+
+    private function recalculateCart(CartModel $cart): void
+    {
+        $items = CartItemModel::find()
+            ->where(['cart_id' => (int)$cart->id])
+            ->all();
+
+        $itemsCount = 0;
+        $subtotalAmount = 0.0;
+
+        /** @var CartItemModel $item */
+        foreach ($items as $item) {
+            $itemsCount += (int)$item->quantity;
+            $subtotalAmount += (float)$item->subtotal;
+        }
+
+        $cart->items_count = $itemsCount;
+        $cart->subtotal_amount = $subtotalAmount;
+        $cart->total_amount = $subtotalAmount;
+        $cart->last_activity_at = time();
+
+        if (!$cart->save()) {
+            throw new RuntimeException(
+                'Failed to recalculate cart #' . $cart->id . ': ' . Json::encode($cart->errors)
+            );
+        }
     }
 
     public function cleanupEmptyActiveCarts(): array
@@ -96,9 +124,9 @@ final class BrokenCartItemCleanupService
                 }
 
                 $needsFix =
-                    (int) $cart->items_count !== 0 ||
-                    (float) $cart->subtotal_amount !== 0.0 ||
-                    (float) $cart->total_amount !== 0.0;
+                    (int)$cart->items_count !== 0 ||
+                    (float)$cart->subtotal_amount !== 0.0 ||
+                    (float)$cart->total_amount !== 0.0;
 
                 if (!$needsFix) {
                     $stats['alreadyClean']++;
@@ -117,39 +145,12 @@ final class BrokenCartItemCleanupService
                 }
 
                 $stats['fixed']++;
-            } catch (\Throwable $e) {
+            } catch (Throwable $e) {
                 $stats['errors']++;
             }
         }
 
         return $stats;
-    }
-
-    private function recalculateCart(CartModel $cart): void
-    {
-        $items = CartItemModel::find()
-            ->where(['cart_id' => (int) $cart->id])
-            ->all();
-
-        $itemsCount = 0;
-        $subtotalAmount = 0.0;
-
-        /** @var CartItemModel $item */
-        foreach ($items as $item) {
-            $itemsCount += (int) $item->quantity;
-            $subtotalAmount += (float) $item->subtotal;
-        }
-
-        $cart->items_count = $itemsCount;
-        $cart->subtotal_amount = $subtotalAmount;
-        $cart->total_amount = $subtotalAmount;
-        $cart->last_activity_at = time();
-
-        if (!$cart->save()) {
-            throw new RuntimeException(
-                'Failed to recalculate cart #' . $cart->id . ': ' . Json::encode($cart->errors)
-            );
-        }
     }
 
     public function cleanupAbandonedActiveCarts(int $olderThanDays = 7): array
@@ -193,7 +194,7 @@ final class BrokenCartItemCleanupService
                 }
 
                 $stats['deleted']++;
-            } catch (\Throwable $e) {
+            } catch (Throwable $e) {
                 $stats['errors']++;
             }
         }

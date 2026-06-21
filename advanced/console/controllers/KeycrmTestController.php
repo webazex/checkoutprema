@@ -9,6 +9,7 @@ use common\services\keycrm\KeyCrmCustomerSyncService;
 use common\services\keycrm\KeyCrmOrderExportService;
 use common\services\order\OrderPostPaymentProcessor;
 use common\services\payment\PaymentService;
+use RuntimeException;
 use Yii;
 use yii\console\Controller;
 use yii\console\ExitCode;
@@ -67,6 +68,15 @@ class KeycrmTestController extends Controller
         }
     }
 
+    private function renderThrowable(Throwable $e): int
+    {
+        $this->stderr("ERROR: " . $e->getMessage() . "\n", Console::FG_RED);
+        $this->stderr("FILE: " . $e->getFile() . ":" . $e->getLine() . "\n", Console::FG_YELLOW);
+        $this->stderr($e->getTraceAsString() . "\n", Console::FG_GREY);
+
+        return ExitCode::UNSPECIFIED_ERROR;
+    }
+
     /**
      * Прогоняет isolated order export:
      * paid local order -> KeyCRM order -> save keycrm_order_id
@@ -92,6 +102,32 @@ class KeycrmTestController extends Controller
         } catch (Throwable $e) {
             return $this->renderThrowable($e);
         }
+    }
+
+    private function loadOrder(int $orderId): OrderModel
+    {
+        $order = OrderModel::findOne($orderId);
+
+        if (!$order instanceof OrderModel) {
+            throw new RuntimeException("Order #{$orderId} not found.");
+        }
+
+        $order->populateRelation('customer', $order->getCustomer()->one());
+        $order->populateRelation('items', $order->getItems()->all());
+
+        return $order;
+    }
+
+    private function printOrderSummary(OrderModel $order, mixed $beforeKeycrmOrderId = null): void
+    {
+        $this->stdout("Order ID: {$order->id}\n");
+        $this->stdout("Hash: {$order->hash}\n");
+        $this->stdout("Status: {$order->status}\n");
+        $this->stdout("Payment status: {$order->payment_status}\n");
+        $this->stdout("Customer ID: {$order->customer_id}\n");
+        $this->stdout("Items count: " . count($order->items) . "\n");
+        $this->stdout("KeyCRM order ID before: " . ($beforeKeycrmOrderId ?: 'null') . "\n");
+        $this->stdout("KeyCRM order ID after: " . ($order->keycrm_order_id ?: 'null') . "\n");
     }
 
     /**
@@ -248,41 +284,6 @@ class KeycrmTestController extends Controller
         } catch (Throwable $e) {
             return $this->renderThrowable($e);
         }
-    }
-
-    private function loadOrder(int $orderId): OrderModel
-    {
-        $order = OrderModel::findOne($orderId);
-
-        if (!$order instanceof OrderModel) {
-            throw new \RuntimeException("Order #{$orderId} not found.");
-        }
-
-        $order->populateRelation('customer', $order->getCustomer()->one());
-        $order->populateRelation('items', $order->getItems()->all());
-
-        return $order;
-    }
-
-    private function printOrderSummary(OrderModel $order, mixed $beforeKeycrmOrderId = null): void
-    {
-        $this->stdout("Order ID: {$order->id}\n");
-        $this->stdout("Hash: {$order->hash}\n");
-        $this->stdout("Status: {$order->status}\n");
-        $this->stdout("Payment status: {$order->payment_status}\n");
-        $this->stdout("Customer ID: {$order->customer_id}\n");
-        $this->stdout("Items count: " . count($order->items) . "\n");
-        $this->stdout("KeyCRM order ID before: " . ($beforeKeycrmOrderId ?: 'null') . "\n");
-        $this->stdout("KeyCRM order ID after: " . ($order->keycrm_order_id ?: 'null') . "\n");
-    }
-
-    private function renderThrowable(Throwable $e): int
-    {
-        $this->stderr("ERROR: " . $e->getMessage() . "\n", Console::FG_RED);
-        $this->stderr("FILE: " . $e->getFile() . ":" . $e->getLine() . "\n", Console::FG_YELLOW);
-        $this->stderr($e->getTraceAsString() . "\n", Console::FG_GREY);
-
-        return ExitCode::UNSPECIFIED_ERROR;
     }
 
     public function actionFindPaidOrder(): int

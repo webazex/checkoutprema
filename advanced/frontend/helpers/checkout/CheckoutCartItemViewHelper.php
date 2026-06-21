@@ -11,12 +11,13 @@ use yii\helpers\Url;
 final class CheckoutCartItemViewHelper
 {
     public function __construct(
-        private readonly array $item,
+        private readonly array  $item,
         private readonly string $hash,
         private readonly string $csrfParam,
         private readonly string $csrfToken,
         private readonly string $defaultCurrency
-    ) {
+    )
+    {
     }
 
     public function render(): string
@@ -61,6 +62,21 @@ final class CheckoutCartItemViewHelper
         );
     }
 
+    private function image(): string
+    {
+        $image = $this->item['image']
+            ?? $this->item['thumbnail']
+            ?? $this->item['thumbnailUrl']
+            ?? '';
+
+        return is_string($image) ? trim($image) : '';
+    }
+
+    private function title(): string
+    {
+        return (string)($this->item['title'] ?? '');
+    }
+
     private function renderInfo(): string
     {
         return Html::tag(
@@ -96,6 +112,11 @@ final class CheckoutCartItemViewHelper
         );
     }
 
+    private function sku(): string
+    {
+        return (string)($this->item['sku'] ?? '');
+    }
+
     private function renderMeta(): string
     {
         $stockNoteOptions = ['class' => 'checkout-stock-note'];
@@ -121,6 +142,36 @@ final class CheckoutCartItemViewHelper
             ),
             ['class' => 'checkout-product__meta']
         );
+    }
+
+    private function maxQuantity(): int
+    {
+        return max((int)($this->item['availableQuantity'] ?? 0), 0);
+    }
+
+    private function money(mixed $amount, ?string $currency = null): string
+    {
+        $value = is_numeric($amount) ? (float)$amount : 0.0;
+
+        $formatted = fmod($value, 1.0) === 0.0
+            ? number_format($value, 0, '.', ' ')
+            : number_format($value, 2, '.', ' ');
+
+        $currentCurrency = $currency ?: $this->defaultCurrency;
+
+        return $formatted . ' ' . ($currentCurrency === 'UAH'
+                ? Yii::t('frontend', 'UAH')
+                : $currentCurrency);
+    }
+
+    private function price(): mixed
+    {
+        return $this->item['price'] ?? 0;
+    }
+
+    private function currency(): string
+    {
+        return (string)($this->item['currency'] ?? $this->defaultCurrency);
     }
 
     private function renderQuantityControl(): string
@@ -176,6 +227,31 @@ final class CheckoutCartItemViewHelper
             . Html::endForm();
     }
 
+    private function quantity(): int
+    {
+        return max((int)($this->item['quantity'] ?? 0), 1);
+    }
+
+    private function canIncrease(): bool
+    {
+        return $this->maxQuantity() > 0 && $this->quantity() < $this->maxQuantity();
+    }
+
+    private function canDecrease(): bool
+    {
+        return $this->quantity() > 1;
+    }
+
+    private function csrfInput(): string
+    {
+        return Html::hiddenInput($this->csrfParam, $this->csrfToken);
+    }
+
+    private function id(): int
+    {
+        return (int)($this->item['id'] ?? 0);
+    }
+
     private function renderSide(): string
     {
         return Html::tag(
@@ -212,83 +288,8 @@ final class CheckoutCartItemViewHelper
             . Html::endForm();
     }
 
-    private function csrfInput(): string
-    {
-        return Html::hiddenInput($this->csrfParam, $this->csrfToken);
-    }
-
-    private function id(): int
-    {
-        return (int)($this->item['id'] ?? 0);
-    }
-
-    private function title(): string
-    {
-        return (string)($this->item['title'] ?? '');
-    }
-
-    private function sku(): string
-    {
-        return (string)($this->item['sku'] ?? '');
-    }
-
-    private function quantity(): int
-    {
-        return max((int)($this->item['quantity'] ?? 0), 1);
-    }
-
-    private function maxQuantity(): int
-    {
-        return max((int)($this->item['availableQuantity'] ?? 0), 0);
-    }
-
-    private function canDecrease(): bool
-    {
-        return $this->quantity() > 1;
-    }
-
-    private function canIncrease(): bool
-    {
-        return $this->maxQuantity() > 0 && $this->quantity() < $this->maxQuantity();
-    }
-
-    private function price(): mixed
-    {
-        return $this->item['price'] ?? 0;
-    }
-
     private function subtotal(): mixed
     {
         return $this->item['subtotal'] ?? 0;
-    }
-
-    private function currency(): string
-    {
-        return (string)($this->item['currency'] ?? $this->defaultCurrency);
-    }
-
-    private function image(): string
-    {
-        $image = $this->item['image']
-            ?? $this->item['thumbnail']
-            ?? $this->item['thumbnailUrl']
-            ?? '';
-
-        return is_string($image) ? trim($image) : '';
-    }
-
-    private function money(mixed $amount, ?string $currency = null): string
-    {
-        $value = is_numeric($amount) ? (float)$amount : 0.0;
-
-        $formatted = fmod($value, 1.0) === 0.0
-            ? number_format($value, 0, '.', ' ')
-            : number_format($value, 2, '.', ' ');
-
-        $currentCurrency = $currency ?: $this->defaultCurrency;
-
-        return $formatted . ' ' . ($currentCurrency === 'UAH'
-                ? Yii::t('frontend', 'UAH')
-                : $currentCurrency);
     }
 }

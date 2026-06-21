@@ -1,4 +1,5 @@
 <?php
+
 use yii\db\Migration;
 use yii\rbac\Item;
 
@@ -9,7 +10,7 @@ class m260316_120003_init_rbac extends Migration
         $auth = Yii::$app->authManager;
 
         // Роли
-        $admin  = $auth->createRole('admin');
+        $admin = $auth->createRole('admin');
         $manager = $auth->createRole('manager');
         $auth->add($admin);
         $auth->add($manager);

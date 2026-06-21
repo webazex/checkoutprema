@@ -19,9 +19,23 @@ final class DeliverySyncStateQuery extends ActiveQuery
         return $this->andWhere(['id' => $id]);
     }
 
-    public function byProviderId(int $providerId): self
+    public function byProviderScope(
+        int                      $providerId,
+        DeliverySyncScope|string $scope,
+        string                   $scopeExternalRef = ''
+    ): self
     {
-        return $this->andWhere(['provider_id' => $providerId]);
+        return $this
+            ->byProviderId($providerId)
+            ->byScope($scope)
+            ->byScopeExternalRef($scopeExternalRef);
+    }
+
+    public function byScopeExternalRef(string $scopeExternalRef): self
+    {
+        return $this->andWhere([
+            'scope_external_ref' => $scopeExternalRef,
+        ]);
     }
 
     public function byScope(DeliverySyncScope|string $scope): self
@@ -33,22 +47,19 @@ final class DeliverySyncStateQuery extends ActiveQuery
         ]);
     }
 
-    public function byScopeExternalRef(string $scopeExternalRef): self
+    public function byProviderId(int $providerId): self
     {
-        return $this->andWhere([
-            'scope_external_ref' => $scopeExternalRef,
-        ]);
+        return $this->andWhere(['provider_id' => $providerId]);
     }
 
-    public function byProviderScope(
-        int $providerId,
-        DeliverySyncScope|string $scope,
-        string $scopeExternalRef = ''
-    ): self {
-        return $this
-            ->byProviderId($providerId)
-            ->byScope($scope)
-            ->byScopeExternalRef($scopeExternalRef);
+    public function byRunToken(string $runToken): self
+    {
+        return $this->andWhere(['run_token' => $runToken]);
+    }
+
+    public function failed(): self
+    {
+        return $this->byStatus(DeliverySyncStatus::FAILED);
     }
 
     public function byStatus(DeliverySyncStatus|string $status): self
@@ -60,21 +71,6 @@ final class DeliverySyncStateQuery extends ActiveQuery
         ]);
     }
 
-    public function byRunToken(string $runToken): self
-    {
-        return $this->andWhere(['run_token' => $runToken]);
-    }
-
-    public function running(): self
-    {
-        return $this->byStatus(DeliverySyncStatus::RUNNING);
-    }
-
-    public function failed(): self
-    {
-        return $this->byStatus(DeliverySyncStatus::FAILED);
-    }
-
     public function staleBefore(int $timestamp): self
     {
         return $this
@@ -84,6 +80,11 @@ final class DeliverySyncStateQuery extends ActiveQuery
                 ['heartbeat_at' => null],
                 ['<', 'heartbeat_at', $timestamp],
             ]);
+    }
+
+    public function running(): self
+    {
+        return $this->byStatus(DeliverySyncStatus::RUNNING);
     }
 
     public function orderedByLastSuccess(): self

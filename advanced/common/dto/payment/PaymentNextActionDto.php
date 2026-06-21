@@ -15,11 +15,12 @@ final class PaymentNextActionDto
      * @param array<string, mixed> $payload
      */
     public function __construct(
-        public readonly string $type,
+        public readonly string  $type,
         public readonly ?string $url = null,
-        public readonly string $method = 'GET',
-        public readonly array $payload = [],
-    ) {
+        public readonly string  $method = 'GET',
+        public readonly array   $payload = [],
+    )
+    {
     }
 
     public function isRedirect(): bool

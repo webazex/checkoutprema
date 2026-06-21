@@ -9,6 +9,24 @@ use InvalidArgumentException;
 
 final class KeyCrmProductMapper
 {
+    /**
+     * @return KeyCrmProductDto[]
+     */
+    public function mapMany(array $items): array
+    {
+        $result = [];
+
+        foreach ($items as $item) {
+            if (!is_array($item)) {
+                continue;
+            }
+
+            $result[] = $this->mapOne($item);
+        }
+
+        return $result;
+    }
+
     public function mapOne(array $item): KeyCrmProductDto
     {
         $externalId = (int)($item['id'] ?? 0);
@@ -73,24 +91,6 @@ final class KeyCrmProductMapper
     }
 
     /**
-     * @return KeyCrmProductDto[]
-     */
-    public function mapMany(array $items): array
-    {
-        $result = [];
-
-        foreach ($items as $item) {
-            if (!is_array($item)) {
-                continue;
-            }
-
-            $result[] = $this->mapOne($item);
-        }
-
-        return $result;
-    }
-
-    /**
      * @return string[]
      */
     private function extractImageUrls(array $item): array
@@ -144,6 +144,13 @@ final class KeyCrmProductMapper
         }
     }
 
+    private function nullableString(mixed $value): ?string
+    {
+        $value = is_string($value) ? trim($value) : null;
+
+        return $value !== '' ? $value : null;
+    }
+
     private function extractStockQuantity(array $item): ?int
     {
         foreach ([
@@ -160,6 +167,11 @@ final class KeyCrmProductMapper
         }
 
         return null;
+    }
+
+    private function nullableInt(mixed $value): ?int
+    {
+        return $value === null || $value === '' ? null : (int)$value;
     }
 
     private function extractReservedQuantity(array $item): ?int
@@ -184,9 +196,10 @@ final class KeyCrmProductMapper
 
     private function extractAvailableQuantity(
         array $item,
-        ?int $stockQuantity,
-        ?int $reservedQuantity,
-    ): ?int {
+        ?int  $stockQuantity,
+        ?int  $reservedQuantity,
+    ): ?int
+    {
         foreach ([
                      'available_quantity',
                      'availableQuantity',
@@ -208,18 +221,6 @@ final class KeyCrmProductMapper
         }
 
         return null;
-    }
-
-    private function nullableString(mixed $value): ?string
-    {
-        $value = is_string($value) ? trim($value) : null;
-
-        return $value !== '' ? $value : null;
-    }
-
-    private function nullableInt(mixed $value): ?int
-    {
-        return $value === null || $value === '' ? null : (int)$value;
     }
 
     private function nullableFloat(mixed $value): ?float

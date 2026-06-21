@@ -11,22 +11,6 @@ use yii\db\ActiveQuery;
 trait SearchableTrait
 {
     /**
-     * Стандартная сортировка по умолчанию
-     */
-    protected function getDefaultSort(): array
-    {
-        return ['defaultOrder' => ['created_at' => SORT_DESC]];
-    }
-
-    /**
-     * Стандартная пагинация
-     */
-    protected function getDefaultPagination(): array
-    {
-        return ['pageSize' => 20];
-    }
-
-    /**
      * Базовый метод search — вызывается из контроллера
      */
     public function search(array $params): ActiveDataProvider
@@ -63,6 +47,22 @@ trait SearchableTrait
     protected function getBaseQuery(): ActiveQuery
     {
         return static::find();
+    }
+
+    /**
+     * Стандартная сортировка по умолчанию
+     */
+    protected function getDefaultSort(): array
+    {
+        return ['defaultOrder' => ['created_at' => SORT_DESC]];
+    }
+
+    /**
+     * Стандартная пагинация
+     */
+    protected function getDefaultPagination(): array
+    {
+        return ['pageSize' => 20];
     }
 
     /**

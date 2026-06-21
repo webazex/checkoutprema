@@ -23,14 +23,14 @@ final class ProductExternalMapQuery extends ActiveQuery
         return $this->andWhere(['product_id' => $productId]);
     }
 
-    public function source(string $externalSource): self
-    {
-        return $this->andWhere(['external_source' => $externalSource]);
-    }
-
     public function wix(): self
     {
         return $this->source(ProductExternalMapModel::SOURCE_WIX);
+    }
+
+    public function source(string $externalSource): self
+    {
+        return $this->andWhere(['external_source' => $externalSource]);
     }
 
     public function prom(): self

@@ -10,6 +10,7 @@ class ProductQuery extends ActiveQuery
     {
         return $this->andWhere(['category_id' => $categoryId]);
     }
+
     public function notArchived(): self
     {
         return $this->andWhere(['is_archived' => 0]);

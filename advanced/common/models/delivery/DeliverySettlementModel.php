@@ -38,6 +38,11 @@ class DeliverySettlementModel extends BaseModel
         return '{{%delivery_settlement}}';
     }
 
+    public static function find(): DeliverySettlementQuery
+    {
+        return new DeliverySettlementQuery(static::class);
+    }
+
     public function rules(): array
     {
         return array_merge(parent::rules(), [
@@ -166,10 +171,5 @@ class DeliverySettlementModel extends BaseModel
     public function getHasCoordinates(): bool
     {
         return $this->latitude !== null && $this->longitude !== null;
-    }
-
-    public static function find(): DeliverySettlementQuery
-    {
-        return new DeliverySettlementQuery(static::class);
     }
 }

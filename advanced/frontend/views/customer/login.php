@@ -1,6 +1,7 @@
 <?php
 
 /** @var yii\web\View $this */
+
 /** @var frontend\models\customer\CustomerLoginForm $model */
 
 use yii\helpers\Html;

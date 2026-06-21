@@ -11,11 +11,12 @@ use yii\helpers\Json;
 final class KeyCrmApiClient
 {
     public function __construct(
-        private readonly string $baseUrl,
-        private readonly string $token,
-        private readonly int $timeout = 30,
+        private readonly string             $baseUrl,
+        private readonly string             $token,
+        private readonly int                $timeout = 30,
         private readonly ?KeyCrmRateLimiter $rateLimiter = null,
-    ) {
+    )
+    {
     }
 
     public function get(string $path, array $query = []): array
@@ -27,22 +28,13 @@ final class KeyCrmApiClient
         );
     }
 
-    public function post(string $path, array $body = [], array $query = []): array
-    {
-        return $this->request(
-            method: 'POST',
-            path: $path,
-            query: $query,
-            body: $body,
-        );
-    }
-
     private function request(
         string $method,
         string $path,
-        array $query = [],
-        array $body = [],
-    ): array {
+        array  $query = [],
+        array  $body = [],
+    ): array
+    {
         $this->rateLimiter?->beforeRequest();
 
         $url = rtrim($this->baseUrl, '/') . '/' . ltrim($path, '/');
@@ -83,7 +75,7 @@ final class KeyCrmApiClient
 
         $responseBody = curl_exec($ch);
         $curlError = curl_error($ch);
-        $httpCode = (int) curl_getinfo($ch, CURLINFO_RESPONSE_CODE);
+        $httpCode = (int)curl_getinfo($ch, CURLINFO_RESPONSE_CODE);
 
         if ($responseBody === false) {
             throw new RuntimeException('KeyCRM request failed: ' . $curlError);
@@ -104,5 +96,15 @@ final class KeyCrmApiClient
         }
 
         return $decoded;
+    }
+
+    public function post(string $path, array $body = [], array $query = []): array
+    {
+        return $this->request(
+            method: 'POST',
+            path: $path,
+            query: $query,
+            body: $body,
+        );
     }
 }

@@ -22,15 +22,17 @@ use LogicException;
 final readonly class DeliveryDirectoryWriteStorage
 {
     public function __construct(
-        private DeliveryProviderStorage $providers,
+        private DeliveryProviderStorage  $providers,
         private DeliveryPointTypeStorage $pointTypes,
-    ) {
+    )
+    {
     }
 
     /**
      * @param list<DeliveryAreaSyncDto> $items
      */
-    public function upsertAreas(array $items, int $sourceSeenAt): DeliveryWriteBatchResultDto {
+    public function upsertAreas(array $items, int $sourceSeenAt): DeliveryWriteBatchResultDto
+    {
         $this->assertSourceSeenAt($sourceSeenAt);
 
         if ($items === []) {
@@ -117,10 +119,233 @@ final readonly class DeliveryDirectoryWriteStorage
         });
     }
 
+    private function assertSourceSeenAt(int $sourceSeenAt): void
+    {
+        if ($sourceSeenAt < 1) {
+            throw new InvalidArgumentException(
+                'Delivery sourceSeenAt must be greater than zero.'
+            );
+        }
+    }
+
+    /**
+     * @param list<DeliveryAreaSyncDto> $items
+     *
+     * @return array{string, list<string>}
+     */
+    private function validateAreaBatch(array $items): array
+    {
+        if (!array_is_list($items)) {
+            throw new InvalidArgumentException(
+                'Delivery area batch must be a list.'
+            );
+        }
+
+        $providerCode = null;
+        $externalRefs = [];
+        $seen = [];
+
+        foreach ($items as $item) {
+            if (!$item instanceof DeliveryAreaSyncDto) {
+                throw new InvalidArgumentException(
+                    'Delivery area batch contains an invalid item.'
+                );
+            }
+
+            $providerCode ??= $item->providerCode;
+
+            if ($item->providerCode !== $providerCode) {
+                throw new InvalidArgumentException(
+                    'Delivery area batch must contain one provider only.'
+                );
+            }
+
+            if (isset($seen[$item->externalRef])) {
+                throw new InvalidArgumentException(sprintf(
+                    'Duplicate delivery area external reference "%s".',
+                    $item->externalRef
+                ));
+            }
+
+            $seen[$item->externalRef] = true;
+            $externalRefs[] = $item->externalRef;
+        }
+
+        return [$providerCode, $externalRefs];
+    }
+
+    private function transactional(callable $callback): mixed
+    {
+        $db = Yii::$app->db;
+        $activeTransaction = $db->getTransaction();
+
+        if (
+            $activeTransaction !== null
+            && $activeTransaction->getIsActive()
+        ) {
+            return $callback();
+        }
+
+        $transaction = $db->beginTransaction();
+
+        try {
+            $result = $callback();
+            $transaction->commit();
+
+            return $result;
+        } catch (Throwable $exception) {
+            if ($transaction->getIsActive()) {
+                $transaction->rollBack();
+            }
+
+            throw $exception;
+        }
+    }
+
+    private function normalizeSearchText(string $value): string
+    {
+        $value = trim($value);
+        $value = preg_replace('/\s+/u', ' ', $value) ?? $value;
+
+        return mb_strtolower(
+            $value,
+            'UTF-8'
+        );
+    }
+
+    /**
+     * @param array<string, mixed> $metadata
+     */
+    private function encodeMetadata(array $metadata): ?string
+    {
+        if ($metadata === []) {
+            return null;
+        }
+
+        return json_encode(
+            $metadata,
+            JSON_UNESCAPED_UNICODE
+            | JSON_UNESCAPED_SLASHES
+            | JSON_THROW_ON_ERROR
+        );
+    }
+
+    /**
+     * @param list<string> $columns
+     * @param list<array<string, mixed>> $rows
+     * @param list<string> $updateColumns
+     * @param list<string> $preserveExistingOnNull
+     */
+    private function batchUpsert(
+        string $table,
+        array  $columns,
+        array  $rows,
+        array  $updateColumns,
+        array  $preserveExistingOnNull = []
+    ): void
+    {
+        if ($rows === []) {
+            return;
+        }
+
+        $params = [];
+        $valueGroups = [];
+        $parameterIndex = 0;
+
+        foreach ($rows as $row) {
+            $placeholders = [];
+
+            foreach ($columns as $column) {
+                if (!array_key_exists($column, $row)) {
+                    throw new InvalidArgumentException(sprintf(
+                        'Delivery upsert row is missing column "%s".',
+                        $column
+                    ));
+                }
+
+                $placeholder = ':delivery_upsert_'
+                    . $parameterIndex++;
+
+                $placeholders[] = $placeholder;
+                $params[$placeholder] = $row[$column];
+            }
+
+            $valueGroups[] = '('
+                . implode(', ', $placeholders)
+                . ')';
+        }
+
+        $assignments = [];
+
+        foreach ($updateColumns as $column) {
+            if (in_array(
+                $column,
+                $preserveExistingOnNull,
+                true
+            )) {
+                $assignments[] = sprintf(
+                    '[[%1$s]] = COALESCE(VALUES([[%1$s]]), [[%1$s]])',
+                    $column
+                );
+
+                continue;
+            }
+
+            $assignments[] = sprintf(
+                '[[%1$s]] = VALUES([[%1$s]])',
+                $column
+            );
+        }
+
+        $sql = sprintf(
+            'INSERT INTO %s (%s) VALUES %s '
+            . 'ON DUPLICATE KEY UPDATE %s',
+            $table,
+            implode(
+                ', ',
+                array_map(
+                    static fn(string $column): string => '[[' . $column . ']]',
+                    $columns
+                )
+            ),
+            implode(', ', $valueGroups),
+            implode(', ', $assignments)
+        );
+
+        Yii::$app->db
+            ->createCommand($sql, $params)
+            ->execute();
+    }
+
+    /**
+     * @param list<string> $externalRefs
+     * @param array<string, true> $existingMap
+     */
+    private function createResult(
+        array $externalRefs,
+        array $existingMap
+    ): DeliveryWriteBatchResultDto
+    {
+        $createdCount = 0;
+
+        foreach ($externalRefs as $externalRef) {
+            if (!isset($existingMap[$externalRef])) {
+                $createdCount++;
+            }
+        }
+
+        return new DeliveryWriteBatchResultDto(
+            processedCount: count($externalRefs),
+            createdCount: $createdCount,
+            updatedCount: count($externalRefs) - $createdCount,
+        );
+    }
+
     /**
      * @param list<DeliverySettlementSyncDto> $items
      */
-    public function upsertSettlements(array $items, int $sourceSeenAt): DeliveryWriteBatchResultDto {
+    public function upsertSettlements(array $items, int $sourceSeenAt): DeliveryWriteBatchResultDto
+    {
         $this->assertSourceSeenAt($sourceSeenAt);
 
         if ($items === []) {
@@ -242,6 +467,103 @@ final readonly class DeliveryDirectoryWriteStorage
         });
     }
 
+    /**
+     * @param list<DeliverySettlementSyncDto> $items
+     *
+     * @return array{string, list<string>, list<string>}
+     */
+    private function validateSettlementBatch(array $items): array
+    {
+        if (!array_is_list($items)) {
+            throw new InvalidArgumentException(
+                'Delivery settlement batch must be a list.'
+            );
+        }
+
+        $providerCode = null;
+        $externalRefs = [];
+        $areaExternalRefs = [];
+        $seen = [];
+
+        foreach ($items as $item) {
+            if (!$item instanceof DeliverySettlementSyncDto) {
+                throw new InvalidArgumentException(
+                    'Delivery settlement batch contains an invalid item.'
+                );
+            }
+
+            $providerCode ??= $item->providerCode;
+
+            if ($item->providerCode !== $providerCode) {
+                throw new InvalidArgumentException(
+                    'Delivery settlement batch must contain one provider only.'
+                );
+            }
+
+            if (isset($seen[$item->externalRef])) {
+                throw new InvalidArgumentException(sprintf(
+                    'Duplicate delivery settlement external reference "%s".',
+                    $item->externalRef
+                ));
+            }
+
+            $seen[$item->externalRef] = true;
+            $externalRefs[] = $item->externalRef;
+            $areaExternalRefs[$item->areaExternalRef]
+                = $item->areaExternalRef;
+        }
+
+        return [
+            $providerCode,
+            $externalRefs,
+            array_values($areaExternalRefs),
+        ];
+    }
+
+    /**
+     * @param list<string> $areaExternalRefs
+     *
+     * @return array<string, int>
+     */
+    private function resolveAreaIds(
+        int   $providerId,
+        array $areaExternalRefs
+    ): array
+    {
+        $rows = DeliveryAreaModel::find()
+            ->select([
+                'id',
+                'external_ref',
+            ])
+            ->where([
+                'provider_id' => $providerId,
+                'external_ref' => $areaExternalRefs,
+            ])
+            ->asArray()
+            ->all();
+
+        $result = [];
+
+        foreach ($rows as $row) {
+            $result[(string)$row['external_ref']]
+                = (int)$row['id'];
+        }
+
+        $missingRefs = array_values(array_diff(
+            $areaExternalRefs,
+            array_keys($result)
+        ));
+
+        if ($missingRefs !== []) {
+            throw new OutOfBoundsException(sprintf(
+                'Delivery areas were not found for references: %s.',
+                implode(', ', $missingRefs)
+            ));
+        }
+
+        return $result;
+    }
+
     public function archiveUnseenAreas(string $providerCode, int $sourceSeenAt): int
     {
         $this->assertSourceSeenAt($sourceSeenAt);
@@ -266,9 +588,23 @@ final readonly class DeliveryDirectoryWriteStorage
         );
     }
 
+    private function assertArchiveTransaction(): void
+    {
+        $transaction = Yii::$app->db->getTransaction();
+
+        if ($transaction !== null && $transaction->getIsActive()) {
+            return;
+        }
+
+        throw new LogicException(
+            'Delivery archival can be executed only inside an active transaction.'
+        );
+    }
+
     public function archiveUnseenSettlements(
         string $providerCode, int $sourceSeenAt, ?string $areaExternalRef = null
-    ): int {
+    ): int
+    {
         $this->assertSourceSeenAt($sourceSeenAt);
         $this->assertArchiveTransaction();
 
@@ -310,10 +646,38 @@ final readonly class DeliveryDirectoryWriteStorage
         );
     }
 
+    private function normalizeArchiveScopeRef(
+        ?string $value, string $field
+    ): ?string
+    {
+        if ($value === null) {
+            return null;
+        }
+
+        $value = trim($value);
+
+        if ($value === '') {
+            throw new InvalidArgumentException(sprintf(
+                'Delivery archive %s must not be empty.',
+                $field
+            ));
+        }
+
+        if (strlen($value) > 128) {
+            throw new InvalidArgumentException(sprintf(
+                'Delivery archive %s is too long.',
+                $field
+            ));
+        }
+
+        return $value;
+    }
+
     public function archiveUnseenPoints(
-        string $providerCode, int $sourceSeenAt,
+        string  $providerCode, int $sourceSeenAt,
         ?string $settlementDeliveryRef = null
-    ): int {
+    ): int
+    {
         $this->assertSourceSeenAt($sourceSeenAt);
         $this->assertArchiveTransaction();
 
@@ -356,12 +720,42 @@ final readonly class DeliveryDirectoryWriteStorage
     }
 
     /**
+     * @return list<int>
+     */
+    private function resolveSettlementIdsByDeliveryRef(
+        int $providerId, string $deliveryRef
+    ): array
+    {
+        $ids = DeliverySettlementModel::find()
+            ->select('id')
+            ->where([
+                'provider_id' => $providerId,
+                'delivery_ref' => $deliveryRef,
+            ])
+            ->column();
+
+        $ids = array_values(array_unique(
+            array_map('intval', $ids)
+        ));
+
+        if ($ids === []) {
+            throw new OutOfBoundsException(sprintf(
+                'Delivery settlements with delivery reference "%s" were not found.',
+                $deliveryRef
+            ));
+        }
+
+        return $ids;
+    }
+
+    /**
      * Создаёт или обновляет точки доставки и полностью заменяет
      * их расписания в рамках одной транзакции.
      *
      * @param list<DeliveryPointSyncDto> $items
      */
-    public function upsertPoints(array $items, int $sourceSeenAt): DeliveryWriteBatchResultDto {
+    public function upsertPoints(array $items, int $sourceSeenAt): DeliveryWriteBatchResultDto
+    {
         $this->assertSourceSeenAt($sourceSeenAt);
 
         if ($items === []) {
@@ -424,9 +818,7 @@ final readonly class DeliveryDirectoryWriteStorage
                 $rows[] = [
                     'provider_id' => $providerId,
 
-                    'settlement_id' => $settlements[
-                    $item->settlementExternalRef
-                    ]['id'],
+                    'settlement_id' => $settlements[$item->settlementExternalRef]['id'],
 
                     'type_id' => $typeIds[$item->typeCode],
                     'external_ref' => $item->externalRef,
@@ -530,113 +922,6 @@ final readonly class DeliveryDirectoryWriteStorage
 
     /**
      * @param list<DeliveryPointSyncDto> $items
-     * @param array<string, int> $pointIds
-     */
-    private function replacePointSchedules(array $items, array $pointIds, int $sourceSeenAt, int $syncedAt): void {
-        $deliveryPointIds = array_values($pointIds);
-
-        DeliveryPointScheduleModel::deleteAll([
-            'delivery_point_id' => $deliveryPointIds,
-        ]);
-
-        $rows = [];
-
-        foreach ($items as $item) {
-            $deliveryPointId = $pointIds[$item->externalRef];
-
-            foreach ($item->schedules as $schedule) {
-                $rows[] = [
-                    $deliveryPointId,
-                    $schedule->weekday,
-                    $schedule->intervalNo,
-                    $schedule->opensAt,
-                    $schedule->closesAt,
-                    (int)$schedule->isClosed,
-                    $schedule->validFrom,
-                    $schedule->validTo,
-                    $sourceSeenAt,
-                    $syncedAt,
-                    $syncedAt,
-                    $syncedAt,
-                ];
-            }
-        }
-
-        if ($rows === []) {
-            return;
-        }
-
-        Yii::$app->db
-            ->createCommand()
-            ->batchInsert(
-                DeliveryPointScheduleModel::tableName(),
-                [
-                    'delivery_point_id',
-                    'weekday',
-                    'interval_no',
-                    'opens_at',
-                    'closes_at',
-                    'is_closed',
-                    'valid_from',
-                    'valid_to',
-                    'source_seen_at',
-                    'synced_at',
-                    'created_at',
-                    'updated_at',
-                ],
-                $rows
-            )
-            ->execute();
-    }
-
-    /**
-     * @param list<DeliveryAreaSyncDto> $items
-     *
-     * @return array{string, list<string>}
-     */
-    private function validateAreaBatch(array $items): array
-    {
-        if (!array_is_list($items)) {
-            throw new InvalidArgumentException(
-                'Delivery area batch must be a list.'
-            );
-        }
-
-        $providerCode = null;
-        $externalRefs = [];
-        $seen = [];
-
-        foreach ($items as $item) {
-            if (!$item instanceof DeliveryAreaSyncDto) {
-                throw new InvalidArgumentException(
-                    'Delivery area batch contains an invalid item.'
-                );
-            }
-
-            $providerCode ??= $item->providerCode;
-
-            if ($item->providerCode !== $providerCode) {
-                throw new InvalidArgumentException(
-                    'Delivery area batch must contain one provider only.'
-                );
-            }
-
-            if (isset($seen[$item->externalRef])) {
-                throw new InvalidArgumentException(sprintf(
-                    'Duplicate delivery area external reference "%s".',
-                    $item->externalRef
-                ));
-            }
-
-            $seen[$item->externalRef] = true;
-            $externalRefs[] = $item->externalRef;
-        }
-
-        return [$providerCode, $externalRefs];
-    }
-
-    /**
-     * @param list<DeliveryPointSyncDto> $items
      *
      * @return array{
      *     string,
@@ -695,9 +980,7 @@ final readonly class DeliveryDirectoryWriteStorage
                 continue;
             }
 
-            $existingDeliveryRef = $deliveryRefsBySettlement[
-            $item->settlementExternalRef
-            ] ?? null;
+            $existingDeliveryRef = $deliveryRefsBySettlement[$item->settlementExternalRef] ?? null;
 
             if (
                 $existingDeliveryRef !== null
@@ -712,9 +995,7 @@ final readonly class DeliveryDirectoryWriteStorage
                 ));
             }
 
-            $deliveryRefsBySettlement[
-            $item->settlementExternalRef
-            ] = $item->settlementDeliveryRef;
+            $deliveryRefsBySettlement[$item->settlementExternalRef] = $item->settlementDeliveryRef;
         }
 
         return [
@@ -724,127 +1005,6 @@ final readonly class DeliveryDirectoryWriteStorage
             array_values($typeCodes),
             $deliveryRefsBySettlement,
         ];
-    }
-
-    private function buildPointSearchText(DeliveryPointSyncDto $item): string {
-        $parts = [];
-
-        foreach ([
-                     $item->number,
-                     $item->name,
-                     $item->description,
-                     $item->address,
-                 ] as $value) {
-            if ($value === null) {
-                continue;
-            }
-
-            $value = trim($value);
-
-            if ($value !== '') {
-                $parts[] = $value;
-            }
-        }
-
-        return $this->normalizeSearchText(
-            implode(' ', $parts)
-        );
-    }
-
-    /**
-     * @param list<DeliverySettlementSyncDto> $items
-     *
-     * @return array{string, list<string>, list<string>}
-     */
-    private function validateSettlementBatch(array $items): array
-    {
-        if (!array_is_list($items)) {
-            throw new InvalidArgumentException(
-                'Delivery settlement batch must be a list.'
-            );
-        }
-
-        $providerCode = null;
-        $externalRefs = [];
-        $areaExternalRefs = [];
-        $seen = [];
-
-        foreach ($items as $item) {
-            if (!$item instanceof DeliverySettlementSyncDto) {
-                throw new InvalidArgumentException(
-                    'Delivery settlement batch contains an invalid item.'
-                );
-            }
-
-            $providerCode ??= $item->providerCode;
-
-            if ($item->providerCode !== $providerCode) {
-                throw new InvalidArgumentException(
-                    'Delivery settlement batch must contain one provider only.'
-                );
-            }
-
-            if (isset($seen[$item->externalRef])) {
-                throw new InvalidArgumentException(sprintf(
-                    'Duplicate delivery settlement external reference "%s".',
-                    $item->externalRef
-                ));
-            }
-
-            $seen[$item->externalRef] = true;
-            $externalRefs[] = $item->externalRef;
-            $areaExternalRefs[$item->areaExternalRef]
-                = $item->areaExternalRef;
-        }
-
-        return [
-            $providerCode,
-            $externalRefs,
-            array_values($areaExternalRefs),
-        ];
-    }
-
-    /**
-     * @param list<string> $areaExternalRefs
-     *
-     * @return array<string, int>
-     */
-    private function resolveAreaIds(
-        int $providerId,
-        array $areaExternalRefs
-    ): array {
-        $rows = DeliveryAreaModel::find()
-            ->select([
-                'id',
-                'external_ref',
-            ])
-            ->where([
-                'provider_id' => $providerId,
-                'external_ref' => $areaExternalRefs,
-            ])
-            ->asArray()
-            ->all();
-
-        $result = [];
-
-        foreach ($rows as $row) {
-            $result[(string)$row['external_ref']]
-                = (int)$row['id'];
-        }
-
-        $missingRefs = array_values(array_diff(
-            $areaExternalRefs,
-            array_keys($result)
-        ));
-
-        if ($missingRefs !== []) {
-            throw new OutOfBoundsException(sprintf(
-                'Delivery areas were not found for references: %s.',
-                implode(', ', $missingRefs)
-            ));
-        }
-
-        return $result;
     }
 
     /**
@@ -858,7 +1018,8 @@ final readonly class DeliveryDirectoryWriteStorage
      *     }
      * >
      */
-    private function resolveSettlements(int $providerId, array $externalRefs): array {
+    private function resolveSettlements(int $providerId, array $externalRefs): array
+    {
         $rows = DeliverySettlementModel::find()
             ->select([
                 'id',
@@ -912,7 +1073,8 @@ final readonly class DeliveryDirectoryWriteStorage
      *
      * @param array<string, string> $deliveryRefsBySettlement
      */
-    private function synchronizeSettlementDeliveryRefs(int $providerId, array $settlements, array $deliveryRefsBySettlement): void {
+    private function synchronizeSettlementDeliveryRefs(int $providerId, array $settlements, array $deliveryRefsBySettlement): void
+    {
         $updates = [];
 
         foreach (
@@ -1019,12 +1181,39 @@ final readonly class DeliveryDirectoryWriteStorage
         return $result;
     }
 
+    private function buildPointSearchText(DeliveryPointSyncDto $item): string
+    {
+        $parts = [];
+
+        foreach ([
+                     $item->number,
+                     $item->name,
+                     $item->description,
+                     $item->address,
+                 ] as $value) {
+            if ($value === null) {
+                continue;
+            }
+
+            $value = trim($value);
+
+            if ($value !== '') {
+                $parts[] = $value;
+            }
+        }
+
+        return $this->normalizeSearchText(
+            implode(' ', $parts)
+        );
+    }
+
     /**
      * @param list<string> $externalRefs
      *
      * @return array<string, int>
      */
-    private function resolvePointIds(int $providerId, array $externalRefs): array {
+    private function resolvePointIds(int $providerId, array $externalRefs): array
+    {
         $rows = DeliveryPointModel::find()
             ->select([
                 'id',
@@ -1060,244 +1249,64 @@ final readonly class DeliveryDirectoryWriteStorage
     }
 
     /**
-     * @param list<string> $externalRefs
-     * @param array<string, true> $existingMap
+     * @param list<DeliveryPointSyncDto> $items
+     * @param array<string, int> $pointIds
      */
-    private function createResult(
-        array $externalRefs,
-        array $existingMap
-    ): DeliveryWriteBatchResultDto {
-        $createdCount = 0;
+    private function replacePointSchedules(array $items, array $pointIds, int $sourceSeenAt, int $syncedAt): void
+    {
+        $deliveryPointIds = array_values($pointIds);
 
-        foreach ($externalRefs as $externalRef) {
-            if (!isset($existingMap[$externalRef])) {
-                $createdCount++;
+        DeliveryPointScheduleModel::deleteAll([
+            'delivery_point_id' => $deliveryPointIds,
+        ]);
+
+        $rows = [];
+
+        foreach ($items as $item) {
+            $deliveryPointId = $pointIds[$item->externalRef];
+
+            foreach ($item->schedules as $schedule) {
+                $rows[] = [
+                    $deliveryPointId,
+                    $schedule->weekday,
+                    $schedule->intervalNo,
+                    $schedule->opensAt,
+                    $schedule->closesAt,
+                    (int)$schedule->isClosed,
+                    $schedule->validFrom,
+                    $schedule->validTo,
+                    $sourceSeenAt,
+                    $syncedAt,
+                    $syncedAt,
+                    $syncedAt,
+                ];
             }
         }
 
-        return new DeliveryWriteBatchResultDto(
-            processedCount: count($externalRefs),
-            createdCount: $createdCount,
-            updatedCount: count($externalRefs) - $createdCount,
-        );
-    }
-
-    /**
-     * @param list<string> $columns
-     * @param list<array<string, mixed>> $rows
-     * @param list<string> $updateColumns
-     * @param list<string> $preserveExistingOnNull
-     */
-    private function batchUpsert(
-        string $table,
-        array $columns,
-        array $rows,
-        array $updateColumns,
-        array $preserveExistingOnNull = []
-    ): void {
         if ($rows === []) {
             return;
         }
 
-        $params = [];
-        $valueGroups = [];
-        $parameterIndex = 0;
-
-        foreach ($rows as $row) {
-            $placeholders = [];
-
-            foreach ($columns as $column) {
-                if (!array_key_exists($column, $row)) {
-                    throw new InvalidArgumentException(sprintf(
-                        'Delivery upsert row is missing column "%s".',
-                        $column
-                    ));
-                }
-
-                $placeholder = ':delivery_upsert_'
-                    . $parameterIndex++;
-
-                $placeholders[] = $placeholder;
-                $params[$placeholder] = $row[$column];
-            }
-
-            $valueGroups[] = '('
-                . implode(', ', $placeholders)
-                . ')';
-        }
-
-        $assignments = [];
-
-        foreach ($updateColumns as $column) {
-            if (in_array(
-                $column,
-                $preserveExistingOnNull,
-                true
-            )) {
-                $assignments[] = sprintf(
-                    '[[%1$s]] = COALESCE(VALUES([[%1$s]]), [[%1$s]])',
-                    $column
-                );
-
-                continue;
-            }
-
-            $assignments[] = sprintf(
-                '[[%1$s]] = VALUES([[%1$s]])',
-                $column
-            );
-        }
-
-        $sql = sprintf(
-            'INSERT INTO %s (%s) VALUES %s '
-            . 'ON DUPLICATE KEY UPDATE %s',
-            $table,
-            implode(
-                ', ',
-                array_map(
-                    static fn (string $column): string =>
-                        '[[' . $column . ']]',
-                    $columns
-                )
-            ),
-            implode(', ', $valueGroups),
-            implode(', ', $assignments)
-        );
-
         Yii::$app->db
-            ->createCommand($sql, $params)
+            ->createCommand()
+            ->batchInsert(
+                DeliveryPointScheduleModel::tableName(),
+                [
+                    'delivery_point_id',
+                    'weekday',
+                    'interval_no',
+                    'opens_at',
+                    'closes_at',
+                    'is_closed',
+                    'valid_from',
+                    'valid_to',
+                    'source_seen_at',
+                    'synced_at',
+                    'created_at',
+                    'updated_at',
+                ],
+                $rows
+            )
             ->execute();
-    }
-
-    private function normalizeSearchText(string $value): string
-    {
-        $value = trim($value);
-        $value = preg_replace('/\s+/u', ' ', $value) ?? $value;
-
-        return mb_strtolower(
-            $value,
-            'UTF-8'
-        );
-    }
-
-    /**
-     * @param array<string, mixed> $metadata
-     */
-    private function encodeMetadata(array $metadata): ?string
-    {
-        if ($metadata === []) {
-            return null;
-        }
-
-        return json_encode(
-            $metadata,
-            JSON_UNESCAPED_UNICODE
-            | JSON_UNESCAPED_SLASHES
-            | JSON_THROW_ON_ERROR
-        );
-    }
-
-    private function assertSourceSeenAt(int $sourceSeenAt): void
-    {
-        if ($sourceSeenAt < 1) {
-            throw new InvalidArgumentException(
-                'Delivery sourceSeenAt must be greater than zero.'
-            );
-        }
-    }
-
-    private function transactional(callable $callback): mixed
-    {
-        $db = Yii::$app->db;
-        $activeTransaction = $db->getTransaction();
-
-        if (
-            $activeTransaction !== null
-            && $activeTransaction->getIsActive()
-        ) {
-            return $callback();
-        }
-
-        $transaction = $db->beginTransaction();
-
-        try {
-            $result = $callback();
-            $transaction->commit();
-
-            return $result;
-        } catch (Throwable $exception) {
-            if ($transaction->getIsActive()) {
-                $transaction->rollBack();
-            }
-
-            throw $exception;
-        }
-    }
-
-    /**
-     * @return list<int>
-     */
-    private function resolveSettlementIdsByDeliveryRef(
-        int $providerId, string $deliveryRef
-    ): array {
-        $ids = DeliverySettlementModel::find()
-            ->select('id')
-            ->where([
-                'provider_id' => $providerId,
-                'delivery_ref' => $deliveryRef,
-            ])
-            ->column();
-
-        $ids = array_values(array_unique(
-            array_map('intval', $ids)
-        ));
-
-        if ($ids === []) {
-            throw new OutOfBoundsException(sprintf(
-                'Delivery settlements with delivery reference "%s" were not found.',
-                $deliveryRef
-            ));
-        }
-
-        return $ids;
-    }
-
-    private function normalizeArchiveScopeRef(
-        ?string $value, string $field
-    ): ?string {
-        if ($value === null) {
-            return null;
-        }
-
-        $value = trim($value);
-
-        if ($value === '') {
-            throw new InvalidArgumentException(sprintf(
-                'Delivery archive %s must not be empty.',
-                $field
-            ));
-        }
-
-        if (strlen($value) > 128) {
-            throw new InvalidArgumentException(sprintf(
-                'Delivery archive %s is too long.',
-                $field
-            ));
-        }
-
-        return $value;
-    }
-
-    private function assertArchiveTransaction(): void
-    {
-        $transaction = Yii::$app->db->getTransaction();
-
-        if ($transaction !== null && $transaction->getIsActive()) {
-            return;
-        }
-
-        throw new LogicException(
-            'Delivery archival can be executed only inside an active transaction.'
-        );
     }
 }

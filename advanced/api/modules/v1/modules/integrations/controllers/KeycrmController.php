@@ -12,13 +12,6 @@ use yii\web\ForbiddenHttpException;
 
 final class KeycrmController extends ApiController
 {
-    protected function verbs(): array
-    {
-        return [
-            'stocks' => ['POST'],
-        ];
-    }
-
     public function actionStocks(string $token): array
     {
         $expectedToken = (string)(Yii::$app->params['keycrm.webhookToken'] ?? '');
@@ -42,6 +35,13 @@ final class KeycrmController extends ApiController
             'status' => 'ok',
             'message' => 'KeyCRM stock webhook processed.',
             'data' => $result,
+        ];
+    }
+
+    protected function verbs(): array
+    {
+        return [
+            'stocks' => ['POST'],
         ];
     }
 }

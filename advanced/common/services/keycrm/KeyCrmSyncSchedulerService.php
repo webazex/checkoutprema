@@ -20,29 +20,15 @@ final class KeyCrmSyncSchedulerService
 
     private const ACTIVE_RUN_MAX_AGE_SECONDS = 3600;
 
-    public function scheduleProducts(int $maxPages = 0, bool $withCustomFields = true): int|string|null
+    /**
+     * @return array{categories:int|string|null, products:int|string|null}
+     */
+    public function scheduleFull(int $maxPages = 0): array
     {
-        $syncType = self::SYNC_TYPE_PRODUCTS;
-
-        $params = [
-            'maxPages' => $maxPages,
-            'withCustomFields' => $withCustomFields,
+        return [
+            'categories' => $this->scheduleCategories($maxPages, true),
+            'products' => $this->scheduleProducts($maxPages, true),
         ];
-
-        $uniqueKey = $this->buildUniqueKey($syncType, $params);
-
-        return $this->pushUnique(
-            syncType: $syncType,
-            uniqueKey: $uniqueKey,
-            lockName: 'keycrm:schedule:products',
-            params: $params,
-            jobFactory: static fn (int $runId): KeyCrmImportProductsJob => new KeyCrmImportProductsJob([
-                'runId' => $runId,
-                'maxPages' => $maxPages,
-                'withCustomFields' => $withCustomFields,
-                'uniqueKey' => $uniqueKey,
-            ]),
-        );
     }
 
     public function scheduleCategories(int $maxPages = 0, bool $linkProducts = true): int|string|null
@@ -61,7 +47,7 @@ final class KeyCrmSyncSchedulerService
             uniqueKey: $uniqueKey,
             lockName: 'keycrm:schedule:categories',
             params: $params,
-            jobFactory: static fn (int $runId): KeyCrmImportCategoriesJob => new KeyCrmImportCategoriesJob([
+            jobFactory: static fn(int $runId): KeyCrmImportCategoriesJob => new KeyCrmImportCategoriesJob([
                 'runId' => $runId,
                 'maxPages' => $maxPages,
                 'linkProducts' => $linkProducts,
@@ -71,14 +57,13 @@ final class KeyCrmSyncSchedulerService
     }
 
     /**
-     * @return array{categories:int|string|null, products:int|string|null}
+     * @param array<string, mixed> $params
      */
-    public function scheduleFull(int $maxPages = 0): array
+    private function buildUniqueKey(string $type, array $params): string
     {
-        return [
-            'categories' => $this->scheduleCategories($maxPages, true),
-            'products' => $this->scheduleProducts($maxPages, true),
-        ];
+        ksort($params);
+
+        return 'keycrm:' . $type . ':' . md5(json_encode($params, JSON_THROW_ON_ERROR));
     }
 
     /**
@@ -86,12 +71,13 @@ final class KeyCrmSyncSchedulerService
      * @param callable(int): object $jobFactory
      */
     private function pushUnique(
-        string $syncType,
-        string $uniqueKey,
-        string $lockName,
-        array $params,
+        string   $syncType,
+        string   $uniqueKey,
+        string   $lockName,
+        array    $params,
         callable $jobFactory,
-    ): int|string|null {
+    ): int|string|null
+    {
         if (!Yii::$app->mutex->acquire($lockName, 3)) {
             Yii::warning(
                 KeyCrmSyncLogFormatter::event('scheduler', 'LOCK_FAILED', [
@@ -219,13 +205,28 @@ SQL
             ->queryScalar();
     }
 
-    /**
-     * @param array<string, mixed> $params
-     */
-    private function buildUniqueKey(string $type, array $params): string
+    public function scheduleProducts(int $maxPages = 0, bool $withCustomFields = true): int|string|null
     {
-        ksort($params);
+        $syncType = self::SYNC_TYPE_PRODUCTS;
 
-        return 'keycrm:' . $type . ':' . md5(json_encode($params, JSON_THROW_ON_ERROR));
+        $params = [
+            'maxPages' => $maxPages,
+            'withCustomFields' => $withCustomFields,
+        ];
+
+        $uniqueKey = $this->buildUniqueKey($syncType, $params);
+
+        return $this->pushUnique(
+            syncType: $syncType,
+            uniqueKey: $uniqueKey,
+            lockName: 'keycrm:schedule:products',
+            params: $params,
+            jobFactory: static fn(int $runId): KeyCrmImportProductsJob => new KeyCrmImportProductsJob([
+                'runId' => $runId,
+                'maxPages' => $maxPages,
+                'withCustomFields' => $withCustomFields,
+                'uniqueKey' => $uniqueKey,
+            ]),
+        );
     }
 }

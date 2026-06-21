@@ -17,9 +17,11 @@ final class DeliveryAreaQuery extends ActiveQuery
         return $this->andWhere(['id' => $id]);
     }
 
-    public function byProviderId(int $providerId): self
+    public function byProviderAndExternalRef(int $providerId, string $externalRef): self
     {
-        return $this->andWhere(['provider_id' => $providerId]);
+        return $this
+            ->byProviderId($providerId)
+            ->byExternalRef($externalRef);
     }
 
     public function byExternalRef(string $externalRef): self
@@ -27,11 +29,9 @@ final class DeliveryAreaQuery extends ActiveQuery
         return $this->andWhere(['external_ref' => $externalRef]);
     }
 
-    public function byProviderAndExternalRef(int $providerId, string $externalRef): self
+    public function byProviderId(int $providerId): self
     {
-        return $this
-            ->byProviderId($providerId)
-            ->byExternalRef($externalRef);
+        return $this->andWhere(['provider_id' => $providerId]);
     }
 
     public function notArchived(): self

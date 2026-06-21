@@ -3,6 +3,7 @@
 /** @var yii\web\View $this */
 /** @var array $order */
 /** @var array $payment */
+
 /** @var array $nextAction */
 
 use yii\helpers\Html;
@@ -25,7 +26,8 @@ $renderFields = static function (string $name, mixed $value) use (&$renderFields
 <h1>Redirecting to payment…</h1>
 <p>Order: <?= Html::encode($order['hash']) ?></p>
 
-<form id="payment-redirect-form" method="<?= Html::encode($nextAction['method']) ?>" action="<?= Html::encode($nextAction['url']) ?>">
+<form id="payment-redirect-form" method="<?= Html::encode($nextAction['method']) ?>"
+      action="<?= Html::encode($nextAction['url']) ?>">
     <?php foreach ($nextAction['payload'] as $name => $value): ?>
         <?= $renderFields($name, $value) ?>
     <?php endforeach; ?>

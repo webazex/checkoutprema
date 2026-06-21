@@ -5,19 +5,11 @@ declare(strict_types=1);
 namespace api\controllers;
 
 use api\components\ApiController;
+use Throwable;
 use Yii;
 
 final class DefaultController extends ApiController
 {
-    protected function verbs(): array
-    {
-        return [
-            'index' => ['GET'],
-            'info' => ['GET'],
-            'error' => ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
-        ];
-    }
-
     public function actionIndex(): array
     {
         return [
@@ -43,18 +35,18 @@ final class DefaultController extends ApiController
         $dbError = null;
 
         try {
-            $db = \Yii::$app->db;
+            $db = Yii::$app->db;
             $dbClass = get_class($db);
             $dbDsn = $db->dsn ?? null;
-        } catch (\Throwable $e) {
+        } catch (Throwable $e) {
             $dbError = $e->getMessage();
         }
 
         return [
-            'app_id' => \Yii::$app->id,
+            'app_id' => Yii::$app->id,
             'env' => YII_ENV,
             'php' => PHP_VERSION,
-            'timeZone' => \Yii::$app->timeZone,
+            'timeZone' => Yii::$app->timeZone,
             'dbClass' => $dbClass,
             'dbDsn' => $dbDsn,
             'dbError' => $dbError,
@@ -72,6 +64,15 @@ final class DefaultController extends ApiController
             'type' => $exception ? get_class($exception) : null,
             'code' => $exception?->getCode(),
             'time' => date('c'),
+        ];
+    }
+
+    protected function verbs(): array
+    {
+        return [
+            'index' => ['GET'],
+            'info' => ['GET'],
+            'error' => ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
         ];
     }
 }

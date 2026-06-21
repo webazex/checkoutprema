@@ -30,26 +30,6 @@ final readonly class DeliverySyncStateStorage
     {
     }
 
-    public function find(
-        string $providerCode,
-        DeliverySyncScope $scope,
-        string $scopeExternalRef = ''
-    ): ?DeliverySyncStateReadDto {
-        $scopeExternalRef = $this->normalizeScopeExternalRef($scopeExternalRef);
-        $provider = $this->providers->getByCode($providerCode);
-
-        $model = $this->findModel(
-            providerId: $provider->id,
-            scope: $scope,
-            scopeExternalRef: $scopeExternalRef,
-            withProvider: true
-        );
-
-        return $model === null
-            ? null
-            : $this->mapper->mapSyncState($model);
-    }
-
     public function findById(int $stateId): ?DeliverySyncStateReadDto
     {
         $this->assertStateId($stateId);
@@ -64,11 +44,21 @@ final readonly class DeliverySyncStateStorage
             : $this->mapper->mapSyncState($model);
     }
 
-    public function getOrCreate(
-        string $providerCode,
+    private function assertStateId(int $stateId): void
+    {
+        if ($stateId < 1) {
+            throw new InvalidArgumentException(
+                'Delivery sync state ID must be greater than zero.'
+            );
+        }
+    }
+
+    public function find(
+        string            $providerCode,
         DeliverySyncScope $scope,
-        string $scopeExternalRef = ''
-    ): DeliverySyncStateReadDto {
+        string            $scopeExternalRef = ''
+    ): ?DeliverySyncStateReadDto
+    {
         $scopeExternalRef = $this->normalizeScopeExternalRef($scopeExternalRef);
         $provider = $this->providers->getByCode($providerCode);
 
@@ -79,40 +69,50 @@ final readonly class DeliverySyncStateStorage
             withProvider: true
         );
 
-        if ($model !== null) {
-            return $this->mapper->mapSyncState($model);
+        return $model === null
+            ? null
+            : $this->mapper->mapSyncState($model);
+    }
+
+    private function normalizeScopeExternalRef(string $scopeExternalRef): string
+    {
+        $scopeExternalRef = trim($scopeExternalRef);
+
+        if (strlen($scopeExternalRef) > 128) {
+            throw new InvalidArgumentException(
+                'Delivery sync scope external reference is too long.'
+            );
         }
 
-        $model = new DeliverySyncStateModel([
-            'provider_id' => $provider->id,
-            'scope' => $scope->value,
-            'scope_external_ref' => $scopeExternalRef,
-        ]);
+        return $scopeExternalRef;
+    }
 
-        try {
-            $this->saveModel($model);
-        } catch (IntegrityException|RuntimeException $exception) {
-            $model = $this->findModel(
-                providerId: $provider->id,
-                scope: $scope,
-                scopeExternalRef: $scopeExternalRef,
-                withProvider: true
+    private function findModel(
+        int               $providerId,
+        DeliverySyncScope $scope,
+        string            $scopeExternalRef,
+        bool              $withProvider
+    ): ?DeliverySyncStateModel
+    {
+        $query = DeliverySyncStateModel::find()
+            ->byProviderScope(
+                $providerId,
+                $scope,
+                $scopeExternalRef
             );
 
-            if ($model === null) {
-                throw $exception;
-            }
-
-            return $this->mapper->mapSyncState($model);
+        if ($withProvider) {
+            $query->with('provider');
         }
 
-        return $this->reload((int)$model->id);
+        return $query->one();
     }
 
     public function startRun(string $providerCode, DeliverySyncScope $scope, string $scopeExternalRef = '',
-        bool $resume = false,
-        int $staleAfterSeconds = 900
-    ): DeliverySyncStateReadDto {
+                             bool   $resume = false,
+                             int    $staleAfterSeconds = 900
+    ): DeliverySyncStateReadDto
+    {
         if ($staleAfterSeconds < 1) {
             throw new InvalidArgumentException(
                 'Delivery sync stale timeout must be greater than zero.'
@@ -176,6 +176,96 @@ final readonly class DeliverySyncStateStorage
         return $this->reload($state->id);
     }
 
+    public function getOrCreate(
+        string            $providerCode,
+        DeliverySyncScope $scope,
+        string            $scopeExternalRef = ''
+    ): DeliverySyncStateReadDto
+    {
+        $scopeExternalRef = $this->normalizeScopeExternalRef($scopeExternalRef);
+        $provider = $this->providers->getByCode($providerCode);
+
+        $model = $this->findModel(
+            providerId: $provider->id,
+            scope: $scope,
+            scopeExternalRef: $scopeExternalRef,
+            withProvider: true
+        );
+
+        if ($model !== null) {
+            return $this->mapper->mapSyncState($model);
+        }
+
+        $model = new DeliverySyncStateModel([
+            'provider_id' => $provider->id,
+            'scope' => $scope->value,
+            'scope_external_ref' => $scopeExternalRef,
+        ]);
+
+        try {
+            $this->saveModel($model);
+        } catch (IntegrityException|RuntimeException $exception) {
+            $model = $this->findModel(
+                providerId: $provider->id,
+                scope: $scope,
+                scopeExternalRef: $scopeExternalRef,
+                withProvider: true
+            );
+
+            if ($model === null) {
+                throw $exception;
+            }
+
+            return $this->mapper->mapSyncState($model);
+        }
+
+        return $this->reload((int)$model->id);
+    }
+
+    private function saveModel(DeliverySyncStateModel $model): void
+    {
+        if ($model->save()) {
+            return;
+        }
+
+        throw new RuntimeException(sprintf(
+            'Unable to save delivery sync state: %s',
+            $this->formatErrors($model)
+        ));
+    }
+
+    private function formatErrors(DeliverySyncStateModel $model): string
+    {
+        $encoded = json_encode(
+            $model->getErrors(),
+            JSON_UNESCAPED_UNICODE
+            | JSON_UNESCAPED_SLASHES
+        );
+
+        return $encoded === false
+            ? 'unknown validation error'
+            : $encoded;
+    }
+
+    private function reload(int $stateId): DeliverySyncStateReadDto
+    {
+        $this->assertStateId($stateId);
+
+        $model = DeliverySyncStateModel::find()
+            ->byId($stateId)
+            ->with('provider')
+            ->one();
+
+        if ($model === null) {
+            throw new RuntimeException(sprintf(
+                'Delivery sync state #%d was not found.',
+                $stateId
+            ));
+        }
+
+        return $this->mapper->mapSyncState($model);
+    }
+
     public function heartbeat(int $stateId, string $runToken): DeliverySyncStateReadDto
     {
         $runToken = $this->normalizeRunToken($runToken);
@@ -193,13 +283,67 @@ final readonly class DeliverySyncStateStorage
         return $this->reload($stateId);
     }
 
+    private function normalizeRunToken(string $runToken): string
+    {
+        $runToken = trim($runToken);
+
+        if (
+            strlen($runToken) !== self::RUN_TOKEN_LENGTH
+            || preg_match('/^[a-f0-9]{64}$/', $runToken) !== 1
+        ) {
+            throw new InvalidArgumentException(
+                'Invalid delivery sync run token.'
+            );
+        }
+
+        return $runToken;
+    }
+
+    /**
+     * @param array<string, mixed> $attributes
+     */
+    private function updateOwnedRunningState(int $stateId, string $runToken, array $attributes): void
+    {
+        $this->assertStateId($stateId);
+
+        $condition = [
+            'id' => $stateId,
+            'status' => DeliverySyncStatus::RUNNING->value,
+            'run_token' => $runToken,
+        ];
+
+        $affectedRows = DeliverySyncStateModel::updateAll(
+            $attributes,
+            $condition
+        );
+
+        if ($affectedRows === 1) {
+            return;
+        }
+
+        /*
+         * MySQL возвращает 0, если UPDATE фактически не изменил значения.
+         * Например, два heartbeat выполнены в одну секунду.
+         */
+        $stillOwned = DeliverySyncStateModel::find()
+            ->where($condition)
+            ->exists();
+
+        if ($stillOwned) {
+            return;
+        }
+
+        throw DeliverySyncStateException::ownershipLost($stateId);
+    }
+
     public function recordBatch(
-        int $stateId,
-        string $runToken,
-        ?string $nextCursor,
-        ?int $sourceTotalCount,
+        int                         $stateId,
+        string                      $runToken,
+        ?string                     $nextCursor,
+        ?int                        $sourceTotalCount,
         DeliveryWriteBatchResultDto $result
-    ): DeliverySyncStateReadDto {
+    ): DeliverySyncStateReadDto
+    {
         $runToken = $this->normalizeRunToken($runToken);
         $nextCursor = $this->normalizeCursor($nextCursor);
 
@@ -250,11 +394,29 @@ final readonly class DeliverySyncStateStorage
         return $this->reload($stateId);
     }
 
+    private function normalizeCursor(?string $cursor): ?string
+    {
+        if ($cursor === null) {
+            return null;
+        }
+
+        $cursor = trim($cursor);
+
+        if ($cursor === '') {
+            throw new InvalidArgumentException(
+                'Delivery sync cursor must be null or non-empty.'
+            );
+        }
+
+        return $cursor;
+    }
+
     public function completeRun(
-        int $stateId,
+        int    $stateId,
         string $runToken,
-        int $archivedCount = 0
-    ): DeliverySyncStateReadDto {
+        int    $archivedCount = 0
+    ): DeliverySyncStateReadDto
+    {
         $runToken = $this->normalizeRunToken($runToken);
 
         if ($archivedCount < 0) {
@@ -292,13 +454,39 @@ final readonly class DeliverySyncStateStorage
         return $this->reload($stateId);
     }
 
+    public function failRunFromThrowable(
+        int       $stateId,
+        string    $runToken,
+        Throwable $exception
+    ): DeliverySyncStateReadDto
+    {
+        $errorCode = $exception->getCode() === 0
+            ? null
+            : (string)$exception->getCode();
+
+        $errorMessage = trim($exception->getMessage());
+
+        if ($errorMessage === '') {
+            $errorMessage = $exception::class;
+        }
+
+        return $this->failRun(
+            stateId: $stateId,
+            runToken: $runToken,
+            errorType: $exception::class,
+            errorCode: $errorCode,
+            errorMessage: $errorMessage
+        );
+    }
+
     public function failRun(
-        int $stateId,
-        string $runToken,
-        string $errorType,
+        int     $stateId,
+        string  $runToken,
+        string  $errorType,
         ?string $errorCode,
-        string $errorMessage
-    ): DeliverySyncStateReadDto {
+        string  $errorMessage
+    ): DeliverySyncStateReadDto
+    {
         $runToken = $this->normalizeRunToken($runToken);
 
         $errorType = $this->normalizeErrorField(
@@ -343,179 +531,13 @@ final readonly class DeliverySyncStateStorage
         return $this->reload($stateId);
     }
 
-    public function failRunFromThrowable(
-        int $stateId,
-        string $runToken,
-        Throwable $exception
-    ): DeliverySyncStateReadDto {
-        $errorCode = $exception->getCode() === 0
-            ? null
-            : (string)$exception->getCode();
-
-        $errorMessage = trim($exception->getMessage());
-
-        if ($errorMessage === '') {
-            $errorMessage = $exception::class;
-        }
-
-        return $this->failRun(
-            stateId: $stateId,
-            runToken: $runToken,
-            errorType: $exception::class,
-            errorCode: $errorCode,
-            errorMessage: $errorMessage
-        );
-    }
-
-    /**
-     * @param array<string, mixed> $attributes
-     */
-    private function updateOwnedRunningState(int $stateId, string $runToken, array $attributes): void
-    {
-        $this->assertStateId($stateId);
-
-        $condition = [
-            'id' => $stateId,
-            'status' => DeliverySyncStatus::RUNNING->value,
-            'run_token' => $runToken,
-        ];
-
-        $affectedRows = DeliverySyncStateModel::updateAll(
-            $attributes,
-            $condition
-        );
-
-        if ($affectedRows === 1) {
-            return;
-        }
-
-        /*
-         * MySQL возвращает 0, если UPDATE фактически не изменил значения.
-         * Например, два heartbeat выполнены в одну секунду.
-         */
-        $stillOwned = DeliverySyncStateModel::find()
-            ->where($condition)
-            ->exists();
-
-        if ($stillOwned) {
-            return;
-        }
-
-        throw DeliverySyncStateException::ownershipLost($stateId);
-    }
-
-    private function reload(int $stateId): DeliverySyncStateReadDto
-    {
-        $this->assertStateId($stateId);
-
-        $model = DeliverySyncStateModel::find()
-            ->byId($stateId)
-            ->with('provider')
-            ->one();
-
-        if ($model === null) {
-            throw new RuntimeException(sprintf(
-                'Delivery sync state #%d was not found.',
-                $stateId
-            ));
-        }
-
-        return $this->mapper->mapSyncState($model);
-    }
-
-    private function findModel(
-        int $providerId,
-        DeliverySyncScope $scope,
-        string $scopeExternalRef,
-        bool $withProvider
-    ): ?DeliverySyncStateModel {
-        $query = DeliverySyncStateModel::find()
-            ->byProviderScope(
-                $providerId,
-                $scope,
-                $scopeExternalRef
-            );
-
-        if ($withProvider) {
-            $query->with('provider');
-        }
-
-        return $query->one();
-    }
-
-    private function saveModel(DeliverySyncStateModel $model): void
-    {
-        if ($model->save()) {
-            return;
-        }
-
-        throw new RuntimeException(sprintf(
-            'Unable to save delivery sync state: %s',
-            $this->formatErrors($model)
-        ));
-    }
-
-    private function assertStateId(int $stateId): void
-    {
-        if ($stateId < 1) {
-            throw new InvalidArgumentException(
-                'Delivery sync state ID must be greater than zero.'
-            );
-        }
-    }
-
-    private function normalizeRunToken(string $runToken): string
-    {
-        $runToken = trim($runToken);
-
-        if (
-            strlen($runToken) !== self::RUN_TOKEN_LENGTH
-            || preg_match('/^[a-f0-9]{64}$/', $runToken) !== 1
-        ) {
-            throw new InvalidArgumentException(
-                'Invalid delivery sync run token.'
-            );
-        }
-
-        return $runToken;
-    }
-
-    private function normalizeScopeExternalRef(string $scopeExternalRef): string
-    {
-        $scopeExternalRef = trim($scopeExternalRef);
-
-        if (strlen($scopeExternalRef) > 128) {
-            throw new InvalidArgumentException(
-                'Delivery sync scope external reference is too long.'
-            );
-        }
-
-        return $scopeExternalRef;
-    }
-
-    private function normalizeCursor(?string $cursor): ?string
-    {
-        if ($cursor === null) {
-            return null;
-        }
-
-        $cursor = trim($cursor);
-
-        if ($cursor === '') {
-            throw new InvalidArgumentException(
-                'Delivery sync cursor must be null or non-empty.'
-            );
-        }
-
-        return $cursor;
-    }
-
     private function normalizeErrorField(
         ?string $value,
-        int $maxLength,
-        string $field,
-        bool $required
-    ): ?string {
+        int     $maxLength,
+        string  $field,
+        bool    $required
+    ): ?string
+    {
         if ($value === null) {
             if ($required) {
                 throw new InvalidArgumentException(sprintf(
@@ -546,18 +568,5 @@ final readonly class DeliverySyncStateStorage
             $maxLength,
             'UTF-8'
         );
-    }
-
-    private function formatErrors(DeliverySyncStateModel $model): string
-    {
-        $encoded = json_encode(
-            $model->getErrors(),
-            JSON_UNESCAPED_UNICODE
-            | JSON_UNESCAPED_SLASHES
-        );
-
-        return $encoded === false
-            ? 'unknown validation error'
-            : $encoded;
     }
 }

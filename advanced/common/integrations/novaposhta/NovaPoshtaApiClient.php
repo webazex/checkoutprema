@@ -278,6 +278,31 @@ final class NovaPoshtaApiClient
     }
 
     /**
+     * @param array<string, mixed> $payload
+     *
+     * @throws NovaPoshtaApiException
+     */
+    private function encodePayload(array $payload, string $modelName, string $calledMethod): string
+    {
+        try {
+            return Json::encode(
+                $payload,
+                JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES
+            );
+        } catch (Throwable $exception) {
+            throw new NovaPoshtaApiException(
+                message: 'Failed to encode Nova Poshta request payload.',
+                errorType: NovaPoshtaApiException::TYPE_TRANSPORT,
+                retryable: false,
+                modelName: $modelName,
+                calledMethod: $calledMethod,
+                attempt: 1,
+                previous: $exception,
+            );
+        }
+    }
+
+    /**
      * @throws NovaPoshtaApiException
      */
     private function beforeRequest(string $modelName, string $calledMethod, int $attempt): void
@@ -429,29 +454,48 @@ final class NovaPoshtaApiClient
         }
     }
 
-    /**
-     * @param array<string, mixed> $payload
-     *
-     * @throws NovaPoshtaApiException
-     */
-    private function encodePayload(array $payload, string $modelName, string $calledMethod): string
+    private function createCurlException(int $curlErrorCode, string $curlErrorMessage, ?int $httpStatus, string $modelName, string $calledMethod, int $attempt): NovaPoshtaApiException
     {
-        try {
-            return Json::encode(
-                $payload,
-                JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES
-            );
-        } catch (Throwable $exception) {
-            throw new NovaPoshtaApiException(
-                message: 'Failed to encode Nova Poshta request payload.',
-                errorType: NovaPoshtaApiException::TYPE_TRANSPORT,
-                retryable: false,
+        $message = $curlErrorMessage !== ''
+            ? $curlErrorMessage
+            : 'unknown cURL error';
+
+        if (in_array($curlErrorCode, self::CURL_TIMEOUT_ERROR_CODES, true)) {
+            return new NovaPoshtaApiException(
+                message: 'Nova Poshta request timed out: ' . $message,
+                errorType: NovaPoshtaApiException::TYPE_TIMEOUT,
+                retryable: true,
+                httpStatus: $httpStatus,
+                curlErrorCode: $curlErrorCode,
                 modelName: $modelName,
                 calledMethod: $calledMethod,
-                attempt: 1,
-                previous: $exception,
+                attempt: $attempt,
             );
         }
+
+        if (in_array($curlErrorCode, self::CURL_CONNECTION_ERROR_CODES, true)) {
+            return new NovaPoshtaApiException(
+                message: 'Nova Poshta connection failed: ' . $message,
+                errorType: NovaPoshtaApiException::TYPE_CONNECTION,
+                retryable: true,
+                httpStatus: $httpStatus,
+                curlErrorCode: $curlErrorCode,
+                modelName: $modelName,
+                calledMethod: $calledMethod,
+                attempt: $attempt,
+            );
+        }
+
+        return new NovaPoshtaApiException(
+            message: 'Nova Poshta transport error: ' . $message,
+            errorType: NovaPoshtaApiException::TYPE_TRANSPORT,
+            retryable: false,
+            httpStatus: $httpStatus,
+            curlErrorCode: $curlErrorCode,
+            modelName: $modelName,
+            calledMethod: $calledMethod,
+            attempt: $attempt,
+        );
     }
 
     /**
@@ -536,145 +580,6 @@ final class NovaPoshtaApiClient
         );
     }
 
-    private function createCurlException(int $curlErrorCode, string $curlErrorMessage, ?int $httpStatus, string $modelName, string $calledMethod, int $attempt): NovaPoshtaApiException
-    {
-        $message = $curlErrorMessage !== ''
-            ? $curlErrorMessage
-            : 'unknown cURL error';
-
-        if (in_array($curlErrorCode, self::CURL_TIMEOUT_ERROR_CODES, true)) {
-            return new NovaPoshtaApiException(
-                message: 'Nova Poshta request timed out: ' . $message,
-                errorType: NovaPoshtaApiException::TYPE_TIMEOUT,
-                retryable: true,
-                httpStatus: $httpStatus,
-                curlErrorCode: $curlErrorCode,
-                modelName: $modelName,
-                calledMethod: $calledMethod,
-                attempt: $attempt,
-            );
-        }
-
-        if (in_array($curlErrorCode, self::CURL_CONNECTION_ERROR_CODES, true)) {
-            return new NovaPoshtaApiException(
-                message: 'Nova Poshta connection failed: ' . $message,
-                errorType: NovaPoshtaApiException::TYPE_CONNECTION,
-                retryable: true,
-                httpStatus: $httpStatus,
-                curlErrorCode: $curlErrorCode,
-                modelName: $modelName,
-                calledMethod: $calledMethod,
-                attempt: $attempt,
-            );
-        }
-
-        return new NovaPoshtaApiException(
-            message: 'Nova Poshta transport error: ' . $message,
-            errorType: NovaPoshtaApiException::TYPE_TRANSPORT,
-            retryable: false,
-            httpStatus: $httpStatus,
-            curlErrorCode: $curlErrorCode,
-            modelName: $modelName,
-            calledMethod: $calledMethod,
-            attempt: $attempt,
-        );
-    }
-
-    /**
-     * @param array{
-     *     errors: list<string>,
-     *     errorCodes: list<string>,
-     *     warnings: list<string>,
-     *     warningCodes: list<string>,
-     *     messageCodes: list<string>
-     * } $details
-     */
-    private function createHttpException(int $httpStatus, array $details, string $modelName, string $calledMethod, int $attempt): NovaPoshtaApiException
-    {
-        if ($httpStatus === 429) {
-            $errorType = NovaPoshtaApiException::TYPE_RATE_LIMIT;
-            $retryable = true;
-        } elseif ($httpStatus === 408) {
-            $errorType = NovaPoshtaApiException::TYPE_TIMEOUT;
-            $retryable = true;
-        } elseif ($httpStatus >= 500) {
-            $errorType = NovaPoshtaApiException::TYPE_HTTP_SERVER;
-            $retryable = true;
-        } else {
-            $errorType = NovaPoshtaApiException::TYPE_HTTP_CLIENT;
-            $retryable = false;
-        }
-
-        return $this->createExceptionFromDetails(
-            message: sprintf(
-                'Nova Poshta request failed with HTTP %d: %s',
-                $httpStatus,
-                $this->formatApiDetails($details)
-            ),
-            errorType: $errorType,
-            retryable: $retryable,
-            details: $details,
-            modelName: $modelName,
-            calledMethod: $calledMethod,
-            attempt: $attempt,
-            httpStatus: $httpStatus,
-        );
-    }
-
-    /**
-     * @param array{
-     *     errors: list<string>,
-     *     errorCodes: list<string>,
-     *     warnings: list<string>,
-     *     warningCodes: list<string>,
-     *     messageCodes: list<string>
-     * } $details
-     */
-    private function createApiRejectedException(array $details, string $modelName, string $calledMethod, int $attempt): NovaPoshtaApiException
-    {
-        $rateLimited = $this->containsRateLimitCode($details);
-
-        return $this->createExceptionFromDetails(
-            message: 'Nova Poshta API rejected the request: '
-            . $this->formatApiDetails($details),
-            errorType: $rateLimited
-                ? NovaPoshtaApiException::TYPE_RATE_LIMIT
-                : NovaPoshtaApiException::TYPE_API_REJECTED,
-            retryable: $rateLimited,
-            details: $details,
-            modelName: $modelName,
-            calledMethod: $calledMethod,
-            attempt: $attempt,
-        );
-    }
-
-    /**
-     * @param array{
-     *     errors: list<string>,
-     *     errorCodes: list<string>,
-     *     warnings: list<string>,
-     *     warningCodes: list<string>,
-     *     messageCodes: list<string>
-     * } $details
-     */
-    private function createExceptionFromDetails(string $message, string $errorType, bool $retryable, array $details, string $modelName, string $calledMethod, int $attempt, ?int $httpStatus = null): NovaPoshtaApiException
-    {
-        return new NovaPoshtaApiException(
-            message: $message,
-            errorType: $errorType,
-            retryable: $retryable,
-            httpStatus: $httpStatus,
-            errors: $details['errors'],
-            errorCodes: $details['errorCodes'],
-            warnings: $details['warnings'],
-            warningCodes: $details['warningCodes'],
-            messageCodes: $details['messageCodes'],
-            modelName: $modelName,
-            calledMethod: $calledMethod,
-            attempt: $attempt,
-        );
-    }
-
     /**
      * @param array<string, mixed> $response
      *
@@ -749,15 +654,63 @@ final class NovaPoshtaApiClient
      *     messageCodes: list<string>
      * } $details
      */
-    private function containsRateLimitCode(array $details): bool
+    private function createHttpException(int $httpStatus, array $details, string $modelName, string $calledMethod, int $attempt): NovaPoshtaApiException
     {
-        foreach ($details as $values) {
-            if (in_array(self::API_RATE_LIMIT_CODE, $values, true)) {
-                return true;
-            }
+        if ($httpStatus === 429) {
+            $errorType = NovaPoshtaApiException::TYPE_RATE_LIMIT;
+            $retryable = true;
+        } elseif ($httpStatus === 408) {
+            $errorType = NovaPoshtaApiException::TYPE_TIMEOUT;
+            $retryable = true;
+        } elseif ($httpStatus >= 500) {
+            $errorType = NovaPoshtaApiException::TYPE_HTTP_SERVER;
+            $retryable = true;
+        } else {
+            $errorType = NovaPoshtaApiException::TYPE_HTTP_CLIENT;
+            $retryable = false;
         }
 
-        return false;
+        return $this->createExceptionFromDetails(
+            message: sprintf(
+                'Nova Poshta request failed with HTTP %d: %s',
+                $httpStatus,
+                $this->formatApiDetails($details)
+            ),
+            errorType: $errorType,
+            retryable: $retryable,
+            details: $details,
+            modelName: $modelName,
+            calledMethod: $calledMethod,
+            attempt: $attempt,
+            httpStatus: $httpStatus,
+        );
+    }
+
+    /**
+     * @param array{
+     *     errors: list<string>,
+     *     errorCodes: list<string>,
+     *     warnings: list<string>,
+     *     warningCodes: list<string>,
+     *     messageCodes: list<string>
+     * } $details
+     */
+    private function createExceptionFromDetails(string $message, string $errorType, bool $retryable, array $details, string $modelName, string $calledMethod, int $attempt, ?int $httpStatus = null): NovaPoshtaApiException
+    {
+        return new NovaPoshtaApiException(
+            message: $message,
+            errorType: $errorType,
+            retryable: $retryable,
+            httpStatus: $httpStatus,
+            errors: $details['errors'],
+            errorCodes: $details['errorCodes'],
+            warnings: $details['warnings'],
+            warningCodes: $details['warningCodes'],
+            messageCodes: $details['messageCodes'],
+            modelName: $modelName,
+            calledMethod: $calledMethod,
+            attempt: $attempt,
+        );
     }
 
     /**
@@ -786,6 +739,53 @@ final class NovaPoshtaApiClient
         }
 
         return implode('; ', $messages);
+    }
+
+    /**
+     * @param array{
+     *     errors: list<string>,
+     *     errorCodes: list<string>,
+     *     warnings: list<string>,
+     *     warningCodes: list<string>,
+     *     messageCodes: list<string>
+     * } $details
+     */
+    private function createApiRejectedException(array $details, string $modelName, string $calledMethod, int $attempt): NovaPoshtaApiException
+    {
+        $rateLimited = $this->containsRateLimitCode($details);
+
+        return $this->createExceptionFromDetails(
+            message: 'Nova Poshta API rejected the request: '
+            . $this->formatApiDetails($details),
+            errorType: $rateLimited
+                ? NovaPoshtaApiException::TYPE_RATE_LIMIT
+                : NovaPoshtaApiException::TYPE_API_REJECTED,
+            retryable: $rateLimited,
+            details: $details,
+            modelName: $modelName,
+            calledMethod: $calledMethod,
+            attempt: $attempt,
+        );
+    }
+
+    /**
+     * @param array{
+     *     errors: list<string>,
+     *     errorCodes: list<string>,
+     *     warnings: list<string>,
+     *     warningCodes: list<string>,
+     *     messageCodes: list<string>
+     * } $details
+     */
+    private function containsRateLimitCode(array $details): bool
+    {
+        foreach ($details as $values) {
+            if (in_array(self::API_RATE_LIMIT_CODE, $values, true)) {
+                return true;
+            }
+        }
+
+        return false;
     }
 
     private function calculateRetryDelayMs(int $attempt): int

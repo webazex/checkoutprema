@@ -7,8 +7,8 @@ namespace common\integrations\keycrm\dto;
 final class KeyCrmProductDto
 {
     public function __construct(
-        public readonly int $externalId,
-        public readonly string $name,
+        public readonly int     $externalId,
+        public readonly string  $name,
         public readonly ?string $description,
 
         /**
@@ -23,44 +23,45 @@ final class KeyCrmProductDto
          *
          * @var string[]
          */
-        public readonly array $imageUrls,
+        public readonly array   $imageUrls,
 
         /**
          * Legacy/raw KeyCRM quantity value.
          * Do not write this directly to product.quantity unless it is proven
          * to be available-to-sell quantity.
          */
-        public readonly int $quantity,
+        public readonly int     $quantity,
 
-        public readonly string $currencyCode,
-        public readonly float $price,
-        public readonly ?float $purchasedPrice,
-        public readonly ?int $categoryId,
+        public readonly string  $currencyCode,
+        public readonly float   $price,
+        public readonly ?float  $purchasedPrice,
+        public readonly ?int    $categoryId,
         public readonly ?string $sku,
         public readonly ?string $barcode,
-        public readonly bool $isArchived,
-        public readonly ?float $weight,
-        public readonly ?float $length,
-        public readonly ?float $width,
-        public readonly ?float $height,
-        public readonly array $customFields,
-        public readonly array $raw,
+        public readonly bool    $isArchived,
+        public readonly ?float  $weight,
+        public readonly ?float  $length,
+        public readonly ?float  $width,
+        public readonly ?float  $height,
+        public readonly array   $customFields,
+        public readonly array   $raw,
 
         /**
          * Total stock quantity from KeyCRM, if available.
          */
-        public readonly ?int $stockQuantity = null,
+        public readonly ?int    $stockQuantity = null,
 
         /**
          * Reserved quantity from KeyCRM, if available.
          */
-        public readonly ?int $reservedQuantity = null,
+        public readonly ?int    $reservedQuantity = null,
 
         /**
          * Available-to-sell quantity.
          * This is the only value that may be written to product.quantity.
          */
-        public readonly ?int $availableQuantity = null,
-    ) {
+        public readonly ?int    $availableQuantity = null,
+    )
+    {
     }
 }

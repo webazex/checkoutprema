@@ -47,6 +47,63 @@ final class CartController extends Controller
         return $this->redirect(['/catalog/index']);
     }
 
+    private function findActiveCartFromSession(): ?CartModel
+    {
+        $this->ensureSessionStarted();
+
+        $session = Yii::$app->session;
+        $activeCartHash = (string)$session->get('active_cart_hash', '');
+
+        if ($activeCartHash !== '') {
+            /** @var CartModel|null $cart */
+            $cart = CartModel::find()
+                ->where([
+                    'hash' => $activeCartHash,
+                    'status' => CartModel::STATUS_ACTIVE,
+                ])
+                ->one();
+
+            if ($cart instanceof CartModel) {
+                return $cart;
+            }
+        }
+
+        $sessionKey = (string)$session->id;
+
+        /** @var CartModel|null $cart */
+        $cart = CartModel::find()
+            ->where([
+                'session_key' => $sessionKey,
+                'source_type' => CartModel::SOURCE_DIRECT,
+                'status' => CartModel::STATUS_ACTIVE,
+            ])
+            ->orderBy(['id' => SORT_DESC])
+            ->one();
+
+        if ($cart instanceof CartModel) {
+            $session->set('active_cart_hash', (string)$cart->hash);
+
+            return $cart;
+        }
+
+        return null;
+    }
+
+    private function ensureSessionStarted(): void
+    {
+        if (!Yii::$app->session->isActive) {
+            Yii::$app->session->open();
+        }
+    }
+
+    private function getCheckoutUrl(CartModel $cart): string
+    {
+        return Yii::$app->urlManager->createUrl([
+            '/checkout/view',
+            'hash' => $cart->hash,
+        ]);
+    }
+
     /**
      * Добавить в корзину.
      *
@@ -109,67 +166,6 @@ final class CartController extends Controller
                 'success' => false,
                 'message' => 'Не вдалося додати товар до кошика.',
             ]);
-        }
-    }
-
-    /**
-     * Купить сейчас.
-     *
-     * Поведение:
-     * - добавляем товар в cart/cart_item;
-     * - сразу ведём в /checkout/<hash>.
-     */
-    public function actionBuyNow(): Response
-    {
-        $request = Yii::$app->request;
-
-        try {
-            $cart = $this->addProductToActiveCart(
-                productId: (int)$request->post('product_id'),
-                qty: max(1, (int)$request->post('qty', 1))
-            );
-
-            $checkoutUrl = $this->getCheckoutUrl($cart);
-
-            if ($request->isAjax) {
-                return $this->asJson([
-                    'success' => true,
-                    'cartHash' => (string)$cart->hash,
-                    'checkoutUrl' => $checkoutUrl,
-                    'itemsCount' => (int)$cart->items_count,
-                    'totalAmount' => (float)$cart->total_amount,
-                ]);
-            }
-
-            return $this->redirect($checkoutUrl);
-        } catch (DomainException $e) {
-            Yii::$app->session->setFlash('error', $e->getMessage());
-
-            if ($request->isAjax) {
-                return $this->asJson([
-                    'success' => false,
-                    'message' => $e->getMessage(),
-                ]);
-            }
-
-            return $this->redirect($request->referrer ?: ['/catalog/index']);
-        } catch (Throwable $e) {
-            Yii::error([
-                'message' => 'Failed to buy catalog product now.',
-                'exception' => $e->getMessage(),
-                'trace' => $e->getTraceAsString(),
-            ], __METHOD__);
-
-            Yii::$app->session->setFlash('error', 'Не вдалося перейти до оформлення.');
-
-            if ($request->isAjax) {
-                return $this->asJson([
-                    'success' => false,
-                    'message' => 'Не вдалося перейти до оформлення.',
-                ]);
-            }
-
-            return $this->redirect($request->referrer ?: ['/catalog/index']);
         }
     }
 
@@ -302,46 +298,16 @@ final class CartController extends Controller
         return $cart;
     }
 
-    private function findActiveCartFromSession(): ?CartModel
+    private function assertCartCurrency(CartModel $cart, string $currency): void
     {
-        $this->ensureSessionStarted();
-
-        $session = Yii::$app->session;
-        $activeCartHash = (string)$session->get('active_cart_hash', '');
-
-        if ($activeCartHash !== '') {
-            /** @var CartModel|null $cart */
-            $cart = CartModel::find()
-                ->where([
-                    'hash' => $activeCartHash,
-                    'status' => CartModel::STATUS_ACTIVE,
-                ])
-                ->one();
-
-            if ($cart instanceof CartModel) {
-                return $cart;
-            }
+        if (strtoupper((string)$cart->currency) !== strtoupper($currency)) {
+            throw new DomainException('У кошику вже є товари в іншій валюті.');
         }
+    }
 
-        $sessionKey = (string)$session->id;
-
-        /** @var CartModel|null $cart */
-        $cart = CartModel::find()
-            ->where([
-                'session_key' => $sessionKey,
-                'source_type' => CartModel::SOURCE_DIRECT,
-                'status' => CartModel::STATUS_ACTIVE,
-            ])
-            ->orderBy(['id' => SORT_DESC])
-            ->one();
-
-        if ($cart instanceof CartModel) {
-            $session->set('active_cart_hash', (string)$cart->hash);
-
-            return $cart;
-        }
-
-        return null;
+    private function formatModelErrors(array $errors): string
+    {
+        return json_encode($errors, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES) ?: 'unknown error';
     }
 
     private function refreshCartTotals(CartModel $cart): void
@@ -371,30 +337,64 @@ final class CartController extends Controller
         }
     }
 
-    private function assertCartCurrency(CartModel $cart, string $currency): void
+    /**
+     * Купить сейчас.
+     *
+     * Поведение:
+     * - добавляем товар в cart/cart_item;
+     * - сразу ведём в /checkout/<hash>.
+     */
+    public function actionBuyNow(): Response
     {
-        if (strtoupper((string)$cart->currency) !== strtoupper($currency)) {
-            throw new DomainException('У кошику вже є товари в іншій валюті.');
+        $request = Yii::$app->request;
+
+        try {
+            $cart = $this->addProductToActiveCart(
+                productId: (int)$request->post('product_id'),
+                qty: max(1, (int)$request->post('qty', 1))
+            );
+
+            $checkoutUrl = $this->getCheckoutUrl($cart);
+
+            if ($request->isAjax) {
+                return $this->asJson([
+                    'success' => true,
+                    'cartHash' => (string)$cart->hash,
+                    'checkoutUrl' => $checkoutUrl,
+                    'itemsCount' => (int)$cart->items_count,
+                    'totalAmount' => (float)$cart->total_amount,
+                ]);
+            }
+
+            return $this->redirect($checkoutUrl);
+        } catch (DomainException $e) {
+            Yii::$app->session->setFlash('error', $e->getMessage());
+
+            if ($request->isAjax) {
+                return $this->asJson([
+                    'success' => false,
+                    'message' => $e->getMessage(),
+                ]);
+            }
+
+            return $this->redirect($request->referrer ?: ['/catalog/index']);
+        } catch (Throwable $e) {
+            Yii::error([
+                'message' => 'Failed to buy catalog product now.',
+                'exception' => $e->getMessage(),
+                'trace' => $e->getTraceAsString(),
+            ], __METHOD__);
+
+            Yii::$app->session->setFlash('error', 'Не вдалося перейти до оформлення.');
+
+            if ($request->isAjax) {
+                return $this->asJson([
+                    'success' => false,
+                    'message' => 'Не вдалося перейти до оформлення.',
+                ]);
+            }
+
+            return $this->redirect($request->referrer ?: ['/catalog/index']);
         }
-    }
-
-    private function getCheckoutUrl(CartModel $cart): string
-    {
-        return Yii::$app->urlManager->createUrl([
-            '/checkout/view',
-            'hash' => $cart->hash,
-        ]);
-    }
-
-    private function ensureSessionStarted(): void
-    {
-        if (!Yii::$app->session->isActive) {
-            Yii::$app->session->open();
-        }
-    }
-
-    private function formatModelErrors(array $errors): string
-    {
-        return json_encode($errors, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES) ?: 'unknown error';
     }
 }

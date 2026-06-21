@@ -2,6 +2,8 @@
 
 namespace common\models\customer;
 
+use common\models\BaseModel;
+
 /**
  * @property int $id
  * @property int $customer_id
@@ -13,14 +15,15 @@ namespace common\models\customer;
  *
  * @property CustomerModel $customer
  */
-class CustomerPasswordResetTokenModel extends \common\models\BaseModel
+class CustomerPasswordResetTokenModel extends BaseModel
 {
     public static function tableName(): string
     {
         return '{{%customer_password_reset_token}}';
     }
 
-    public static function createForCustomer(CustomerModel $customer) {
+    public static function createForCustomer(CustomerModel $customer)
+    {
         return "test-token-str";
     }
 

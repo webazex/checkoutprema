@@ -28,11 +28,6 @@ final class PaymentGatewayRegistry
         }
     }
 
-    public function has(string $provider): bool
-    {
-        return isset($this->gatewaysByCode[$provider]);
-    }
-
     public function get(string $provider): PaymentGatewayInterface
     {
         if (!$this->has($provider)) {
@@ -40,6 +35,11 @@ final class PaymentGatewayRegistry
         }
 
         return $this->gatewaysByCode[$provider];
+    }
+
+    public function has(string $provider): bool
+    {
+        return isset($this->gatewaysByCode[$provider]);
     }
 
     /**

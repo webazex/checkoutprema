@@ -2,6 +2,7 @@
 
 namespace frontend\models\customer;
 
+use Throwable;
 use Yii;
 use yii\base\Model;
 use common\models\customer\CustomerModel;
@@ -44,7 +45,7 @@ class CustomerRestoreRequestForm extends Model
 
         try {
             [, $rawToken] = CustomerPasswordResetTokenModel::createForCustomer($customer);
-        } catch (\Throwable $e) {
+        } catch (Throwable $e) {
             Yii::error([
                 'message' => 'Failed to create customer password reset token.',
                 'email' => $this->email,
@@ -85,7 +86,7 @@ class CustomerRestoreRequestForm extends Model
                 ->setTo($customer->email)
                 ->setSubject(Yii::t('frontend', 'Password reset'))
                 ->send();
-        } catch (\Throwable $e) {
+        } catch (Throwable $e) {
             Yii::error([
                 'message' => 'Failed to send customer password reset email.',
                 'customerId' => $customer->id,

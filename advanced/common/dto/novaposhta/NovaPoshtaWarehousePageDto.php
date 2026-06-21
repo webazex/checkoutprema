@@ -11,10 +11,11 @@ final readonly class NovaPoshtaWarehousePageDto
      */
     public function __construct(
         public array $items,
-        public int $apiTotalCount,
-        public int $page,
-        public int $limit
-    ) {
+        public int   $apiTotalCount,
+        public int   $page,
+        public int   $limit
+    )
+    {
     }
 
     public function hasMore(): bool

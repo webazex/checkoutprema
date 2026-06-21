@@ -1,8 +1,10 @@
 <?php
 
 namespace common\models\payment;
+
 use common\models\BaseModel;
 use common\models\order\OrderModel;
+
 /**
  * @property int $id
  * @property int $order_id
@@ -39,6 +41,11 @@ class PaymentLogModel extends BaseModel
     public static function tableName(): string
     {
         return '{{%payment_log}}';
+    }
+
+    public static function find(): PaymentLogQuery
+    {
+        return new PaymentLogQuery(static::class);
     }
 
     public function rules(): array
@@ -112,9 +119,5 @@ class PaymentLogModel extends BaseModel
         $decoded = json_decode($this->response_data, true);
 
         return is_array($decoded) ? $decoded : [];
-    }
-    public static function find(): PaymentLogQuery
-    {
-        return new PaymentLogQuery(static::class);
     }
 }

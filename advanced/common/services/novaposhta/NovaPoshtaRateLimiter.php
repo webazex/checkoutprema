@@ -24,7 +24,8 @@ final class NovaPoshtaRateLimiter
     public function __construct(
         private readonly int $minIntervalMs = 1000,
         private readonly int $lockTimeoutSeconds = 10,
-    ) {
+    )
+    {
         if ($minIntervalMs < 0) {
             throw new InvalidArgumentException(
                 'Nova Poshta API minimum interval must not be negative.'

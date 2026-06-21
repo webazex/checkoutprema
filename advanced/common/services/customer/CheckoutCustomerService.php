@@ -2,6 +2,7 @@
 
 namespace common\services\customer;
 
+use RuntimeException;
 use Yii;
 use common\models\customer\CustomerModel;
 use common\models\customer\CustomerPasswordResetTokenModel;
@@ -58,7 +59,7 @@ class CheckoutCustomerService
                 'email' => $email,
             ], __METHOD__);
 
-            throw new \RuntimeException('Failed to create customer during checkout.');
+            throw new RuntimeException('Failed to create customer during checkout.');
         }
 
         [, $rawToken] = CustomerPasswordResetTokenModel::createForCustomer($customer);
@@ -75,10 +76,11 @@ class CheckoutCustomerService
 
     protected function updateCustomerFromCheckout(
         CustomerModel $customer,
-        string $phone,
-        string $firstName,
-        string $lastName
-    ): void {
+        string        $phone,
+        string        $firstName,
+        string        $lastName
+    ): void
+    {
         $changed = false;
         $fieldsToSave = [];
 

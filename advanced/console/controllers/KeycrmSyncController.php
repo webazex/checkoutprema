@@ -26,6 +26,15 @@ final class KeycrmSyncController extends Controller
         return ExitCode::OK;
     }
 
+    private function formatJobResult(string $label, int|string|null $jobId): string
+    {
+        if ($jobId === null) {
+            return "{$label} job skipped: duplicate active job exists.\n";
+        }
+
+        return "{$label} job pushed. Job ID: {$jobId}\n";
+    }
+
     public function actionCategories(int $maxPages = 0, int $linkProducts = 1): int
     {
         /** @var KeyCrmSyncSchedulerService $scheduler */
@@ -52,14 +61,5 @@ final class KeycrmSyncController extends Controller
         $this->stdout($this->formatJobResult('KeyCRM products sync', $result['products']));
 
         return ExitCode::OK;
-    }
-
-    private function formatJobResult(string $label, int|string|null $jobId): string
-    {
-        if ($jobId === null) {
-            return "{$label} job skipped: duplicate active job exists.\n";
-        }
-
-        return "{$label} job pushed. Job ID: {$jobId}\n";
     }
 }

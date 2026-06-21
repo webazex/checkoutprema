@@ -13,8 +13,41 @@ final readonly class DeliveryAreaStorage
 {
     public function __construct(
         private DeliveryProviderStorage $providers,
-        private DeliveryReadMapper $mapper,
-    ) {
+        private DeliveryReadMapper      $mapper,
+    )
+    {
+    }
+
+    public function getAvailableByProviderAndId(
+        string $providerCode,
+        int    $id
+    ): DeliveryAreaReadDto
+    {
+        return $this->findAvailableByProviderAndId($providerCode, $id)
+            ?? throw new OutOfBoundsException(sprintf(
+                'Available delivery area "%s:%d" was not found.',
+                $providerCode,
+                $id
+            ));
+    }
+
+    public function findAvailableByProviderAndId(
+        string $providerCode,
+        int    $id
+    ): ?DeliveryAreaReadDto
+    {
+        $provider = $this->providers->getActiveByCode($providerCode);
+
+        $model = DeliveryAreaModel::find()
+            ->byProviderId($provider->id)
+            ->byId($id)
+            ->notArchived()
+            ->with('provider')
+            ->one();
+
+        return $model === null
+            ? null
+            : $this->mapper->mapArea($model);
     }
 
     /**
@@ -22,7 +55,8 @@ final readonly class DeliveryAreaStorage
      */
     public function findAvailableByProviderCode(
         string $providerCode
-    ): array {
+    ): array
+    {
         $provider = $this->providers->getActiveByCode($providerCode);
 
         $models = DeliveryAreaModel::find()
@@ -33,7 +67,7 @@ final readonly class DeliveryAreaStorage
             ->all();
 
         return array_map(
-            fn (
+            fn(
                 DeliveryAreaModel $model
             ): DeliveryAreaReadDto => $this->mapper->mapArea($model),
             $models
@@ -42,7 +76,8 @@ final readonly class DeliveryAreaStorage
 
     public function findById(
         int $id
-    ): ?DeliveryAreaReadDto {
+    ): ?DeliveryAreaReadDto
+    {
         $model = DeliveryAreaModel::find()
             ->byId($id)
             ->with('provider')
@@ -53,10 +88,26 @@ final readonly class DeliveryAreaStorage
             : $this->mapper->mapArea($model);
     }
 
+    public function getAvailableByProviderAndExternalRef(
+        string $providerCode,
+        string $externalRef
+    ): DeliveryAreaReadDto
+    {
+        return $this->findAvailableByProviderAndExternalRef(
+            $providerCode,
+            $externalRef
+        ) ?? throw new OutOfBoundsException(sprintf(
+            'Delivery area "%s:%s" was not found.',
+            $providerCode,
+            $externalRef
+        ));
+    }
+
     public function findAvailableByProviderAndExternalRef(
         string $providerCode,
         string $externalRef
-    ): ?DeliveryAreaReadDto {
+    ): ?DeliveryAreaReadDto
+    {
         $provider = $this->providers->getActiveByCode($providerCode);
 
         $model = DeliveryAreaModel::find()
@@ -71,19 +122,5 @@ final readonly class DeliveryAreaStorage
         return $model === null
             ? null
             : $this->mapper->mapArea($model);
-    }
-
-    public function getAvailableByProviderAndExternalRef(
-        string $providerCode,
-        string $externalRef
-    ): DeliveryAreaReadDto {
-        return $this->findAvailableByProviderAndExternalRef(
-            $providerCode,
-            $externalRef
-        ) ?? throw new OutOfBoundsException(sprintf(
-            'Delivery area "%s:%s" was not found.',
-            $providerCode,
-            $externalRef
-        ));
     }
 }

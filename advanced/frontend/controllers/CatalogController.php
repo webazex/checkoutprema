@@ -47,113 +47,6 @@ final class CatalogController extends Controller
         ]);
     }
 
-    public function actionCategory(string $categorySlug): string
-    {
-        $category = $this->findCategoryBySlug($categorySlug);
-
-        $products = ProductModel::find()
-            ->notArchived()
-            ->byCategoryId((int)$category->id)
-            ->with('category')
-            ->ordered()
-            ->all();
-
-        $canonicalUrl = Url::to([
-            '/catalog/category',
-            'categorySlug' => $category->slug,
-        ], true);
-
-        $title = $category->seo_title ?: $this->limitText(
-            $category->name . ' — купити в Україні | Prema',
-            60
-        );
-
-        $description = $category->seo_description ?: $this->limitText(
-            $category->name . ' від Prema. Якісні товари для йоги, спорту та щоденних практик. Замовляйте онлайн з доставкою по Україні.',
-            155
-        );
-
-        $this->registerPageMeta(
-            title: $title,
-            description: $description,
-            canonicalUrl: $canonicalUrl,
-            ogImage: $category->thumbnail_url ?: $this->getFallbackOgImage($products)
-        );
-
-        $breadcrumbs = $this->breadcrumbsProvider()->forCatalogCategory($category, true);
-
-        return $this->render('category', [
-            'category' => $category,
-            'products' => $products,
-            'breadcrumbs' => $breadcrumbs,
-            'schemaJson' => $this->buildItemListSchema($products),
-            'breadcrumbSchemaJson' => $this->buildBreadcrumbSchema($breadcrumbs),
-        ]);
-    }
-
-    public function actionProduct(string $categorySlug, string $productSlug): string
-    {
-        $category = $this->findCategoryBySlug($categorySlug);
-
-        /** @var ProductModel|null $product */
-        $product = ProductModel::find()
-            ->notArchived()
-            ->bySlug($productSlug)
-            ->byCategoryId((int)$category->id)
-            ->with('category')
-            ->one();
-
-        if (!$product instanceof ProductModel) {
-            throw new NotFoundHttpException('Товар не знайдено.');
-        }
-
-        $relatedProducts = ProductModel::find()
-            ->notArchived()
-            ->byCategoryId((int)$category->id)
-            ->andWhere(['<>', 'id', (int)$product->id])
-            ->limit(4)
-            ->ordered()
-            ->all();
-
-        $canonicalUrl = Url::to([
-            '/catalog/product',
-            'categorySlug' => $category->slug,
-            'productSlug' => $product->slug,
-        ], true);
-
-        $price = $this->formatPrice($product);
-
-        $title = $this->limitText(
-            $product->name . ' — ' . $price . ' | Prema',
-            60
-        );
-
-        $description = $this->limitText(
-            $this->plainText($product->description)
-                ?: $product->name . ' від Prema. Купити онлайн з доставкою по Україні.',
-            155
-        );
-
-        $this->registerPageMeta(
-            title: $title,
-            description: $description,
-            canonicalUrl: $canonicalUrl,
-            ogImage: $product->thumbnail_url,
-            ogType: 'product'
-        );
-
-        $breadcrumbs = $this->breadcrumbsProvider()->forProduct($category, $product, true);
-
-        return $this->render('product', [
-            'category' => $category,
-            'product' => $product,
-            'relatedProducts' => $relatedProducts,
-            'breadcrumbs' => $breadcrumbs,
-            'schemaJson' => $this->buildProductSchema($product, $canonicalUrl),
-            'breadcrumbSchemaJson' => $this->buildBreadcrumbSchema($breadcrumbs),
-        ]);
-    }
-
     /**
      * Возвращает дерево категорий для публичного вывода.
      *
@@ -220,28 +113,14 @@ final class CatalogController extends Controller
         return $buildTree(0);
     }
 
-    private function findCategoryBySlug(string $slug): CatalogCategoryModel
-    {
-        /** @var CatalogCategoryModel|null $category */
-        $category = CatalogCategoryModel::find()
-            ->active()
-            ->bySlug($slug)
-            ->one();
-
-        if (!$category instanceof CatalogCategoryModel) {
-            throw new NotFoundHttpException('Категорію не знайдено.');
-        }
-
-        return $category;
-    }
-
     private function registerPageMeta(
-        string $title,
-        string $description,
-        string $canonicalUrl,
+        string  $title,
+        string  $description,
+        string  $canonicalUrl,
         ?string $ogImage = null,
-        string $ogType = 'website'
-    ): void {
+        string  $ogType = 'website'
+    ): void
+    {
         $view = $this->getView();
 
         $view->title = $title;
@@ -266,24 +145,23 @@ final class CatalogController extends Controller
         $view->registerMetaTag(['name' => 'twitter:description', 'content' => $description], 'twitter:description');
     }
 
-    private function buildBreadcrumbSchema(array $breadcrumbs): string
+    /**
+     * @param ProductModel[] $products
+     */
+    private function getFallbackOgImage(array $products): ?string
     {
-        $items = [];
-
-        foreach ($breadcrumbs as $position => $item) {
-            $items[] = [
-                '@type' => 'ListItem',
-                'position' => $position + 1,
-                'name' => $item['label'],
-                'item' => $item['url'],
-            ];
+        foreach ($products as $product) {
+            if (!empty($product->thumbnail_url)) {
+                return $product->thumbnail_url;
+            }
         }
 
-        return Json::htmlEncode([
-            '@context' => 'https://schema.org',
-            '@type' => 'BreadcrumbList',
-            'itemListElement' => $items,
-        ]);
+        return null;
+    }
+
+    private function breadcrumbsProvider(): BreadcrumbsProvider
+    {
+        return new BreadcrumbsProvider();
     }
 
     /**
@@ -319,6 +197,165 @@ final class CatalogController extends Controller
         ]);
     }
 
+    private function buildBreadcrumbSchema(array $breadcrumbs): string
+    {
+        $items = [];
+
+        foreach ($breadcrumbs as $position => $item) {
+            $items[] = [
+                '@type' => 'ListItem',
+                'position' => $position + 1,
+                'name' => $item['label'],
+                'item' => $item['url'],
+            ];
+        }
+
+        return Json::htmlEncode([
+            '@context' => 'https://schema.org',
+            '@type' => 'BreadcrumbList',
+            'itemListElement' => $items,
+        ]);
+    }
+
+    public function actionCategory(string $categorySlug): string
+    {
+        $category = $this->findCategoryBySlug($categorySlug);
+
+        $products = ProductModel::find()
+            ->notArchived()
+            ->byCategoryId((int)$category->id)
+            ->with('category')
+            ->ordered()
+            ->all();
+
+        $canonicalUrl = Url::to([
+            '/catalog/category',
+            'categorySlug' => $category->slug,
+        ], true);
+
+        $title = $category->seo_title ?: $this->limitText(
+            $category->name . ' — купити в Україні | Prema',
+            60
+        );
+
+        $description = $category->seo_description ?: $this->limitText(
+            $category->name . ' від Prema. Якісні товари для йоги, спорту та щоденних практик. Замовляйте онлайн з доставкою по Україні.',
+            155
+        );
+
+        $this->registerPageMeta(
+            title: $title,
+            description: $description,
+            canonicalUrl: $canonicalUrl,
+            ogImage: $category->thumbnail_url ?: $this->getFallbackOgImage($products)
+        );
+
+        $breadcrumbs = $this->breadcrumbsProvider()->forCatalogCategory($category, true);
+
+        return $this->render('category', [
+            'category' => $category,
+            'products' => $products,
+            'breadcrumbs' => $breadcrumbs,
+            'schemaJson' => $this->buildItemListSchema($products),
+            'breadcrumbSchemaJson' => $this->buildBreadcrumbSchema($breadcrumbs),
+        ]);
+    }
+
+    private function findCategoryBySlug(string $slug): CatalogCategoryModel
+    {
+        /** @var CatalogCategoryModel|null $category */
+        $category = CatalogCategoryModel::find()
+            ->active()
+            ->bySlug($slug)
+            ->one();
+
+        if (!$category instanceof CatalogCategoryModel) {
+            throw new NotFoundHttpException('Категорію не знайдено.');
+        }
+
+        return $category;
+    }
+
+    private function limitText(string $value, int $limit): string
+    {
+        return StringHelper::truncate($this->plainText($value), $limit, '');
+    }
+
+    private function plainText(?string $value): string
+    {
+        return trim(strip_tags((string)$value));
+    }
+
+    public function actionProduct(string $categorySlug, string $productSlug): string
+    {
+        $category = $this->findCategoryBySlug($categorySlug);
+
+        /** @var ProductModel|null $product */
+        $product = ProductModel::find()
+            ->notArchived()
+            ->bySlug($productSlug)
+            ->byCategoryId((int)$category->id)
+            ->with('category')
+            ->one();
+
+        if (!$product instanceof ProductModel) {
+            throw new NotFoundHttpException('Товар не знайдено.');
+        }
+
+        $relatedProducts = ProductModel::find()
+            ->notArchived()
+            ->byCategoryId((int)$category->id)
+            ->andWhere(['<>', 'id', (int)$product->id])
+            ->limit(4)
+            ->ordered()
+            ->all();
+
+        $canonicalUrl = Url::to([
+            '/catalog/product',
+            'categorySlug' => $category->slug,
+            'productSlug' => $product->slug,
+        ], true);
+
+        $price = $this->formatPrice($product);
+
+        $title = $this->limitText(
+            $product->name . ' — ' . $price . ' | Prema',
+            60
+        );
+
+        $description = $this->limitText(
+            $this->plainText($product->description)
+                ?: $product->name . ' від Prema. Купити онлайн з доставкою по Україні.',
+            155
+        );
+
+        $this->registerPageMeta(
+            title: $title,
+            description: $description,
+            canonicalUrl: $canonicalUrl,
+            ogImage: $product->thumbnail_url,
+            ogType: 'product'
+        );
+
+        $breadcrumbs = $this->breadcrumbsProvider()->forProduct($category, $product, true);
+
+        return $this->render('product', [
+            'category' => $category,
+            'product' => $product,
+            'relatedProducts' => $relatedProducts,
+            'breadcrumbs' => $breadcrumbs,
+            'schemaJson' => $this->buildProductSchema($product, $canonicalUrl),
+            'breadcrumbSchemaJson' => $this->buildBreadcrumbSchema($breadcrumbs),
+        ]);
+    }
+
+    private function formatPrice(ProductModel $product): string
+    {
+        $currency = $product->currency ?: 'UAH';
+
+        return number_format((float)$product->price, 0, '.', ' ') . ' ' . $currency;
+    }
+
     private function buildProductSchema(ProductModel $product, string $canonicalUrl): string
     {
         $availability = $product->getIsAvailable()
@@ -344,41 +381,5 @@ final class CatalogController extends Controller
                 'url' => $canonicalUrl,
             ],
         ]);
-    }
-
-    /**
-     * @param ProductModel[] $products
-     */
-    private function getFallbackOgImage(array $products): ?string
-    {
-        foreach ($products as $product) {
-            if (!empty($product->thumbnail_url)) {
-                return $product->thumbnail_url;
-            }
-        }
-
-        return null;
-    }
-
-    private function formatPrice(ProductModel $product): string
-    {
-        $currency = $product->currency ?: 'UAH';
-
-        return number_format((float)$product->price, 0, '.', ' ') . ' ' . $currency;
-    }
-
-    private function plainText(?string $value): string
-    {
-        return trim(strip_tags((string)$value));
-    }
-
-    private function limitText(string $value, int $limit): string
-    {
-        return StringHelper::truncate($this->plainText($value), $limit, '');
-    }
-
-    private function breadcrumbsProvider(): BreadcrumbsProvider
-    {
-        return new BreadcrumbsProvider();
     }
 }

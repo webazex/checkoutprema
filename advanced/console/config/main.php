@@ -1,5 +1,9 @@
 <?php
 
+use yii\console\controllers\FixtureController;
+use yii\console\controllers\MigrateController;
+use yii\log\FileTarget;
+
 $params = array_merge(
     require __DIR__ . '/../../common/config/params.php',
     require __DIR__ . '/../../common/config/params-local.php',
@@ -22,11 +26,11 @@ return [
     ],
     'controllerMap' => [
         'fixture' => [
-            'class' => \yii\console\controllers\FixtureController::class,
+            'class' => FixtureController::class,
             'namespace' => 'common\fixtures',
         ],
         'migrate' => [
-            'class' => \yii\console\controllers\MigrateController::class,
+            'class' => MigrateController::class,
             'migrationPath' => '@console/migrations',
             'migrationNamespaces' => [
                 'yii\queue\db\migrations',
@@ -37,24 +41,24 @@ return [
         'log' => [
             'targets' => [
                 [
-                    'class' => \yii\log\FileTarget::class,
+                    'class' => FileTarget::class,
                     'levels' => ['error', 'warning', 'info'],
                     'categories' => [
                         'keycrm.sync.*',
                     ],
                     'logFile' => '@console/runtime/logs/keycrm-sync.log',
                     'logVars' => [],
-                    'prefix' => static fn ($message): string => '',
+                    'prefix' => static fn($message): string => '',
                 ],
                 [
-                    'class' => \yii\log\FileTarget::class,
+                    'class' => FileTarget::class,
                     'levels' => ['error', 'warning', 'info'],
                     'categories' => [
                         'delivery.sync*',
                     ],
                     'logFile' => '@console/runtime/logs/delivery-sync.log',
                     'logVars' => [],
-                    'prefix' => static fn ($message): string => '',
+                    'prefix' => static fn($message): string => '',
                     'maxFileSize' => 10240,
                     'maxLogFiles' => 10,
                 ],

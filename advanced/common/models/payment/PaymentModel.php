@@ -48,7 +48,6 @@ class PaymentModel extends BaseModel
     ];
 
 
-
     public const STATUSES = [
         self::STATUS_NEW,
         self::STATUS_PENDING,

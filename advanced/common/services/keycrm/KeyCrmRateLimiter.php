@@ -15,7 +15,8 @@ final class KeyCrmRateLimiter
     public function __construct(
         private readonly int $minIntervalMs = 2000,
         private readonly int $lockTimeoutSeconds = 10,
-    ) {
+    )
+    {
     }
 
     public function beforeRequest(): void

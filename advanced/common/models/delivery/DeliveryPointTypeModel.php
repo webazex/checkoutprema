@@ -24,6 +24,11 @@ class DeliveryPointTypeModel extends BaseModel
         return '{{%delivery_point_type}}';
     }
 
+    public static function find(): DeliveryPointTypeQuery
+    {
+        return new DeliveryPointTypeQuery(static::class);
+    }
+
     public function rules(): array
     {
         return array_merge(parent::rules(), [
@@ -49,10 +54,5 @@ class DeliveryPointTypeModel extends BaseModel
             DeliveryPointModel::class,
             ['type_id' => 'id']
         );
-    }
-
-    public static function find(): DeliveryPointTypeQuery
-    {
-        return new DeliveryPointTypeQuery(static::class);
     }
 }

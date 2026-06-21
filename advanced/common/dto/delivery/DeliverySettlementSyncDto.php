@@ -10,18 +10,19 @@ final readonly class DeliverySettlementSyncDto
      * @param array<string, mixed> $metadata
      */
     public function __construct(
-        public string $providerCode,
-        public string $areaExternalRef,
-        public string $externalRef,
+        public string  $providerCode,
+        public string  $areaExternalRef,
+        public string  $externalRef,
         public ?string $deliveryRef,
-        public string $name,
+        public string  $name,
         public ?string $present = null,
         public ?string $settlementTypeCode = null,
         public ?string $districtName = null,
-        public ?float $latitude = null,
-        public ?float $longitude = null,
-        public array $metadata = [],
-    ) {
+        public ?float  $latitude = null,
+        public ?float  $longitude = null,
+        public array   $metadata = [],
+    )
+    {
         DeliveryDtoAssertion::providerCode($providerCode);
         DeliveryDtoAssertion::requiredString($areaExternalRef, 'areaExternalRef');
         DeliveryDtoAssertion::requiredString($externalRef, 'externalRef');

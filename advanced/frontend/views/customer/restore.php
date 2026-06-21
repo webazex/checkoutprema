@@ -1,6 +1,9 @@
 <?php
+
 use frontend\models\customer\CustomerRestoreRequestForm;
+
 /** @var yii\web\View $this */
+
 /** @var frontend\models\customer\CustomerRestoreRequestForm|null $model */
 
 use yii\helpers\Html;

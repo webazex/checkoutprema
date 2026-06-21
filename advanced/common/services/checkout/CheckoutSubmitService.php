@@ -14,6 +14,7 @@ use common\models\payment\PaymentModel;
 use common\services\payment\PaymentService;
 use DomainException;
 use RuntimeException;
+use Throwable;
 use Yii;
 use yii\helpers\Json;
 use common\models\product\ProductModel;
@@ -22,8 +23,9 @@ final class CheckoutSubmitService
 {
     public function __construct(
         private readonly CheckoutCustomerResolver $customerResolver,
-        private readonly PaymentService $paymentService,
-    ) {
+        private readonly PaymentService           $paymentService,
+    )
+    {
     }
 
     public function submit(array $payload, string $callbackUrl, string $defaultReturnUrl): array
@@ -216,7 +218,7 @@ final class CheckoutSubmitService
                     'rawResponse' => $createResult->rawResponse,
                 ],
             ];
-        } catch (\Throwable $e) {
+        } catch (Throwable $e) {
             throw new RuntimeException(
                 sprintf(
                     'Order "%s" was created, but payment initialization failed: %s',
@@ -227,6 +229,30 @@ final class CheckoutSubmitService
                 $e
             );
         }
+    }
+
+    private function resolveCart(CheckoutSubmitInput $input): CartModel
+    {
+        $query = CartModel::find()
+            ->with('items.product')
+            ->andWhere(['status' => CartModel::STATUS_ACTIVE]);
+
+        if (trim((string)$input->cartHash) !== '') {
+            $query->andWhere(['hash' => $input->cartHash]);
+        } else {
+            $query->andWhere([
+                'session_key' => $input->sessionKey,
+                'source_type' => $input->sourceType,
+            ]);
+        }
+
+        $cart = $query->one();
+
+        if (!$cart instanceof CartModel) {
+            throw new DomainException('Active cart was not found.');
+        }
+
+        return $cart;
     }
 
     private function validateCartStock(CartModel $cart): void
@@ -270,29 +296,5 @@ final class CheckoutSubmitService
                 ));
             }
         }
-    }
-
-    private function resolveCart(CheckoutSubmitInput $input): CartModel
-    {
-        $query = CartModel::find()
-            ->with('items.product')
-            ->andWhere(['status' => CartModel::STATUS_ACTIVE]);
-
-        if (trim((string)$input->cartHash) !== '') {
-            $query->andWhere(['hash' => $input->cartHash]);
-        } else {
-            $query->andWhere([
-                'session_key' => $input->sessionKey,
-                'source_type' => $input->sourceType,
-            ]);
-        }
-
-        $cart = $query->one();
-
-        if (!$cart instanceof CartModel) {
-            throw new DomainException('Active cart was not found.');
-        }
-
-        return $cart;
     }
 }

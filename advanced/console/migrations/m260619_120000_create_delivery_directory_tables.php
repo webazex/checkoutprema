@@ -41,15 +41,46 @@ final class m260619_120000_create_delivery_directory_tables extends Migration
         }
     }
 
-    public function safeDown(): void
+    private function assertSupportedDriver(): void
     {
-        $this->dropTableIfExists(self::TABLE_POINT_SCHEDULE);
-        $this->dropTableIfExists(self::TABLE_POINT);
-        $this->dropTableIfExists(self::TABLE_SETTLEMENT);
-        $this->dropTableIfExists(self::TABLE_AREA);
-        $this->dropTableIfExists(self::TABLE_SYNC_STATE);
-        $this->dropTableIfExists(self::TABLE_POINT_TYPE);
-        $this->dropTableIfExists(self::TABLE_PROVIDER);
+        if ($this->db->driverName !== 'mysql') {
+            throw new RuntimeException(
+                'Delivery directory migration requires MySQL or MariaDB.'
+            );
+        }
+    }
+
+    private function assertTablesDoNotExist(): void
+    {
+        foreach ($this->allTables() as $table) {
+            if ($this->tableExists($table)) {
+                throw new RuntimeException(sprintf(
+                    'Delivery table %s already exists. Resolve the partial migration before retrying.',
+                    $table
+                ));
+            }
+        }
+    }
+
+    /**
+     * @return list<string>
+     */
+    private function allTables(): array
+    {
+        return [
+            self::TABLE_PROVIDER,
+            self::TABLE_AREA,
+            self::TABLE_SETTLEMENT,
+            self::TABLE_POINT_TYPE,
+            self::TABLE_POINT,
+            self::TABLE_POINT_SCHEDULE,
+            self::TABLE_SYNC_STATE,
+        ];
+    }
+
+    private function tableExists(string $table): bool
+    {
+        return $this->db->schema->getTableSchema($table, true) !== null;
     }
 
     private function createProviderTable(): void
@@ -78,6 +109,11 @@ final class m260619_120000_create_delivery_directory_tables extends Migration
             self::TABLE_PROVIDER,
             ['is_active', 'sort_order']
         );
+    }
+
+    private function tableOptions(): string
+    {
+        return 'CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci ENGINE=InnoDB';
     }
 
     private function createPointTypeTable(): void
@@ -147,6 +183,15 @@ final class m260619_120000_create_delivery_directory_tables extends Migration
             'id',
             'RESTRICT',
             'RESTRICT'
+        );
+    }
+
+    private function opaqueString(int $length, bool $nullable = false): string
+    {
+        return sprintf(
+            'VARCHAR(%d) CHARACTER SET utf8mb4 COLLATE utf8mb4_bin %s',
+            $length,
+            $nullable ? 'NULL' : 'NOT NULL'
         );
     }
 
@@ -460,6 +505,15 @@ final class m260619_120000_create_delivery_directory_tables extends Migration
         );
     }
 
+    private function opaqueStringWithDefault(int $length, string $default): string
+    {
+        return sprintf(
+            "VARCHAR(%d) CHARACTER SET utf8mb4 COLLATE utf8mb4_bin NOT NULL DEFAULT '%s'",
+            $length,
+            str_replace("'", "''", $default)
+        );
+    }
+
     private function createCheckConstraints(): void
     {
         $this->execute(
@@ -542,27 +596,6 @@ final class m260619_120000_create_delivery_directory_tables extends Migration
         );
     }
 
-    private function assertSupportedDriver(): void
-    {
-        if ($this->db->driverName !== 'mysql') {
-            throw new RuntimeException(
-                'Delivery directory migration requires MySQL or MariaDB.'
-            );
-        }
-    }
-
-    private function assertTablesDoNotExist(): void
-    {
-        foreach ($this->allTables() as $table) {
-            if ($this->tableExists($table)) {
-                throw new RuntimeException(sprintf(
-                    'Delivery table %s already exists. Resolve the partial migration before retrying.',
-                    $table
-                ));
-            }
-        }
-    }
-
     private function dropCreatedTables(): void
     {
         foreach (array_reverse($this->createdTables) as $table) {
@@ -577,47 +610,14 @@ final class m260619_120000_create_delivery_directory_tables extends Migration
         }
     }
 
-    private function tableExists(string $table): bool
+    public function safeDown(): void
     {
-        return $this->db->schema->getTableSchema($table, true) !== null;
-    }
-
-    /**
-     * @return list<string>
-     */
-    private function allTables(): array
-    {
-        return [
-            self::TABLE_PROVIDER,
-            self::TABLE_AREA,
-            self::TABLE_SETTLEMENT,
-            self::TABLE_POINT_TYPE,
-            self::TABLE_POINT,
-            self::TABLE_POINT_SCHEDULE,
-            self::TABLE_SYNC_STATE,
-        ];
-    }
-
-    private function tableOptions(): string
-    {
-        return 'CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci ENGINE=InnoDB';
-    }
-
-    private function opaqueString(int $length, bool $nullable = false): string
-    {
-        return sprintf(
-            'VARCHAR(%d) CHARACTER SET utf8mb4 COLLATE utf8mb4_bin %s',
-            $length,
-            $nullable ? 'NULL' : 'NOT NULL'
-        );
-    }
-
-    private function opaqueStringWithDefault(int $length, string $default): string
-    {
-        return sprintf(
-            "VARCHAR(%d) CHARACTER SET utf8mb4 COLLATE utf8mb4_bin NOT NULL DEFAULT '%s'",
-            $length,
-            str_replace("'", "''", $default)
-        );
+        $this->dropTableIfExists(self::TABLE_POINT_SCHEDULE);
+        $this->dropTableIfExists(self::TABLE_POINT);
+        $this->dropTableIfExists(self::TABLE_SETTLEMENT);
+        $this->dropTableIfExists(self::TABLE_AREA);
+        $this->dropTableIfExists(self::TABLE_SYNC_STATE);
+        $this->dropTableIfExists(self::TABLE_POINT_TYPE);
+        $this->dropTableIfExists(self::TABLE_PROVIDER);
     }
 }

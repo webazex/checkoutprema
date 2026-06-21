@@ -2,10 +2,11 @@
 
 namespace frontend\tests\unit\models;
 
+use Codeception\Test\Unit;
 use frontend\models\ContactForm;
 use yii\mail\MessageInterface;
 
-class ContactFormTest extends \Codeception\Test\Unit
+class ContactFormTest extends Unit
 {
     public function testSendEmail()
     {
@@ -23,7 +24,7 @@ class ContactFormTest extends \Codeception\Test\Unit
         // using Yii2 module actions to check email was sent
         $this->tester->seeEmailIsSent();
 
-        /** @var MessageInterface  $emailMessage */
+        /** @var MessageInterface $emailMessage */
         $emailMessage = $this->tester->grabLastSentEmail();
         verify($emailMessage)->instanceOf('yii\mail\MessageInterface');
         verify($emailMessage->getTo())->arrayHasKey('admin@example.com');

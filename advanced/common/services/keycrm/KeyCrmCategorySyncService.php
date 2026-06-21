@@ -11,6 +11,7 @@ use common\integrations\keycrm\mappers\KeyCrmCategoryMapper;
 use common\models\catalog\CatalogCategoryModel;
 use common\models\product\ProductModel;
 use DomainException;
+use Generator;
 use Throwable;
 use Yii;
 use yii\helpers\Inflector;
@@ -86,70 +87,10 @@ final class KeyCrmCategorySyncService
         return $stats;
     }
 
-    public function linkProductsToCategories(): array
-    {
-        $stats = [
-            'scanned' => 0,
-            'linked' => 0,
-            'unchanged' => 0,
-            'missingCategory' => 0,
-            'emptyExternalCategory' => 0,
-            'errors' => 0,
-        ];
-
-        /** @var ProductModel[] $products */
-        $products = ProductModel::find()
-            ->where(['not', ['category_external_id' => null]])
-            ->all();
-
-        foreach ($products as $product) {
-            $stats['scanned']++;
-
-            $externalId = trim((string)$product->category_external_id);
-
-            if ($externalId === '') {
-                $stats['emptyExternalCategory']++;
-                continue;
-            }
-
-            /** @var CatalogCategoryModel|null $category */
-            $category = CatalogCategoryModel::find()
-                ->byExternal(CatalogCategoryModel::SOURCE_KEYCRM, $externalId)
-                ->one();
-
-            if (!$category instanceof CatalogCategoryModel) {
-                $stats['missingCategory']++;
-                continue;
-            }
-
-            if ((int)$product->category_id === (int)$category->id) {
-                $stats['unchanged']++;
-                continue;
-            }
-
-            $product->category_id = (int)$category->id;
-
-            if (!$product->save()) {
-                $stats['errors']++;
-
-                throw new DomainException(
-                    'Failed to link product category. Product ID: ' .
-                    (int)$product->id .
-                    '. Errors: ' .
-                    Json::encode($product->errors, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES)
-                );
-            }
-
-            $stats['linked']++;
-        }
-
-        return $stats;
-    }
-
     /**
-     * @return \Generator<int, KeyCrmCategoryDto[]>
+     * @return Generator<int, KeyCrmCategoryDto[]>
      */
-    private function iterateRemotePages(?int $maxPages, array &$stats): \Generator
+    private function iterateRemotePages(?int $maxPages, array &$stats): Generator
     {
         for ($page = 1; ; $page++) {
             if ($maxPages !== null && $maxPages > 0 && $page > $maxPages) {
@@ -236,6 +177,46 @@ final class KeyCrmCategorySyncService
         return [
             'created' => $created,
         ];
+    }
+
+    private function makeUniqueSlug(KeyCrmCategoryDto $dto): string
+    {
+        $base = Inflector::slug($dto->name);
+
+        if ($base === '') {
+            $base = 'category';
+        }
+
+        $slug = $base;
+
+        if (!$this->slugExists($slug)) {
+            return $slug;
+        }
+
+        $slug = sprintf('%s-keycrm-%d', $base, $dto->externalId);
+
+        if (!$this->slugExists($slug)) {
+            return $slug;
+        }
+
+        $i = 2;
+
+        while (true) {
+            $slug = sprintf('%s-keycrm-%d-%d', $base, $dto->externalId, $i);
+
+            if (!$this->slugExists($slug)) {
+                return $slug;
+            }
+
+            $i++;
+        }
+    }
+
+    private function slugExists(string $slug): bool
+    {
+        return CatalogCategoryModel::find()
+            ->where(['slug' => $slug])
+            ->exists();
     }
 
     /**
@@ -339,43 +320,63 @@ final class KeyCrmCategorySyncService
         return $archived;
     }
 
-    private function makeUniqueSlug(KeyCrmCategoryDto $dto): string
+    public function linkProductsToCategories(): array
     {
-        $base = Inflector::slug($dto->name);
+        $stats = [
+            'scanned' => 0,
+            'linked' => 0,
+            'unchanged' => 0,
+            'missingCategory' => 0,
+            'emptyExternalCategory' => 0,
+            'errors' => 0,
+        ];
 
-        if ($base === '') {
-            $base = 'category';
-        }
+        /** @var ProductModel[] $products */
+        $products = ProductModel::find()
+            ->where(['not', ['category_external_id' => null]])
+            ->all();
 
-        $slug = $base;
+        foreach ($products as $product) {
+            $stats['scanned']++;
 
-        if (!$this->slugExists($slug)) {
-            return $slug;
-        }
+            $externalId = trim((string)$product->category_external_id);
 
-        $slug = sprintf('%s-keycrm-%d', $base, $dto->externalId);
-
-        if (!$this->slugExists($slug)) {
-            return $slug;
-        }
-
-        $i = 2;
-
-        while (true) {
-            $slug = sprintf('%s-keycrm-%d-%d', $base, $dto->externalId, $i);
-
-            if (!$this->slugExists($slug)) {
-                return $slug;
+            if ($externalId === '') {
+                $stats['emptyExternalCategory']++;
+                continue;
             }
 
-            $i++;
-        }
-    }
+            /** @var CatalogCategoryModel|null $category */
+            $category = CatalogCategoryModel::find()
+                ->byExternal(CatalogCategoryModel::SOURCE_KEYCRM, $externalId)
+                ->one();
 
-    private function slugExists(string $slug): bool
-    {
-        return CatalogCategoryModel::find()
-            ->where(['slug' => $slug])
-            ->exists();
+            if (!$category instanceof CatalogCategoryModel) {
+                $stats['missingCategory']++;
+                continue;
+            }
+
+            if ((int)$product->category_id === (int)$category->id) {
+                $stats['unchanged']++;
+                continue;
+            }
+
+            $product->category_id = (int)$category->id;
+
+            if (!$product->save()) {
+                $stats['errors']++;
+
+                throw new DomainException(
+                    'Failed to link product category. Product ID: ' .
+                    (int)$product->id .
+                    '. Errors: ' .
+                    Json::encode($product->errors, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES)
+                );
+            }
+
+            $stats['linked']++;
+        }
+
+        return $stats;
     }
 }

@@ -1,12 +1,15 @@
 <?php
 
+use common\models\customer\CustomerModel;
+use yii\log\FileTarget;
+
 $params = array_merge(
     require __DIR__ . '/../../common/config/params.php',
     require __DIR__ . '/../../common/config/params-local.php',
     require __DIR__ . '/params.php',
     require __DIR__ . '/params-local.php'
 );
-$rules = (file_exists(__DIR__.DIRECTORY_SEPARATOR.'rules.php'))? require(__DIR__.DIRECTORY_SEPARATOR.'rules.php'): [];
+$rules = (file_exists(__DIR__ . DIRECTORY_SEPARATOR . 'rules.php')) ? require(__DIR__ . DIRECTORY_SEPARATOR . 'rules.php') : [];
 return [
     'id' => 'app-frontend',
     'basePath' => dirname(__DIR__),
@@ -17,7 +20,7 @@ return [
             'csrfParam' => '_csrf-frontend',
         ],
         'user' => [
-            'identityClass' => \common\models\customer\CustomerModel::class,
+            'identityClass' => CustomerModel::class,
             'enableAutoLogin' => true,
             'loginUrl' => ['/customer/login'],
             'identityCookie' => [
@@ -33,7 +36,7 @@ return [
             'traceLevel' => YII_DEBUG ? 3 : 0,
             'targets' => [
                 [
-                    'class' => \yii\log\FileTarget::class,
+                    'class' => FileTarget::class,
                     'levels' => ['error', 'warning'],
                 ],
             ],

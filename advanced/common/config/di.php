@@ -1,178 +1,221 @@
 <?php
+
+use common\contracts\delivery\DeliveryPointStorageInterface;
+use common\integrations\keycrm\KeyCrmApiClient;
+use common\integrations\keycrm\mappers\KeyCrmCategoryMapper;
+use common\integrations\keycrm\mappers\KeyCrmProductMapper;
+use common\integrations\novaposhta\NovaPoshtaApiClient;
+use common\integrations\novaposhta\NovaPoshtaDeliveryProvider;
+use common\integrations\novaposhta\NovaPoshtaDirectorySource;
+use common\mappers\cart\CheckoutCartMapper;
+use common\mappers\catalog\PublicProductMapper;
+use common\mappers\delivery\DeliveryReadMapper;
+use common\mappers\novaposhta\NovaPoshtaDirectoryMapper;
+use common\mappers\novaposhta\NovaPoshtaResponseMapper;
+use common\services\cart\CheckoutCartViewService;
+use common\services\catalog\PublicCatalogService;
+use common\services\checkout\CartProductResolver;
+use common\services\checkout\CheckoutCustomerResolver;
+use common\services\checkout\CheckoutSubmitService;
+use common\services\checkout\GuestCartImportService;
+use common\services\delivery\DeliveryProviderRegistry;
+use common\services\delivery\DeliverySyncSchedulerService;
+use common\services\delivery\DeliverySyncService;
+use common\services\delivery\DeliverySyncStatusService;
+use common\services\keycrm\KeyCrmCategorySyncService;
+use common\services\keycrm\KeyCrmCustomerSyncService;
+use common\services\keycrm\KeyCrmOrderExportService;
+use common\services\keycrm\KeyCrmProductImportService;
+use common\services\keycrm\KeyCrmRateLimiter;
+use common\services\keycrm\KeyCrmStockWebhookService;
+use common\services\novaposhta\NovaPoshtaApiService;
+use common\services\novaposhta\NovaPoshtaDeliveryService;
+use common\services\novaposhta\NovaPoshtaRateLimiter;
+use common\services\order\OrderPostPaymentProcessor;
+use common\services\payment\PaymentService;
+use common\storages\delivery\DeliveryAreaStorage;
+use common\storages\delivery\DeliveryDirectoryWriteStorage;
+use common\storages\delivery\DeliveryPointStorage;
+use common\storages\delivery\DeliveryPointTypeStorage;
+use common\storages\delivery\DeliveryProviderStorage;
+use common\storages\delivery\DeliverySettlementStorage;
+use common\storages\delivery\DeliverySyncStateStorage;
+use yii\di\Container;
+
 return [
-    \common\integrations\keycrm\KeyCrmApiClient::class => static function (\yii\di\Container $container) {
-        return new \common\integrations\keycrm\KeyCrmApiClient(
-            baseUrl: \Yii::$app->params['keycrm.baseUrl'],
-            token: \Yii::$app->params['keycrm.token'],
-            timeout: (int)(\Yii::$app->params['keycrm.timeout'] ?? 30),
-            rateLimiter: $container->get(\common\services\keycrm\KeyCrmRateLimiter::class),
+    KeyCrmApiClient::class => static function (Container $container) {
+        return new KeyCrmApiClient(
+            baseUrl: Yii::$app->params['keycrm.baseUrl'],
+            token: Yii::$app->params['keycrm.token'],
+            timeout: (int)(Yii::$app->params['keycrm.timeout'] ?? 30),
+            rateLimiter: $container->get(KeyCrmRateLimiter::class),
         );
     },
 
-    \common\integrations\keycrm\mappers\KeyCrmProductMapper::class
-    => \common\integrations\keycrm\mappers\KeyCrmProductMapper::class,
+    KeyCrmProductMapper::class
+    => KeyCrmProductMapper::class,
 
-    \common\services\keycrm\KeyCrmProductImportService::class => static function ($container) {
-        return new \common\services\keycrm\KeyCrmProductImportService(
-            $container->get(\common\integrations\keycrm\KeyCrmApiClient::class),
-            $container->get(\common\integrations\keycrm\mappers\KeyCrmProductMapper::class),
+    KeyCrmProductImportService::class => static function ($container) {
+        return new KeyCrmProductImportService(
+            $container->get(KeyCrmApiClient::class),
+            $container->get(KeyCrmProductMapper::class),
         );
     },
 
-    \common\mappers\catalog\PublicProductMapper::class
-    => \common\mappers\catalog\PublicProductMapper::class,
+    PublicProductMapper::class
+    => PublicProductMapper::class,
 
-    \common\services\catalog\PublicCatalogService::class => static function ($container) {
-        return new \common\services\catalog\PublicCatalogService(
-            $container->get(\common\mappers\catalog\PublicProductMapper::class),
+    PublicCatalogService::class => static function ($container) {
+        return new PublicCatalogService(
+            $container->get(PublicProductMapper::class),
         );
     },
 
-    \common\services\checkout\CartProductResolver::class
-    => \common\services\checkout\CartProductResolver::class,
+    CartProductResolver::class
+    => CartProductResolver::class,
 
-    \common\services\checkout\GuestCartImportService::class => static function ($container) {
-        return new \common\services\checkout\GuestCartImportService(
-            $container->get(\common\services\checkout\CartProductResolver::class),
+    GuestCartImportService::class => static function ($container) {
+        return new GuestCartImportService(
+            $container->get(CartProductResolver::class),
         );
     },
 
-    \common\mappers\cart\CheckoutCartMapper::class
-    => \common\mappers\cart\CheckoutCartMapper::class,
+    CheckoutCartMapper::class
+    => CheckoutCartMapper::class,
 
-    \common\services\cart\CheckoutCartViewService::class => static function ($container) {
-        return new \common\services\cart\CheckoutCartViewService(
-            $container->get(\common\mappers\cart\CheckoutCartMapper::class),
+    CheckoutCartViewService::class => static function ($container) {
+        return new CheckoutCartViewService(
+            $container->get(CheckoutCartMapper::class),
         );
     },
 
-    \common\services\checkout\CheckoutCustomerResolver::class
-    => \common\services\checkout\CheckoutCustomerResolver::class,
+    CheckoutCustomerResolver::class
+    => CheckoutCustomerResolver::class,
 
-    \common\services\checkout\CheckoutSubmitService::class => static function ($container) {
-        return new \common\services\checkout\CheckoutSubmitService(
-            $container->get(\common\services\checkout\CheckoutCustomerResolver::class),
-            $container->get(\common\services\payment\PaymentService::class),
+    CheckoutSubmitService::class => static function ($container) {
+        return new CheckoutSubmitService(
+            $container->get(CheckoutCustomerResolver::class),
+            $container->get(PaymentService::class),
         );
     },
-    \common\services\keycrm\KeyCrmStockWebhookService::class => \common\services\keycrm\KeyCrmStockWebhookService::class,
-    \common\services\keycrm\KeyCrmCustomerSyncService::class => static function ($container) {
-        return new \common\services\keycrm\KeyCrmCustomerSyncService(
-            $container->get(\common\integrations\keycrm\KeyCrmApiClient::class),
+    KeyCrmStockWebhookService::class => KeyCrmStockWebhookService::class,
+    KeyCrmCustomerSyncService::class => static function ($container) {
+        return new KeyCrmCustomerSyncService(
+            $container->get(KeyCrmApiClient::class),
         );
     },
-    \common\services\keycrm\KeyCrmOrderExportService::class => static function ($container) {
-        return new \common\services\keycrm\KeyCrmOrderExportService(
-            $container->get(\common\integrations\keycrm\KeyCrmApiClient::class),
+    KeyCrmOrderExportService::class => static function ($container) {
+        return new KeyCrmOrderExportService(
+            $container->get(KeyCrmApiClient::class),
         );
     },
-    \common\services\order\OrderPostPaymentProcessor::class => static function ($container) {
-        return new \common\services\order\OrderPostPaymentProcessor(
-            $container->get(\common\services\keycrm\KeyCrmCustomerSyncService::class),
-            $container->get(\common\services\keycrm\KeyCrmOrderExportService::class),
-        );
-    },
-
-    \common\integrations\keycrm\mappers\KeyCrmCategoryMapper::class => \common\integrations\keycrm\mappers\KeyCrmCategoryMapper::class,
-
-    \common\services\keycrm\KeyCrmCategorySyncService::class => static function ($container) {
-        return new \common\services\keycrm\KeyCrmCategorySyncService(
-            $container->get(\common\integrations\keycrm\KeyCrmApiClient::class),
-            $container->get(\common\integrations\keycrm\mappers\KeyCrmCategoryMapper::class),
-        );
-    },
-    \common\services\keycrm\KeyCrmRateLimiter::class => static function () {
-        return new \common\services\keycrm\KeyCrmRateLimiter(
-            minIntervalMs: (int)(\Yii::$app->params['keycrm.rateLimitIntervalMs'] ?? 2000),
-            lockTimeoutSeconds: (int)(\Yii::$app->params['keycrm.rateLimitLockTimeout'] ?? 10),
-        );
-    },
-    \common\services\novaposhta\NovaPoshtaRateLimiter::class => static function () {
-        return new \common\services\novaposhta\NovaPoshtaRateLimiter(
-            minIntervalMs: (int)(\Yii::$app->params['novaPoshta.rateLimitIntervalMs'] ?? 1000),
-            lockTimeoutSeconds: (int)(\Yii::$app->params['novaPoshta.rateLimitLockTimeout'] ?? 10),
+    OrderPostPaymentProcessor::class => static function ($container) {
+        return new OrderPostPaymentProcessor(
+            $container->get(KeyCrmCustomerSyncService::class),
+            $container->get(KeyCrmOrderExportService::class),
         );
     },
 
-    \common\integrations\novaposhta\NovaPoshtaApiClient::class => static function (\yii\di\Container $container) {
-        return new \common\integrations\novaposhta\NovaPoshtaApiClient(
-            baseUrl: (string)(\Yii::$app->params['novaPoshta.baseUrl'] ?? ''),
-            apiKey: (string)(\Yii::$app->params['novaPoshta.apiKey'] ?? ''),
-            timeout: (int)(\Yii::$app->params['novaPoshta.timeout'] ?? 15),
-            rateLimiter: $container->get(\common\services\novaposhta\NovaPoshtaRateLimiter::class),
-            maxAttempts: (int)(\Yii::$app->params['novaPoshta.maxAttempts'] ?? 3),
-            retryBaseDelayMs: (int)(\Yii::$app->params['novaPoshta.retryBaseDelayMs'] ?? 500),
-            retryMaxDelayMs: (int)(\Yii::$app->params['novaPoshta.retryMaxDelayMs'] ?? 5000),
-            retryJitterMs: (int)(\Yii::$app->params['novaPoshta.retryJitterMs'] ?? 250),
+    KeyCrmCategoryMapper::class => KeyCrmCategoryMapper::class,
+
+    KeyCrmCategorySyncService::class => static function ($container) {
+        return new KeyCrmCategorySyncService(
+            $container->get(KeyCrmApiClient::class),
+            $container->get(KeyCrmCategoryMapper::class),
+        );
+    },
+    KeyCrmRateLimiter::class => static function () {
+        return new KeyCrmRateLimiter(
+            minIntervalMs: (int)(Yii::$app->params['keycrm.rateLimitIntervalMs'] ?? 2000),
+            lockTimeoutSeconds: (int)(Yii::$app->params['keycrm.rateLimitLockTimeout'] ?? 10),
+        );
+    },
+    NovaPoshtaRateLimiter::class => static function () {
+        return new NovaPoshtaRateLimiter(
+            minIntervalMs: (int)(Yii::$app->params['novaPoshta.rateLimitIntervalMs'] ?? 1000),
+            lockTimeoutSeconds: (int)(Yii::$app->params['novaPoshta.rateLimitLockTimeout'] ?? 10),
         );
     },
 
-    \common\services\novaposhta\NovaPoshtaApiService::class
-    => \common\services\novaposhta\NovaPoshtaApiService::class,
+    NovaPoshtaApiClient::class => static function (Container $container) {
+        return new NovaPoshtaApiClient(
+            baseUrl: (string)(Yii::$app->params['novaPoshta.baseUrl'] ?? ''),
+            apiKey: (string)(Yii::$app->params['novaPoshta.apiKey'] ?? ''),
+            timeout: (int)(Yii::$app->params['novaPoshta.timeout'] ?? 15),
+            rateLimiter: $container->get(NovaPoshtaRateLimiter::class),
+            maxAttempts: (int)(Yii::$app->params['novaPoshta.maxAttempts'] ?? 3),
+            retryBaseDelayMs: (int)(Yii::$app->params['novaPoshta.retryBaseDelayMs'] ?? 500),
+            retryMaxDelayMs: (int)(Yii::$app->params['novaPoshta.retryMaxDelayMs'] ?? 5000),
+            retryJitterMs: (int)(Yii::$app->params['novaPoshta.retryJitterMs'] ?? 250),
+        );
+    },
 
-    \common\mappers\novaposhta\NovaPoshtaResponseMapper::class
-    => \common\mappers\novaposhta\NovaPoshtaResponseMapper::class,
+    NovaPoshtaApiService::class
+    => NovaPoshtaApiService::class,
 
-    \common\services\novaposhta\NovaPoshtaDeliveryService::class
-    => \common\services\novaposhta\NovaPoshtaDeliveryService::class,
+    NovaPoshtaResponseMapper::class
+    => NovaPoshtaResponseMapper::class,
+
+    NovaPoshtaDeliveryService::class
+    => NovaPoshtaDeliveryService::class,
 
 
-    \common\mappers\delivery\DeliveryReadMapper::class
-    => \common\mappers\delivery\DeliveryReadMapper::class,
+    DeliveryReadMapper::class
+    => DeliveryReadMapper::class,
 
-    \common\storages\delivery\DeliveryProviderStorage::class
-    => \common\storages\delivery\DeliveryProviderStorage::class,
+    DeliveryProviderStorage::class
+    => DeliveryProviderStorage::class,
 
-    \common\storages\delivery\DeliveryPointTypeStorage::class
-    => \common\storages\delivery\DeliveryPointTypeStorage::class,
+    DeliveryPointTypeStorage::class
+    => DeliveryPointTypeStorage::class,
 
-    \common\storages\delivery\DeliveryAreaStorage::class
-    => \common\storages\delivery\DeliveryAreaStorage::class,
+    DeliveryAreaStorage::class
+    => DeliveryAreaStorage::class,
 
-    \common\storages\delivery\DeliverySettlementStorage::class
-    => \common\storages\delivery\DeliverySettlementStorage::class,
+    DeliverySettlementStorage::class
+    => DeliverySettlementStorage::class,
 
-    \common\storages\delivery\DeliveryPointStorage::class
-    => \common\storages\delivery\DeliveryPointStorage::class,
+    DeliveryPointStorage::class
+    => DeliveryPointStorage::class,
 
-    \common\contracts\delivery\DeliveryPointStorageInterface::class
-    => static function (\yii\di\Container $container) {
+    DeliveryPointStorageInterface::class
+    => static function (Container $container) {
         return $container->get(
-            \common\storages\delivery\DeliveryPointStorage::class
+            DeliveryPointStorage::class
         );
     },
 
-    \common\storages\delivery\DeliverySyncStateStorage::class
-    => \common\storages\delivery\DeliverySyncStateStorage::class,
+    DeliverySyncStateStorage::class
+    => DeliverySyncStateStorage::class,
 
-    \common\mappers\novaposhta\NovaPoshtaDirectoryMapper::class
-    => \common\mappers\novaposhta\NovaPoshtaDirectoryMapper::class,
+    NovaPoshtaDirectoryMapper::class
+    => NovaPoshtaDirectoryMapper::class,
 
-    \common\integrations\novaposhta\NovaPoshtaDirectorySource::class
-    => \common\integrations\novaposhta\NovaPoshtaDirectorySource::class,
+    NovaPoshtaDirectorySource::class
+    => NovaPoshtaDirectorySource::class,
 
-    \common\integrations\novaposhta\NovaPoshtaDeliveryProvider::class
-    => \common\integrations\novaposhta\NovaPoshtaDeliveryProvider::class,
+    NovaPoshtaDeliveryProvider::class
+    => NovaPoshtaDeliveryProvider::class,
 
-    \common\storages\delivery\DeliveryDirectoryWriteStorage::class
-    => \common\storages\delivery\DeliveryDirectoryWriteStorage::class,
+    DeliveryDirectoryWriteStorage::class
+    => DeliveryDirectoryWriteStorage::class,
 
 
-    \common\services\delivery\DeliverySyncService::class
-    => \common\services\delivery\DeliverySyncService::class,
+    DeliverySyncService::class
+    => DeliverySyncService::class,
 
-    \common\services\delivery\DeliverySyncSchedulerService::class
-    => \common\services\delivery\DeliverySyncSchedulerService::class,
+    DeliverySyncSchedulerService::class
+    => DeliverySyncSchedulerService::class,
 
-    \common\services\delivery\DeliveryProviderRegistry::class
-    => static function (\yii\di\Container $container): \common\services\delivery\DeliveryProviderRegistry {
-        return new \common\services\delivery\DeliveryProviderRegistry([
+    DeliveryProviderRegistry::class
+    => static function (Container $container): DeliveryProviderRegistry {
+        return new DeliveryProviderRegistry([
             $container->get(
-                \common\integrations\novaposhta\NovaPoshtaDeliveryProvider::class
+                NovaPoshtaDeliveryProvider::class
             ),
         ]);
     },
 
-    \common\services\delivery\DeliverySyncStatusService::class
-    => \common\services\delivery\DeliverySyncStatusService::class,
+    DeliverySyncStatusService::class
+    => DeliverySyncStatusService::class,
 ];

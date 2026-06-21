@@ -14,31 +14,43 @@ use OutOfBoundsException;
 
 final readonly class DeliveryPointStorage implements DeliveryPointStorageInterface
 {
-    public function __construct(
-        private DeliveryProviderStorage $providers,
-        private DeliveryReadMapper $mapper,
-    ) {
+    public function __construct(private DeliveryProviderStorage $providers, private DeliveryReadMapper $mapper)
+    {
     }
 
-    public function findById(
-        int $id
-    ): ?DeliveryPointReadDto {
-        $model = $this->baseQuery()
-            ->byId($id)
-            ->one();
+    public function findById(int $id): ?DeliveryPointReadDto
+    {
+        $model = $this->baseQuery()->byId($id)->one();
 
-        return $model === null
-            ? null
-            : $this->mapper->mapPoint($model);
+        return $model === null ? null : $this->mapper->mapPoint($model);
     }
 
-    public function findSelectableById(
-        int $id
-    ): ?DeliveryPointReadDto {
-        $model = $this->baseQuery()
-            ->byId($id)
-            ->availableForCheckout()
-            ->one();
+    private function baseQuery(): DeliveryPointQuery
+    {
+        $query = DeliveryPointModel::find();
+
+        $query->with(['provider', 'settlement.area', 'type', 'schedules',]);
+
+        return $query;
+    }
+
+    public function findSelectableByProviderAndExternalRef(string $providerCode, string $externalRef): ?DeliveryPointReadDto
+    {
+        $provider = $this->providers->getActiveByCode($providerCode);
+
+        $model = $this->baseQuery()->byProviderAndExternalRef($provider->id, $externalRef)->availableForCheckout()->one();
+
+        return $model === null ? null : $this->mapper->mapPoint($model);
+    }
+
+    public function getSelectableById(int $id): DeliveryPointReadDto
+    {
+        return $this->findSelectableById($id) ?? throw new OutOfBoundsException(sprintf('Selectable delivery point #%d was not found.', $id));
+    }
+
+    public function findSelectableById(int $id): ?DeliveryPointReadDto
+    {
+        $model = $this->baseQuery()->byId($id)->availableForCheckout()->one();
 
         if ($model === null || !$this->hasActiveProvider($model)) {
             return null;
@@ -47,59 +59,26 @@ final readonly class DeliveryPointStorage implements DeliveryPointStorageInterfa
         return $this->mapper->mapPoint($model);
     }
 
-    public function findSelectableByProviderAndExternalRef(
-        string $providerCode,
-        string $externalRef
-    ): ?DeliveryPointReadDto {
-        $provider = $this->providers->getActiveByCode($providerCode);
-
-        $model = $this->baseQuery()
-            ->byProviderAndExternalRef(
-                $provider->id,
-                $externalRef
-            )
-            ->availableForCheckout()
-            ->one();
-
-        return $model === null
-            ? null
-            : $this->mapper->mapPoint($model);
-    }
-
-    public function getSelectableById(
-        int $id
-    ): DeliveryPointReadDto {
-        return $this->findSelectableById($id)
-            ?? throw new OutOfBoundsException(sprintf(
-                'Selectable delivery point #%d was not found.',
-                $id
-            ));
-    }
-
-    private function baseQuery(): DeliveryPointQuery
+    private function hasActiveProvider(DeliveryPointModel $model): bool
     {
-        $query = DeliveryPointModel::find();
-
-        $query->with([
-            'provider',
-            'settlement.area',
-            'type',
-            'schedules',
-        ]);
-
-        return $query;
-    }
-
-    private function hasActiveProvider(
-        DeliveryPointModel $model
-    ): bool {
         if (!$model->isRelationPopulated('provider')) {
             return false;
         }
 
         $provider = $model->getRelatedRecords()['provider'] ?? null;
 
-        return $provider instanceof DeliveryProviderModel
-            && $provider->getIsActive();
+        return $provider instanceof DeliveryProviderModel && $provider->getIsActive();
+    }
+
+    /**
+     * @return list<DeliveryPointReadDto>
+     */
+    public function findSelectableBySettlement(string $providerCode, int $settlementId): array
+    {
+        $provider = $this->providers->getActiveByCode($providerCode);
+
+        $models = $this->baseQuery()->byProviderId($provider->id)->bySettlementId($settlementId)->availableForCheckout()->orderedByNumber()->all();
+
+        return array_map(fn(DeliveryPointModel $model): DeliveryPointReadDto => $this->mapper->mapPoint($model), $models);
     }
 }

@@ -53,6 +53,120 @@ final class NovaPoshtaDirectorySource implements DeliveryDirectorySourceInterfac
         );
     }
 
+    private function normalizeLimit(?int $limit): int
+    {
+        if ($limit === null) {
+            return self::DEFAULT_LIMIT;
+        }
+
+        if ($limit < 1) {
+            throw new InvalidArgumentException(
+                'Nova Poshta directory limit must be greater than zero.'
+            );
+        }
+
+        return min(
+            $limit,
+            self::MAX_LIMIT
+        );
+    }
+
+    private function decodeOffsetCursor(
+        ?string $cursor,
+        string  $scope
+    ): int
+    {
+        if ($cursor === null) {
+            return 0;
+        }
+
+        $cursor = trim($cursor);
+
+        if (
+            preg_match(
+                '/^(?:0|[1-9]\d*)\z/',
+                $cursor
+            ) !== 1
+        ) {
+            throw new InvalidArgumentException(sprintf(
+                'Invalid Nova Poshta %s cursor "%s".',
+                $scope,
+                $cursor
+            ));
+        }
+
+        return (int)$cursor;
+    }
+
+    /** * @return list<DeliveryAreaSyncDto> */
+    private function loadCanonicalAreas(): array
+    {
+        if ($this->areaCache !== null) {
+            return $this->areaCache;
+        }
+        $directoryAreas = $this->responseMapper->mapAreas($this->apiService->getAreas());
+        $directoryAreasByName = $this->indexDirectoryAreasByName($directoryAreas);
+        $areasByRef = [];
+        $areaRefsByName = [];
+        $page = 1;
+        do {
+            $settlementPage = $this->responseMapper->mapSettlementPage($this->apiService->getSettlements($page, self::MAX_LIMIT), $page, self::MAX_LIMIT);
+            foreach ($settlementPage->items as $settlement) {
+                $areaName = $this->requiredSettlementAreaName($settlement);
+                $nameKey = $this->normalizeAreaName($areaName);
+                $existingRef = $areaRefsByName[$nameKey] ?? null;
+                if ($existingRef !== null && $existingRef !== $settlement->areaRef) {
+                    throw new UnexpectedValueException(sprintf('Nova Poshta area name "%s" is linked to conflicting references "%s" and "%s".', $areaName, $existingRef, $settlement->areaRef));
+                }
+                if (isset($areasByRef[$settlement->areaRef])) {
+                    $existingArea = $areasByRef[$settlement->areaRef];
+                    if ($this->normalizeAreaName($existingArea->name) !== $nameKey) {
+                        throw new UnexpectedValueException(sprintf('Nova Poshta area reference "%s" is linked to conflicting names "%s" and "%s".', $settlement->areaRef, $existingArea->name, $areaName));
+                    }
+                    continue;
+                }
+                $areasByRef[$settlement->areaRef] = $this->directoryMapper->mapAreaFromSettlement($settlement, $directoryAreasByName[$nameKey] ?? null);
+                $areaRefsByName[$nameKey] = $settlement->areaRef;
+            }
+            $page++;
+        } while ($settlementPage->hasMore());
+        if ($areasByRef === []) {
+            throw new UnexpectedValueException('Nova Poshta settlements did not provide any areas.');
+        }
+        $areas = array_values($areasByRef);
+        usort($areas, fn(DeliveryAreaSyncDto $left, DeliveryAreaSyncDto $right): int => $this->normalizeAreaName($left->name) <=> $this->normalizeAreaName($right->name));
+        return $this->areaCache = $areas;
+    }
+
+    /** * @param list<NovaPoshtaAreaDto> $areas * * @return array<string, NovaPoshtaAreaDto> */
+    private function indexDirectoryAreasByName(array $areas): array
+    {
+        $result = [];
+        foreach ($areas as $area) {
+            $nameKey = $this->normalizeAreaName($area->name);
+            if (isset($result[$nameKey])) {
+                throw new UnexpectedValueException(sprintf('Nova Poshta getAreas returned duplicate area name "%s".', $area->name));
+            }
+            $result[$nameKey] = $area;
+        }
+        return $result;
+    }
+
+    private function normalizeAreaName(string $value): string
+    {
+        $value = mb_strtolower(trim($value), 'UTF-8');
+        return preg_replace('/\s+/u', ' ', $value) ?? $value;
+    }
+
+    private function requiredSettlementAreaName(NovaPoshtaSettlementDto $settlement): string
+    {
+        $areaName = trim((string)$settlement->areaName);
+        if ($areaName === '') {
+            throw new UnexpectedValueException(sprintf('Nova Poshta settlement "%s" does not contain an area name.', $settlement->ref));
+        }
+        return $areaName;
+    }
+
     public function fetchSettlements(
         ?string $areaExternalRef = null,
         ?string $cursor = null,
@@ -99,6 +213,54 @@ final class NovaPoshtaDirectorySource implements DeliveryDirectorySourceInterfac
                 ? $providerPage->apiTotalCount
                 : null,
         );
+    }
+
+    private function normalizeOptionalRef(
+        ?string $value,
+        string  $field
+    ): ?string
+    {
+        if ($value === null) {
+            return null;
+        }
+
+        $value = trim($value);
+
+        if ($value === '') {
+            throw new InvalidArgumentException(sprintf(
+                'Nova Poshta %s must not be empty.',
+                $field
+            ));
+        }
+
+        return $value;
+    }
+
+    private function decodePageCursor(
+        ?string $cursor,
+        string  $scope
+    ): int
+    {
+        if ($cursor === null) {
+            return 1;
+        }
+
+        $cursor = trim($cursor);
+
+        if (
+            preg_match(
+                '/^[1-9]\d*\z/',
+                $cursor
+            ) !== 1
+        ) {
+            throw new InvalidArgumentException(sprintf(
+                'Invalid Nova Poshta %s cursor "%s".',
+                $scope,
+                $cursor
+            ));
+        }
+
+        return (int)$cursor;
     }
 
     public function fetchPoints(
@@ -160,74 +322,45 @@ final class NovaPoshtaDirectorySource implements DeliveryDirectorySourceInterfac
         );
     }
 
-
-    /** * @return list<DeliveryAreaSyncDto> */
-    private function loadCanonicalAreas(): array
+    /**
+     * @return array{NovaPoshtaWarehouseType, int}
+     */
+    private function decodePointCursor(?string $cursor): array
     {
-        if ($this->areaCache !== null) {
-            return $this->areaCache;
+        if ($cursor === null) {
+            return [
+                NovaPoshtaWarehouseType::POST_OFFICE,
+                1,
+            ];
         }
-        $directoryAreas = $this->responseMapper->mapAreas($this->apiService->getAreas());
-        $directoryAreasByName = $this->indexDirectoryAreasByName($directoryAreas);
-        $areasByRef = [];
-        $areaRefsByName = [];
-        $page = 1;
-        do {
-            $settlementPage = $this->responseMapper->mapSettlementPage($this->apiService->getSettlements($page, self::MAX_LIMIT), $page, self::MAX_LIMIT);
-            foreach ($settlementPage->items as $settlement) {
-                $areaName = $this->requiredSettlementAreaName($settlement);
-                $nameKey = $this->normalizeAreaName($areaName);
-                $existingRef = $areaRefsByName[$nameKey] ?? null;
-                if ($existingRef !== null && $existingRef !== $settlement->areaRef) {
-                    throw new UnexpectedValueException(sprintf('Nova Poshta area name "%s" is linked to conflicting references "%s" and "%s".', $areaName, $existingRef, $settlement->areaRef));
-                }
-                if (isset($areasByRef[$settlement->areaRef])) {
-                    $existingArea = $areasByRef[$settlement->areaRef];
-                    if ($this->normalizeAreaName($existingArea->name) !== $nameKey) {
-                        throw new UnexpectedValueException(sprintf('Nova Poshta area reference "%s" is linked to conflicting names "%s" and "%s".', $settlement->areaRef, $existingArea->name, $areaName));
-                    }
-                    continue;
-                }
-                $areasByRef[$settlement->areaRef] = $this->directoryMapper->mapAreaFromSettlement($settlement, $directoryAreasByName[$nameKey] ?? null);
-                $areaRefsByName[$nameKey] = $settlement->areaRef;
-            }
-            $page++;
-        } while ($settlementPage->hasMore());
-        if ($areasByRef === []) {
-            throw new UnexpectedValueException('Nova Poshta settlements did not provide any areas.');
-        }
-        $areas = array_values($areasByRef);
-        usort($areas, fn(DeliveryAreaSyncDto $left, DeliveryAreaSyncDto $right): int => $this->normalizeAreaName($left->name) <=> $this->normalizeAreaName($right->name));
-        return $this->areaCache = $areas;
-    }
 
-    /** * @param list<NovaPoshtaAreaDto> $areas * * @return array<string, NovaPoshtaAreaDto> */
-    private function indexDirectoryAreasByName(array $areas): array
-    {
-        $result = [];
-        foreach ($areas as $area) {
-            $nameKey = $this->normalizeAreaName($area->name);
-            if (isset($result[$nameKey])) {
-                throw new UnexpectedValueException(sprintf('Nova Poshta getAreas returned duplicate area name "%s".', $area->name));
-            }
-            $result[$nameKey] = $area;
-        }
-        return $result;
-    }
+        $cursor = trim($cursor);
 
-    private function requiredSettlementAreaName(NovaPoshtaSettlementDto $settlement): string
-    {
-        $areaName = trim((string)$settlement->areaName);
-        if ($areaName === '') {
-            throw new UnexpectedValueException(sprintf('Nova Poshta settlement "%s" does not contain an area name.', $settlement->ref));
+        if (
+            preg_match(
+                '/^(post_office|cargo_branch):([1-9]\d*)\z/',
+                $cursor,
+                $matches
+            ) !== 1
+        ) {
+            throw new InvalidArgumentException(sprintf(
+                'Invalid Nova Poshta point cursor "%s".',
+                $cursor
+            ));
         }
-        return $areaName;
-    }
 
-    private function normalizeAreaName(string $value): string
-    {
-        $value = mb_strtolower(trim($value), 'UTF-8');
-        return preg_replace('/\s+/u', ' ', $value) ?? $value;
+        $type = match ($matches[1]) {
+            self::CURSOR_TYPE_POST_OFFICE =>
+            NovaPoshtaWarehouseType::POST_OFFICE,
+
+            self::CURSOR_TYPE_CARGO_BRANCH =>
+            NovaPoshtaWarehouseType::CARGO_BRANCH,
+        };
+
+        return [
+            $type,
+            (int)$matches[2],
+        ];
     }
 
     /**
@@ -294,47 +427,6 @@ final class NovaPoshtaDirectorySource implements DeliveryDirectorySourceInterfac
         };
     }
 
-    /**
-     * @return array{NovaPoshtaWarehouseType, int}
-     */
-    private function decodePointCursor(?string $cursor): array
-    {
-        if ($cursor === null) {
-            return [
-                NovaPoshtaWarehouseType::POST_OFFICE,
-                1,
-            ];
-        }
-
-        $cursor = trim($cursor);
-
-        if (
-            preg_match(
-                '/^(post_office|cargo_branch):([1-9]\d*)\z/',
-                $cursor,
-                $matches
-            ) !== 1
-        ) {
-            throw new InvalidArgumentException(sprintf(
-                'Invalid Nova Poshta point cursor "%s".',
-                $cursor
-            ));
-        }
-
-        $type = match ($matches[1]) {
-            self::CURSOR_TYPE_POST_OFFICE =>
-            NovaPoshtaWarehouseType::POST_OFFICE,
-
-            self::CURSOR_TYPE_CARGO_BRANCH =>
-            NovaPoshtaWarehouseType::CARGO_BRANCH,
-        };
-
-        return [
-            $type,
-            (int)$matches[2],
-        ];
-    }
-
     private function encodePointCursor(
         NovaPoshtaWarehouseType $type,
         int                     $page
@@ -349,98 +441,5 @@ final class NovaPoshtaDirectorySource implements DeliveryDirectorySourceInterfac
         };
 
         return $typeCode . ':' . $page;
-    }
-
-    private function decodeOffsetCursor(
-        ?string $cursor,
-        string  $scope
-    ): int
-    {
-        if ($cursor === null) {
-            return 0;
-        }
-
-        $cursor = trim($cursor);
-
-        if (
-            preg_match(
-                '/^(?:0|[1-9]\d*)\z/',
-                $cursor
-            ) !== 1
-        ) {
-            throw new InvalidArgumentException(sprintf(
-                'Invalid Nova Poshta %s cursor "%s".',
-                $scope,
-                $cursor
-            ));
-        }
-
-        return (int)$cursor;
-    }
-
-    private function decodePageCursor(
-        ?string $cursor,
-        string  $scope
-    ): int
-    {
-        if ($cursor === null) {
-            return 1;
-        }
-
-        $cursor = trim($cursor);
-
-        if (
-            preg_match(
-                '/^[1-9]\d*\z/',
-                $cursor
-            ) !== 1
-        ) {
-            throw new InvalidArgumentException(sprintf(
-                'Invalid Nova Poshta %s cursor "%s".',
-                $scope,
-                $cursor
-            ));
-        }
-
-        return (int)$cursor;
-    }
-
-    private function normalizeOptionalRef(
-        ?string $value,
-        string  $field
-    ): ?string
-    {
-        if ($value === null) {
-            return null;
-        }
-
-        $value = trim($value);
-
-        if ($value === '') {
-            throw new InvalidArgumentException(sprintf(
-                'Nova Poshta %s must not be empty.',
-                $field
-            ));
-        }
-
-        return $value;
-    }
-
-    private function normalizeLimit(?int $limit): int
-    {
-        if ($limit === null) {
-            return self::DEFAULT_LIMIT;
-        }
-
-        if ($limit < 1) {
-            throw new InvalidArgumentException(
-                'Nova Poshta directory limit must be greater than zero.'
-            );
-        }
-
-        return min(
-            $limit,
-            self::MAX_LIMIT
-        );
     }
 }

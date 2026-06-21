@@ -13,25 +13,26 @@ final readonly class DeliveryPointSyncDto
      * @param list<DeliveryPointScheduleSyncDto> $schedules
      */
     public function __construct(
-        public string $providerCode,
-        public string $settlementExternalRef,
+        public string  $providerCode,
+        public string  $settlementExternalRef,
         public ?string $settlementDeliveryRef,
-        public string $externalRef,
-        public string $typeCode,
+        public string  $externalRef,
+        public string  $typeCode,
         public ?string $externalTypeRef,
         public ?string $number,
         public ?string $name,
         public ?string $description,
-        public string $address,
-        public ?float $latitude,
-        public ?float $longitude,
+        public string  $address,
+        public ?float  $latitude,
+        public ?float  $longitude,
         public ?string $sourceCategory,
         public ?string $sourceStatus,
-        public bool $isActive,
-        public bool $isSelectable,
-        public array $metadata = [],
-        public array $schedules = [],
-    ) {
+        public bool    $isActive,
+        public bool    $isSelectable,
+        public array   $metadata = [],
+        public array   $schedules = [],
+    )
+    {
         DeliveryDtoAssertion::providerCode($providerCode);
         DeliveryDtoAssertion::requiredString($settlementExternalRef, 'settlementExternalRef');
         DeliveryDtoAssertion::optionalString($settlementDeliveryRef, 'settlementDeliveryRef');

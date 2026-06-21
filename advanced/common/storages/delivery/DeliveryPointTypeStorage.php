@@ -13,7 +13,8 @@ final readonly class DeliveryPointTypeStorage
 {
     public function __construct(
         private DeliveryReadMapper $mapper
-    ) {
+    )
+    {
     }
 
     /**
@@ -26,16 +27,28 @@ final readonly class DeliveryPointTypeStorage
             ->all();
 
         return array_map(
-            fn (
+            fn(
                 DeliveryPointTypeModel $model
             ): DeliveryPointTypeReadDto => $this->mapper->mapPointType($model),
             $models
         );
     }
 
+    public function getByCode(
+        string $code
+    ): DeliveryPointTypeReadDto
+    {
+        return $this->findByCode($code)
+            ?? throw new OutOfBoundsException(sprintf(
+                'Delivery point type "%s" was not found.',
+                $code
+            ));
+    }
+
     public function findByCode(
         string $code
-    ): ?DeliveryPointTypeReadDto {
+    ): ?DeliveryPointTypeReadDto
+    {
         $model = DeliveryPointTypeModel::find()
             ->byCode($code)
             ->one();
@@ -43,15 +56,5 @@ final readonly class DeliveryPointTypeStorage
         return $model === null
             ? null
             : $this->mapper->mapPointType($model);
-    }
-
-    public function getByCode(
-        string $code
-    ): DeliveryPointTypeReadDto {
-        return $this->findByCode($code)
-            ?? throw new OutOfBoundsException(sprintf(
-                'Delivery point type "%s" was not found.',
-                $code
-            ));
     }
 }

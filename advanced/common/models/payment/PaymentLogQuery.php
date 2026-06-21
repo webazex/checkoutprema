@@ -36,14 +36,14 @@ class PaymentLogQuery extends ActiveQuery
         return $this->andWhere(['external_id' => $externalId]);
     }
 
-    public function eventType(string $eventType): self
-    {
-        return $this->andWhere(['event_type' => $eventType]);
-    }
-
     public function request(): self
     {
         return $this->eventType(PaymentLogModel::EVENT_REQUEST);
+    }
+
+    public function eventType(string $eventType): self
+    {
+        return $this->andWhere(['event_type' => $eventType]);
     }
 
     public function response(): self
@@ -71,14 +71,14 @@ class PaymentLogQuery extends ActiveQuery
         return $this->eventType(PaymentLogModel::EVENT_ERROR);
     }
 
-    public function direction(string $direction): self
-    {
-        return $this->andWhere(['direction' => $direction]);
-    }
-
     public function incoming(): self
     {
         return $this->direction(PaymentLogModel::DIRECTION_IN);
+    }
+
+    public function direction(string $direction): self
+    {
+        return $this->andWhere(['direction' => $direction]);
     }
 
     public function outgoing(): self

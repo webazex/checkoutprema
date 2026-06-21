@@ -18,25 +18,11 @@ final class KeyCrmOrderExportService
 {
     private const KEYCRM_FIELD_SITE_ORDER_NUMBER = 'OR_1003';
     private const KEYCRM_FIELD_SITE_ORDER_IDENTIFIER = 'OR_1005';
+
     public function __construct(
         private readonly KeyCrmApiClient $apiClient,
-    ) {}
-
-    /**
-     * @return array<int, array{uuid: string, value: string}>
-     */
-    private function buildCustomFields(OrderModel $order): array
+    )
     {
-        return [
-            [
-                'uuid' => self::KEYCRM_FIELD_SITE_ORDER_NUMBER,
-                'value' => (string)$order->id,
-            ],
-            [
-                'uuid' => self::KEYCRM_FIELD_SITE_ORDER_IDENTIFIER,
-                'value' => (string)$order->hash,
-            ],
-        ];
     }
 
     public function export(OrderModel $order): OrderModel
@@ -126,6 +112,48 @@ final class KeyCrmOrderExportService
         return $payload;
     }
 
+    private function buildBuyer(OrderModel $order): array
+    {
+        $fullName = trim(implode(' ', array_filter([
+            $order->customer_first_name,
+            $order->customer_last_name,
+        ])));
+
+        if ($fullName === '') {
+            $fullName = $order->customer?->getFullName() ?: '';
+        }
+
+        $email = $this->nullableString($order->customer_email ?: $order->customer?->email);
+        $phone = $this->nullableString($order->customer_phone ?: $order->customer?->phone);
+
+        if ($fullName === '' && $email === null && $phone === null) {
+            throw new DomainException('Order buyer must have full_name, email or phone.');
+        }
+
+        $buyer = [];
+
+        if ($fullName !== '') {
+            $buyer['full_name'] = $fullName;
+        }
+
+        if ($email !== null) {
+            $buyer['email'] = $email;
+        }
+
+        if ($phone !== null) {
+            $buyer['phone'] = $phone;
+        }
+
+        return $buyer;
+    }
+
+    private function nullableString(mixed $value): ?string
+    {
+        $value = is_string($value) ? trim($value) : null;
+
+        return $value !== '' ? $value : null;
+    }
+
     /**
      * @return array<string, mixed>
      */
@@ -175,39 +203,29 @@ final class KeyCrmOrderExportService
         return $shipping;
     }
 
-    private function buildBuyer(OrderModel $order): array
+    /**
+     * @param string[] $keys
+     * @return array<string, string|null>
+     */
+    private function readOrderMetaValues(OrderModel $order, array $keys): array
     {
-        $fullName = trim(implode(' ', array_filter([
-            $order->customer_first_name,
-            $order->customer_last_name,
-        ])));
-
-        if ($fullName === '') {
-            $fullName = $order->customer?->getFullName() ?: '';
+        if (!$order->id || $keys === []) {
+            return [];
         }
 
-        $email = $this->nullableString($order->customer_email ?: $order->customer?->email);
-        $phone = $this->nullableString($order->customer_phone ?: $order->customer?->phone);
+        $result = [];
 
-        if ($fullName === '' && $email === null && $phone === null) {
-            throw new DomainException('Order buyer must have full_name, email or phone.');
+        /** @var MetaModel[] $rows */
+        $rows = MetaModel::find()
+            ->forEntity(MetaModel::ENTITY_ORDER, (int)$order->id)
+            ->andWhere(['key' => $keys])
+            ->all();
+
+        foreach ($rows as $row) {
+            $result[(string)$row->key] = $this->nullableString($row->value);
         }
 
-        $buyer = [];
-
-        if ($fullName !== '') {
-            $buyer['full_name'] = $fullName;
-        }
-
-        if ($email !== null) {
-            $buyer['email'] = $email;
-        }
-
-        if ($phone !== null) {
-            $buyer['phone'] = $phone;
-        }
-
-        return $buyer;
+        return $result;
     }
 
     /**
@@ -280,6 +298,23 @@ final class KeyCrmOrderExportService
         return [$payment];
     }
 
+    /**
+     * @return array<int, array{uuid: string, value: string}>
+     */
+    private function buildCustomFields(OrderModel $order): array
+    {
+        return [
+            [
+                'uuid' => self::KEYCRM_FIELD_SITE_ORDER_NUMBER,
+                'value' => (string)$order->id,
+            ],
+            [
+                'uuid' => self::KEYCRM_FIELD_SITE_ORDER_IDENTIFIER,
+                'value' => (string)$order->hash,
+            ],
+        ];
+    }
+
     private function extractRemoteOrderId(array $response): ?string
     {
         $id = ArrayHelper::getValue($response, 'id')
@@ -292,37 +327,5 @@ final class KeyCrmOrderExportService
         $id = trim((string)$id);
 
         return $id !== '' ? $id : null;
-    }
-
-    private function nullableString(mixed $value): ?string
-    {
-        $value = is_string($value) ? trim($value) : null;
-
-        return $value !== '' ? $value : null;
-    }
-
-    /**
-     * @param string[] $keys
-     * @return array<string, string|null>
-     */
-    private function readOrderMetaValues(OrderModel $order, array $keys): array
-    {
-        if (!$order->id || $keys === []) {
-            return [];
-        }
-
-        $result = [];
-
-        /** @var MetaModel[] $rows */
-        $rows = MetaModel::find()
-            ->forEntity(MetaModel::ENTITY_ORDER, (int)$order->id)
-            ->andWhere(['key' => $keys])
-            ->all();
-
-        foreach ($rows as $row) {
-            $result[(string)$row->key] = $this->nullableString($row->value);
-        }
-
-        return $result;
     }
 }

@@ -1,4 +1,4 @@
-<?php 
+<?php
 $this->title = 'Shopping Cart';
 ?>
 <div class="page-container">
@@ -6,7 +6,7 @@ $this->title = 'Shopping Cart';
         <h2 class="customer-box__title">
             <span class="title__txt-h2">оформлення замовлення</span>
         </h2>
-    
+
         <form class="customer-box__order-form">
             <h3 class="order-form__title">
                 <span class="title__txt-h3">Дані отримувача</span>
@@ -47,7 +47,7 @@ $this->title = 'Shopping Cart';
                     <option>Some place 2</option>
                 </select>
             </label>
-    
+
             <h3 class="order-form__title">
                 <span class="title__txt-h3">Оплата</span>
             </h3>
@@ -91,8 +91,10 @@ $this->title = 'Shopping Cart';
                     </div>
                 </div>
                 <span class="product-item__remove-icon">
-                                <svg width="28" height="28" viewBox="0 0 28 28" fill="none" xmlns="http://www.w3.org/2000/svg">
-                                    <path d="M6.16699 0.5H21.583C24.7126 0.5 27.25 3.03738 27.25 6.16699V21.583C27.25 24.7126 24.7126 27.25 21.583 27.25H6.16699C3.03738 27.25 0.5 24.7126 0.5 21.583V6.16699C0.5 3.03738 3.03738 0.5 6.16699 0.5Z" stroke="black"/>
+                                <svg width="28" height="28" viewBox="0 0 28 28" fill="none"
+                                     xmlns="http://www.w3.org/2000/svg">
+                                    <path d="M6.16699 0.5H21.583C24.7126 0.5 27.25 3.03738 27.25 6.16699V21.583C27.25 24.7126 24.7126 27.25 21.583 27.25H6.16699C3.03738 27.25 0.5 24.7126 0.5 21.583V6.16699C0.5 3.03738 3.03738 0.5 6.16699 0.5Z"
+                                          stroke="black"/>
                                     <path d="M9.25 18.5L18.5 9.25" stroke="black"/>
                                     <path d="M18.5 18.5L9.25 9.25" stroke="black"/>
                                 </svg>
@@ -124,8 +126,10 @@ $this->title = 'Shopping Cart';
                     </div>
                 </div>
                 <span class="product-item__remove-icon">
-                                <svg width="28" height="28" viewBox="0 0 28 28" fill="none" xmlns="http://www.w3.org/2000/svg">
-                                    <path d="M6.16699 0.5H21.583C24.7126 0.5 27.25 3.03738 27.25 6.16699V21.583C27.25 24.7126 24.7126 27.25 21.583 27.25H6.16699C3.03738 27.25 0.5 24.7126 0.5 21.583V6.16699C0.5 3.03738 3.03738 0.5 6.16699 0.5Z" stroke="black"/>
+                                <svg width="28" height="28" viewBox="0 0 28 28" fill="none"
+                                     xmlns="http://www.w3.org/2000/svg">
+                                    <path d="M6.16699 0.5H21.583C24.7126 0.5 27.25 3.03738 27.25 6.16699V21.583C27.25 24.7126 24.7126 27.25 21.583 27.25H6.16699C3.03738 27.25 0.5 24.7126 0.5 21.583V6.16699C0.5 3.03738 3.03738 0.5 6.16699 0.5Z"
+                                          stroke="black"/>
                                     <path d="M9.25 18.5L18.5 9.25" stroke="black"/>
                                     <path d="M18.5 18.5L9.25 9.25" stroke="black"/>
                                 </svg>

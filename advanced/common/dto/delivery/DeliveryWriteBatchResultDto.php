@@ -13,7 +13,8 @@ final readonly class DeliveryWriteBatchResultDto
         public int $createdCount,
         public int $updatedCount,
         public int $archivedCount = 0,
-    ) {
+    )
+    {
         DeliveryDtoAssertion::nonNegativeInt(
             $processedCount,
             'processedCount'

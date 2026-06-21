@@ -59,6 +59,39 @@ final class KeyCrmSyncRunLogger
         return $runId;
     }
 
+    private function nowMs(): int
+    {
+        return (int)floor(microtime(true) * 1000);
+    }
+
+    private function encode(array $data): string
+    {
+        return Json::encode($data, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);
+    }
+
+    /**
+     * @param array<string, mixed> $values
+     */
+    private function upsertState(string $syncType, array $values): void
+    {
+        $now = time();
+
+        $insert = array_merge([
+            'sync_type' => $syncType,
+            'status' => $values['status'] ?? self::STATUS_RUNNING,
+            'created_at' => $now,
+            'updated_at' => $now,
+        ], $values);
+
+        $update = $values;
+        unset($update['sync_type'], $update['created_at']);
+
+        Yii::$app->db
+            ->createCommand()
+            ->upsert(self::TABLE_STATE, $insert, $update)
+            ->execute();
+    }
+
     public function attachQueueJobId(int $runId, int|string|null $queueJobId): void
     {
         if ($queueJobId === null) {
@@ -82,6 +115,19 @@ final class KeyCrmSyncRunLogger
             'last_queue_job_id' => (string)$queueJobId,
             'updated_at' => $now,
         ]);
+    }
+
+    /**
+     * @return array<string, mixed>|null
+     */
+    private function findRun(int $runId): ?array
+    {
+        $run = Yii::$app->db
+            ->createCommand('SELECT * FROM ' . self::TABLE_RUN . ' WHERE [[id]] = :id')
+            ->bindValue(':id', $runId)
+            ->queryOne();
+
+        return is_array($run) ? $run : null;
     }
 
     public function running(int $runId): void
@@ -146,6 +192,18 @@ final class KeyCrmSyncRunLogger
             'last_error_message' => null,
             'updated_at' => $now,
         ]);
+    }
+
+    /**
+     * @param array<string, mixed> $run
+     */
+    private function durationMs(array $run, int $finishedAtMs): int
+    {
+        $startedAtMs = isset($run['started_at_ms']) && (int)$run['started_at_ms'] > 0
+            ? (int)$run['started_at_ms']
+            : (int)$run['queued_at_ms'];
+
+        return max($finishedAtMs - $startedAtMs, 0);
     }
 
     public function failed(int $runId, Throwable $e, array $stats = []): void
@@ -274,63 +332,5 @@ SQL
             ->bindValue(':running', self::STATUS_RUNNING)
             ->bindValue(':minCreatedAt', $minCreatedAt)
             ->queryScalar();
-    }
-
-    /**
-     * @return array<string, mixed>|null
-     */
-    private function findRun(int $runId): ?array
-    {
-        $run = Yii::$app->db
-            ->createCommand('SELECT * FROM ' . self::TABLE_RUN . ' WHERE [[id]] = :id')
-            ->bindValue(':id', $runId)
-            ->queryOne();
-
-        return is_array($run) ? $run : null;
-    }
-
-    /**
-     * @param array<string, mixed> $values
-     */
-    private function upsertState(string $syncType, array $values): void
-    {
-        $now = time();
-
-        $insert = array_merge([
-            'sync_type' => $syncType,
-            'status' => $values['status'] ?? self::STATUS_RUNNING,
-            'created_at' => $now,
-            'updated_at' => $now,
-        ], $values);
-
-        $update = $values;
-        unset($update['sync_type'], $update['created_at']);
-
-        Yii::$app->db
-            ->createCommand()
-            ->upsert(self::TABLE_STATE, $insert, $update)
-            ->execute();
-    }
-
-    /**
-     * @param array<string, mixed> $run
-     */
-    private function durationMs(array $run, int $finishedAtMs): int
-    {
-        $startedAtMs = isset($run['started_at_ms']) && (int)$run['started_at_ms'] > 0
-            ? (int)$run['started_at_ms']
-            : (int)$run['queued_at_ms'];
-
-        return max($finishedAtMs - $startedAtMs, 0);
-    }
-
-    private function encode(array $data): string
-    {
-        return Json::encode($data, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);
-    }
-
-    private function nowMs(): int
-    {
-        return (int)floor(microtime(true) * 1000);
     }
 }

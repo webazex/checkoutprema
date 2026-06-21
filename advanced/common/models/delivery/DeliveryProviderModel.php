@@ -28,6 +28,11 @@ class DeliveryProviderModel extends BaseModel
         return '{{%delivery_provider}}';
     }
 
+    public static function find(): DeliveryProviderQuery
+    {
+        return new DeliveryProviderQuery(static::class);
+    }
+
     public function rules(): array
     {
         return array_merge(parent::rules(), [
@@ -83,10 +88,5 @@ class DeliveryProviderModel extends BaseModel
     public function getIsActive(): bool
     {
         return (bool)$this->is_active;
-    }
-
-    public static function find(): DeliveryProviderQuery
-    {
-        return new DeliveryProviderQuery(static::class);
     }
 }

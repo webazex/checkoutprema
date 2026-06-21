@@ -44,6 +44,11 @@ class DeliveryPointModel extends BaseModel
         return '{{%delivery_point}}';
     }
 
+    public static function find(): DeliveryPointQuery
+    {
+        return new DeliveryPointQuery(static::class);
+    }
+
     public function rules(): array
     {
         return array_merge(parent::rules(), [
@@ -221,10 +226,5 @@ class DeliveryPointModel extends BaseModel
     public function getHasCoordinates(): bool
     {
         return $this->latitude !== null && $this->longitude !== null;
-    }
-
-    public static function find(): DeliveryPointQuery
-    {
-        return new DeliveryPointQuery(static::class);
     }
 }

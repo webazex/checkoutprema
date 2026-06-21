@@ -2,6 +2,7 @@
 
 namespace frontend\tests\functional;
 
+use common\models\User;
 use frontend\tests\FunctionalTester;
 
 class SignupCest
@@ -29,9 +30,9 @@ class SignupCest
         $I->submitForm(
             $this->formId,
             [
-                'SignupForm[username]'  => 'tester',
-                'SignupForm[email]'     => 'ttttt',
-                'SignupForm[password]'  => 'tester_password',
+                'SignupForm[username]' => 'tester',
+                'SignupForm[email]' => 'ttttt',
+                'SignupForm[password]' => 'tester_password',
             ]
         );
         $I->dontSee('Username cannot be blank.', '.invalid-feedback');
@@ -50,7 +51,7 @@ class SignupCest
         $I->seeRecord('common\models\User', [
             'username' => 'tester',
             'email' => 'tester.email@example.com',
-            'status' => \common\models\User::STATUS_INACTIVE
+            'status' => User::STATUS_INACTIVE
         ]);
 
         $I->seeEmailIsSent();

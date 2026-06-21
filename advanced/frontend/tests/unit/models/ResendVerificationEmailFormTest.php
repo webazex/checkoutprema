@@ -5,11 +5,13 @@ namespace frontend\tests\unit\models;
 use Codeception\Test\Unit;
 use common\fixtures\UserFixture;
 use frontend\models\ResendVerificationEmailForm;
+use frontend\tests\UnitTester;
+use Yii;
 
 class ResendVerificationEmailFormTest extends Unit
 {
     /**
-     * @var \frontend\tests\UnitTester
+     * @var UnitTester
      */
     protected $tester;
 
@@ -77,8 +79,8 @@ class ResendVerificationEmailFormTest extends Unit
 
         verify($mail)->instanceOf('yii\mail\MessageInterface');
         verify($mail->getTo())->arrayHasKey('test@mail.com');
-        verify($mail->getFrom())->arrayHasKey(\Yii::$app->params['supportEmail']);
-        verify($mail->getSubject())->equals('Account registration at ' . \Yii::$app->name);
+        verify($mail->getFrom())->arrayHasKey(Yii::$app->params['supportEmail']);
+        verify($mail->getSubject())->equals('Account registration at ' . Yii::$app->name);
         verify($mail->toString())->stringContainsString('4ch0qbfhvWwkcuWqjN8SWRq72SOw1KYT_1548675330');
     }
 }

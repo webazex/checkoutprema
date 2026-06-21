@@ -13,10 +13,11 @@ final readonly class NovaPoshtaSettlementPageDto
      */
     public function __construct(
         public array $items,
-        public int $apiTotalCount,
-        public int $page,
-        public int $limit,
-    ) {
+        public int   $apiTotalCount,
+        public int   $page,
+        public int   $limit,
+    )
+    {
         if (!array_is_list($items)) {
             throw new InvalidArgumentException(
                 'Nova Poshta settlements must be provided as a list.'

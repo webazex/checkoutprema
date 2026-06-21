@@ -9,14 +9,15 @@ use InvalidArgumentException;
 final readonly class DeliveryPointScheduleReadDto
 {
     public function __construct(
-        public int $weekday,
-        public int $intervalNo,
+        public int     $weekday,
+        public int     $intervalNo,
         public ?string $opensAt,
         public ?string $closesAt,
-        public bool $isClosed,
+        public bool    $isClosed,
         public ?string $validFrom = null,
         public ?string $validTo = null,
-    ) {
+    )
+    {
         if ($weekday < 1 || $weekday > 7) {
             throw new InvalidArgumentException(
                 'Delivery schedule weekday must be between 1 and 7.'

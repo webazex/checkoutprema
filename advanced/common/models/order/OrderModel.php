@@ -1,6 +1,7 @@
 <?php
 
 namespace common\models\order;
+
 use common\models\BaseModel;
 use common\models\cart\CartModel;
 use common\models\customer\CustomerModel;
@@ -49,9 +50,15 @@ class OrderModel extends BaseModel
     public const PAYMENT_STATUS_PAID = 'paid';
     public const PAYMENT_STATUS_FAILED = 'failed';
     public const PAYMENT_STATUS_CANCELLED = 'cancelled';
+
     public static function tableName(): string
     {
         return '{{%order}}';
+    }
+
+    public static function find(): OrderQuery
+    {
+        return new OrderQuery(static::class);
     }
 
     public function rules(): array
@@ -149,9 +156,5 @@ class OrderModel extends BaseModel
     public function getCustomerFullName(): string
     {
         return trim((string)$this->customer_first_name . ' ' . (string)$this->customer_last_name);
-    }
-    public static function find(): OrderQuery
-    {
-        return new OrderQuery(static::class);
     }
 }

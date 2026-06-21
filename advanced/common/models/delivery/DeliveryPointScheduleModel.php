@@ -32,6 +32,11 @@ class DeliveryPointScheduleModel extends BaseModel
         return '{{%delivery_point_schedule}}';
     }
 
+    public static function find(): DeliveryPointScheduleQuery
+    {
+        return new DeliveryPointScheduleQuery(static::class);
+    }
+
     public function rules(): array
     {
         return array_merge(parent::rules(), [
@@ -148,10 +153,5 @@ class DeliveryPointScheduleModel extends BaseModel
     public function getIsClosed(): bool
     {
         return (bool)$this->is_closed;
-    }
-
-    public static function find(): DeliveryPointScheduleQuery
-    {
-        return new DeliveryPointScheduleQuery(static::class);
     }
 }

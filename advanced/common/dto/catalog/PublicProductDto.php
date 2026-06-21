@@ -7,18 +7,19 @@ namespace common\dto\catalog;
 final class PublicProductDto
 {
     public function __construct(
-        public readonly int $id,
-        public readonly string $name,
-        public readonly string $slug,
+        public readonly int     $id,
+        public readonly string  $name,
+        public readonly string  $slug,
         public readonly ?string $sku,
         public readonly ?string $description,
-        public readonly float $price,
-        public readonly string $currency,
-        public readonly int $quantity,
-        public readonly bool $isAvailable,
+        public readonly float   $price,
+        public readonly string  $currency,
+        public readonly int     $quantity,
+        public readonly bool    $isAvailable,
         public readonly ?string $thumbnailUrl,
         public readonly ?string $categoryExternalId,
-    ) {
+    )
+    {
     }
 
     public function toArray(): array

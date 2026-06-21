@@ -41,6 +41,11 @@ class CartModel extends BaseModel
         return '{{%cart}}';
     }
 
+    public static function find(): CartQuery
+    {
+        return new CartQuery(static::class);
+    }
+
     public function rules(): array
     {
         return array_merge(parent::rules(), [
@@ -107,9 +112,5 @@ class CartModel extends BaseModel
     public function getIsActive(): bool
     {
         return $this->status === self::STATUS_ACTIVE;
-    }
-    public static function find(): CartQuery
-    {
-        return new CartQuery(static::class);
     }
 }

@@ -55,6 +55,15 @@ class CustomerLoginForm extends Model
         }
     }
 
+    public function getCustomer(): ?CustomerModel
+    {
+        if ($this->_customer === null) {
+            $this->_customer = CustomerModel::findByEmail((string)$this->email);
+        }
+
+        return $this->_customer;
+    }
+
     public function login(): bool
     {
         if (!$this->validate()) {
@@ -69,14 +78,5 @@ class CustomerLoginForm extends Model
         $duration = $this->rememberMe ? 3600 * 24 * 30 : 0;
 
         return Yii::$app->user->login($customer, $duration);
-    }
-
-    public function getCustomer(): ?CustomerModel
-    {
-        if ($this->_customer === null) {
-            $this->_customer = CustomerModel::findByEmail((string)$this->email);
-        }
-
-        return $this->_customer;
     }
 }

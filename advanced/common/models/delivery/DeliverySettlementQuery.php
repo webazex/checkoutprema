@@ -17,19 +17,9 @@ final class DeliverySettlementQuery extends ActiveQuery
         return $this->andWhere(['id' => $id]);
     }
 
-    public function byProviderId(int $providerId): self
-    {
-        return $this->andWhere(['provider_id' => $providerId]);
-    }
-
     public function byAreaId(int $areaId): self
     {
         return $this->andWhere(['area_id' => $areaId]);
-    }
-
-    public function byExternalRef(string $externalRef): self
-    {
-        return $this->andWhere(['external_ref' => $externalRef]);
     }
 
     public function byDeliveryRef(string $deliveryRef): self
@@ -42,6 +32,16 @@ final class DeliverySettlementQuery extends ActiveQuery
         return $this
             ->byProviderId($providerId)
             ->byExternalRef($externalRef);
+    }
+
+    public function byExternalRef(string $externalRef): self
+    {
+        return $this->andWhere(['external_ref' => $externalRef]);
+    }
+
+    public function byProviderId(int $providerId): self
+    {
+        return $this->andWhere(['provider_id' => $providerId]);
     }
 
     public function notArchived(): self

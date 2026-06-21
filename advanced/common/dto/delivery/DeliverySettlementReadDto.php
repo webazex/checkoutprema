@@ -7,21 +7,22 @@ namespace common\dto\delivery;
 final readonly class DeliverySettlementReadDto
 {
     public function __construct(
-        public int $id,
-        public int $providerId,
-        public string $providerCode,
-        public int $areaId,
-        public string $areaExternalRef,
-        public string $areaName,
-        public string $externalRef,
+        public int     $id,
+        public int     $providerId,
+        public string  $providerCode,
+        public int     $areaId,
+        public string  $areaExternalRef,
+        public string  $areaName,
+        public string  $externalRef,
         public ?string $deliveryRef,
-        public string $name,
+        public string  $name,
         public ?string $present = null,
         public ?string $settlementTypeCode = null,
         public ?string $districtName = null,
-        public ?float $latitude = null,
-        public ?float $longitude = null,
-    ) {
+        public ?float  $latitude = null,
+        public ?float  $longitude = null,
+    )
+    {
         DeliveryDtoAssertion::positiveInt($id, 'id');
         DeliveryDtoAssertion::positiveInt($providerId, 'providerId');
         DeliveryDtoAssertion::providerCode($providerCode);

@@ -27,56 +27,6 @@ final class DeliveryProviderRegistry
         }
     }
 
-    public function get(string $code): DeliveryProviderInterface
-    {
-        $code = $this->normalizeCode($code);
-
-        if (!isset($this->providers[$code])) {
-            throw new OutOfBoundsException(sprintf(
-                'Delivery provider "%s" is not registered.',
-                $code
-            ));
-        }
-
-        return $this->providers[$code];
-    }
-
-    public function has(string $code): bool
-    {
-        try {
-            $code = $this->normalizeCode($code);
-        } catch (InvalidArgumentException) {
-            return false;
-        }
-
-        return isset($this->providers[$code]);
-    }
-
-    public function supports(string $code, DeliveryProviderCapability $capability): bool
-    {
-        return in_array(
-            $capability,
-            $this->get($code)->capabilities(),
-            true
-        );
-    }
-
-    /**
-     * @return array<string, DeliveryProviderInterface>
-     */
-    public function all(): array
-    {
-        return $this->providers;
-    }
-
-    /**
-     * @return list<string>
-     */
-    public function codes(): array
-    {
-        return array_keys($this->providers);
-    }
-
     private function add(DeliveryProviderInterface $provider): void
     {
         $rawCode = $provider->code();
@@ -109,6 +59,20 @@ final class DeliveryProviderRegistry
         $this->providers[$code] = $provider;
     }
 
+    private function normalizeCode(string $code): string
+    {
+        $code = strtolower(trim($code));
+
+        if (preg_match('/^[a-z][a-z0-9_]{0,63}$/', $code) !== 1) {
+            throw new InvalidArgumentException(sprintf(
+                'Invalid delivery provider code "%s".',
+                $code
+            ));
+        }
+
+        return $code;
+    }
+
     private function validateCapabilities(DeliveryProviderInterface $provider): void
     {
         $seen = [];
@@ -133,17 +97,53 @@ final class DeliveryProviderRegistry
         }
     }
 
-    private function normalizeCode(string $code): string
+    public function has(string $code): bool
     {
-        $code = strtolower(trim($code));
+        try {
+            $code = $this->normalizeCode($code);
+        } catch (InvalidArgumentException) {
+            return false;
+        }
 
-        if (preg_match('/^[a-z][a-z0-9_]{0,63}$/', $code) !== 1) {
-            throw new InvalidArgumentException(sprintf(
-                'Invalid delivery provider code "%s".',
+        return isset($this->providers[$code]);
+    }
+
+    public function supports(string $code, DeliveryProviderCapability $capability): bool
+    {
+        return in_array(
+            $capability,
+            $this->get($code)->capabilities(),
+            true
+        );
+    }
+
+    public function get(string $code): DeliveryProviderInterface
+    {
+        $code = $this->normalizeCode($code);
+
+        if (!isset($this->providers[$code])) {
+            throw new OutOfBoundsException(sprintf(
+                'Delivery provider "%s" is not registered.',
                 $code
             ));
         }
 
-        return $code;
+        return $this->providers[$code];
+    }
+
+    /**
+     * @return array<string, DeliveryProviderInterface>
+     */
+    public function all(): array
+    {
+        return $this->providers;
+    }
+
+    /**
+     * @return list<string>
+     */
+    public function codes(): array
+    {
+        return array_keys($this->providers);
     }
 }

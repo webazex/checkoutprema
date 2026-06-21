@@ -289,6 +289,34 @@ final class DbController extends Controller
         throw new RuntimeException('Unknown cleanup plan item type: ' . $item['type']);
     }
 
+    private function tableExists(string $table): bool
+    {
+        return Yii::$app->db->schema->getTableSchema($this->normalizeTableName($table), true) !== null;
+    }
+
+    private function normalizeTableName(string $table): string
+    {
+        if (preg_match('/^\{\{%(.+)}}$/', $table, $matches) === 1) {
+            return Yii::$app->db->tablePrefix . $matches[1];
+        }
+
+        if (preg_match('/^\{\{(.+)}}$/', $table, $matches) === 1) {
+            return $matches[1];
+        }
+
+        return $table;
+    }
+
+    private function quoteTableName(string $table): string
+    {
+        return Yii::$app->db->schema->quoteTableName($this->normalizeTableName($table));
+    }
+
+    private function quoteColumnName(string $column): string
+    {
+        return Yii::$app->db->schema->quoteColumnName($column);
+    }
+
     /**
      * @param array<int, array{type:string, table?:string, entityTypes?:string[], label:string}> $plan
      */
@@ -410,33 +438,5 @@ final class DbController extends Controller
 
             $this->stdout("Reset AUTO_INCREMENT for {$item['label']}." . PHP_EOL, Console::FG_BLUE);
         }
-    }
-
-    private function tableExists(string $table): bool
-    {
-        return Yii::$app->db->schema->getTableSchema($this->normalizeTableName($table), true) !== null;
-    }
-
-    private function quoteTableName(string $table): string
-    {
-        return Yii::$app->db->schema->quoteTableName($this->normalizeTableName($table));
-    }
-
-    private function quoteColumnName(string $column): string
-    {
-        return Yii::$app->db->schema->quoteColumnName($column);
-    }
-
-    private function normalizeTableName(string $table): string
-    {
-        if (preg_match('/^\{\{%(.+)}}$/', $table, $matches) === 1) {
-            return Yii::$app->db->tablePrefix . $matches[1];
-        }
-
-        if (preg_match('/^\{\{(.+)}}$/', $table, $matches) === 1) {
-            return $matches[1];
-        }
-
-        return $table;
     }
 }

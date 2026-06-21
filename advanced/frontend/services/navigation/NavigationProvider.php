@@ -11,20 +11,6 @@ final class NavigationProvider
     public const KEY_CATALOG = 'catalog';
     public const KEY_CATEGORY_PREFIX = 'category.';
 
-    public function getHeaderTree(): array
-    {
-        $items = Yii::$app->params['navigation']['header'] ?? [];
-
-        return $this->normalizeTree($items);
-    }
-
-    public function getFooterTree(): array
-    {
-        $items = Yii::$app->params['navigation']['footer'] ?? [];
-
-        return $this->normalizeTree($items);
-    }
-
     public function getFullTree(): array
     {
         return [
@@ -33,16 +19,11 @@ final class NavigationProvider
         ];
     }
 
-    public function getCatalogCategoryKey(int $categoryId): string
+    public function getHeaderTree(): array
     {
-        return self::KEY_CATEGORY_PREFIX . $categoryId;
-    }
+        $items = Yii::$app->params['navigation']['header'] ?? [];
 
-    public function findPathByKey(string $targetKey, ?array $tree = null): ?array
-    {
-        $tree ??= $this->getHeaderTree();
-
-        return $this->findPathRecursive($targetKey, $tree);
+        return $this->normalizeTree($items);
     }
 
     private function normalizeTree(array $items): array
@@ -99,48 +80,6 @@ final class NavigationProvider
         }
 
         return $tree;
-    }
-
-    private function buildUrl(array $item, bool $isExternal): string
-    {
-        if ($isExternal) {
-            return (string)($item['url'] ?? '#');
-        }
-
-        if (!empty($item['route'])) {
-            return Url::to($item['route']);
-        }
-
-        return (string)($item['url'] ?? '#');
-    }
-
-    private function isItemActive(array $item): bool
-    {
-        if (($item['isExternal'] ?? false) === true) {
-            return false;
-        }
-
-        if ($this->isUrlActive((string)($item['url'] ?? ''))) {
-            return true;
-        }
-
-        foreach (($item['children'] ?? []) as $child) {
-            if (!empty($child['isActive'])) {
-                return true;
-            }
-        }
-
-        return false;
-    }
-
-    private function isUrlActive(string $url): bool
-    {
-        $currentPath = trim(Yii::$app->request->pathInfo, '/');
-
-        $path = parse_url($url, PHP_URL_PATH);
-        $path = trim((string)$path, '/');
-
-        return $currentPath === $path;
     }
 
     private function getCatalogCategoryTree(): array
@@ -201,6 +140,67 @@ final class NavigationProvider
         }
 
         return $branch;
+    }
+
+    public function getCatalogCategoryKey(int $categoryId): string
+    {
+        return self::KEY_CATEGORY_PREFIX . $categoryId;
+    }
+
+    private function isUrlActive(string $url): bool
+    {
+        $currentPath = trim(Yii::$app->request->pathInfo, '/');
+
+        $path = parse_url($url, PHP_URL_PATH);
+        $path = trim((string)$path, '/');
+
+        return $currentPath === $path;
+    }
+
+    private function buildUrl(array $item, bool $isExternal): string
+    {
+        if ($isExternal) {
+            return (string)($item['url'] ?? '#');
+        }
+
+        if (!empty($item['route'])) {
+            return Url::to($item['route']);
+        }
+
+        return (string)($item['url'] ?? '#');
+    }
+
+    private function isItemActive(array $item): bool
+    {
+        if (($item['isExternal'] ?? false) === true) {
+            return false;
+        }
+
+        if ($this->isUrlActive((string)($item['url'] ?? ''))) {
+            return true;
+        }
+
+        foreach (($item['children'] ?? []) as $child) {
+            if (!empty($child['isActive'])) {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    public function getFooterTree(): array
+    {
+        $items = Yii::$app->params['navigation']['footer'] ?? [];
+
+        return $this->normalizeTree($items);
+    }
+
+    public function findPathByKey(string $targetKey, ?array $tree = null): ?array
+    {
+        $tree ??= $this->getHeaderTree();
+
+        return $this->findPathRecursive($targetKey, $tree);
     }
 
     private function findPathRecursive(string $targetKey, array $tree, array $path = []): ?array

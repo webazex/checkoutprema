@@ -9,6 +9,7 @@ use common\models\cart\CartModel;
 use common\models\product\ProductModel;
 use DomainException;
 use InvalidArgumentException;
+use Throwable;
 use Yii;
 use yii\db\Connection;
 use yii\db\Exception as DbException;
@@ -17,7 +18,8 @@ final class GuestCartImportService
 {
     public function __construct(
         private readonly CartProductResolver $productResolver,
-    ) {
+    )
+    {
     }
 
     /**
@@ -125,7 +127,7 @@ final class GuestCartImportService
                 'totalAmount' => (float)$cart->total_amount,
                 'items' => $responseItems,
             ];
-        } catch (\Throwable $e) {
+        } catch (Throwable $e) {
             $transaction->rollBack();
             throw $e;
         }

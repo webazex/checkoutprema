@@ -16,13 +16,13 @@ final class Module extends BaseModule
 
         $this->modules = [
             'public' => [
-                'class' => \api\modules\v1\modules\publicApi\Module::class,
+                'class' => modules\publicApi\Module::class,
             ],
             'callbacks' => [
-                'class' => \api\modules\v1\modules\callbacks\Module::class,
+                'class' => modules\callbacks\Module::class,
             ],
             'integrations' => [
-                'class' => \api\modules\v1\modules\integrations\Module::class,
+                'class' => modules\integrations\Module::class,
             ],
         ];
     }

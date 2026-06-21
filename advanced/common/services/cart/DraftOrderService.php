@@ -2,6 +2,7 @@
 
 namespace common\services\cart;
 
+use RuntimeException;
 use Yii;
 use common\models\Order;
 use common\models\customer\CustomerModel;
@@ -74,7 +75,7 @@ class DraftOrderService
                 'errors' => $order->errors,
             ], __METHOD__);
 
-            throw new \RuntimeException('Failed to create draft order.');
+            throw new RuntimeException('Failed to create draft order.');
         }
 
         return $order;

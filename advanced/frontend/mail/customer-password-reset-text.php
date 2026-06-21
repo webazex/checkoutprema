@@ -1,7 +1,9 @@
 <?php
 
-/** @var \common\models\customer\CustomerModel $customer */
+/** @var CustomerModel $customer */
 /** @var string $resetUrl */
+
+use common\models\customer\CustomerModel;
 
 echo Yii::t('frontend', 'Hello!') . PHP_EOL . PHP_EOL;
 echo Yii::t('frontend', 'To set a new password, follow this link:') . PHP_EOL;

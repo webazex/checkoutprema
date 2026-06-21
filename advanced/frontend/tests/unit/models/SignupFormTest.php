@@ -2,13 +2,17 @@
 
 namespace frontend\tests\unit\models;
 
+use Codeception\Test\Unit;
 use common\fixtures\UserFixture;
+use common\models\User;
 use frontend\models\SignupForm;
+use frontend\tests\UnitTester;
+use Yii;
 
-class SignupFormTest extends \Codeception\Test\Unit
+class SignupFormTest extends Unit
 {
     /**
-     * @var \frontend\tests\UnitTester
+     * @var UnitTester
      */
     protected $tester;
 
@@ -34,11 +38,11 @@ class SignupFormTest extends \Codeception\Test\Unit
         $user = $model->signup();
         verify($user)->notEmpty();
 
-        /** @var \common\models\User $user */
+        /** @var User $user */
         $user = $this->tester->grabRecord('common\models\User', [
             'username' => 'some_username',
             'email' => 'some_email@example.com',
-            'status' => \common\models\User::STATUS_INACTIVE
+            'status' => User::STATUS_INACTIVE
         ]);
 
         $this->tester->seeEmailIsSent();
@@ -47,8 +51,8 @@ class SignupFormTest extends \Codeception\Test\Unit
 
         verify($mail)->instanceOf('yii\mail\MessageInterface');
         verify($mail->getTo())->arrayHasKey('some_email@example.com');
-        verify($mail->getFrom())->arrayHasKey(\Yii::$app->params['supportEmail']);
-        verify($mail->getSubject())->equals('Account registration at ' . \Yii::$app->name);
+        verify($mail->getFrom())->arrayHasKey(Yii::$app->params['supportEmail']);
+        verify($mail->getSubject())->equals('Account registration at ' . Yii::$app->name);
         verify($mail->toString())->stringContainsString($user->verification_token);
     }
 

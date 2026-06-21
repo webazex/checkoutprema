@@ -88,8 +88,8 @@ final class CheckoutController extends Controller
         $service = Yii::$container->get(CheckoutCartStateService::class);
 
         $dto = $service->getActiveCartBySession(
-            sessionKey: (string) $input->sessionKey,
-            sourceType: (string) $input->sourceType,
+            sessionKey: (string)$input->sessionKey,
+            sourceType: (string)$input->sourceType,
         );
 
         Yii::$app->response->statusCode = 200;

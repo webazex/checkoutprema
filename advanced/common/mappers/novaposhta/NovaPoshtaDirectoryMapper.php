@@ -44,21 +44,6 @@ final class NovaPoshtaDirectoryMapper
     private const SETTLEMENT_TYPE_URBAN = 'urban_type_settlement';
     private const SETTLEMENT_TYPE_OTHER = 'other';
 
-    public function mapArea(NovaPoshtaAreaDto $area): DeliveryAreaSyncDto
-    {
-        return new DeliveryAreaSyncDto(
-            providerCode: self::PROVIDER_CODE,
-            externalRef: $area->ref,
-            name: $area->name,
-            metadata: [
-                'novaPoshta' => $this->removeNullValues([
-                    'centerRef' => $area->centerRef,
-                    'nameRu' => $area->nameRu,
-                ]),
-            ],
-        );
-    }
-
     /**
      * @param list<NovaPoshtaAreaDto> $areas
      *
@@ -87,23 +72,98 @@ final class NovaPoshtaDirectoryMapper
         return $result;
     }
 
-    public function mapAreaFromSettlement(NovaPoshtaSettlementDto $settlement, ?NovaPoshtaAreaDto $directoryArea = null): DeliveryAreaSyncDto {
-        $areaName = $this->nullableText($settlement->areaName);
-        if ($areaName === null)
-        {
-            throw new UnexpectedValueException(sprintf( 'Nova Poshta settlement "%s" does not contain an area name.', $settlement->ref ));
-        }
-        return new DeliveryAreaSyncDto( providerCode: self::PROVIDER_CODE, externalRef: $settlement->areaRef, name: $areaName, metadata:
-            [
-                'novaPoshta' => $this->removeNullValues(
-                    [
-                        'directoryRef' => $directoryArea?->ref,
-                        'centerRef' => $directoryArea?->centerRef,
-                        'nameRu' => $directoryArea?->nameRu ?? ($settlement->metadata['areaNameRu'] ?? null),
-                        'nameTranslit' => $settlement->metadata['areaNameTranslit'] ?? null,
-                    ]),
+    public function mapArea(NovaPoshtaAreaDto $area): DeliveryAreaSyncDto
+    {
+        return new DeliveryAreaSyncDto(
+            providerCode: self::PROVIDER_CODE,
+            externalRef: $area->ref,
+            name: $area->name,
+            metadata: [
+                'novaPoshta' => $this->removeNullValues([
+                    'centerRef' => $area->centerRef,
+                    'nameRu' => $area->nameRu,
+                ]),
             ],
         );
+    }
+
+    /**
+     * Удаляет только null.
+     *
+     * false и 0 являются значимыми provider values
+     * и должны сохраняться.
+     *
+     * @param array<string, mixed> $values
+     *
+     * @return array<string, mixed>
+     */
+    private function removeNullValues(array $values): array
+    {
+        return array_filter(
+            $values,
+            static fn(mixed $value): bool => $value !== null
+        );
+    }
+
+    public function mapAreaFromSettlement(NovaPoshtaSettlementDto $settlement, ?NovaPoshtaAreaDto $directoryArea = null): DeliveryAreaSyncDto
+    {
+        $areaName = $this->nullableText($settlement->areaName);
+        if ($areaName === null) {
+            throw new UnexpectedValueException(sprintf('Nova Poshta settlement "%s" does not contain an area name.', $settlement->ref));
+        }
+        return new DeliveryAreaSyncDto(providerCode: self::PROVIDER_CODE, externalRef: $settlement->areaRef, name: $areaName, metadata: [
+            'novaPoshta' => $this->removeNullValues(
+                [
+                    'directoryRef' => $directoryArea?->ref,
+                    'centerRef' => $directoryArea?->centerRef,
+                    'nameRu' => $directoryArea?->nameRu ?? ($settlement->metadata['areaNameRu'] ?? null),
+                    'nameTranslit' => $settlement->metadata['areaNameTranslit'] ?? null,
+                ]),
+        ],
+        );
+    }
+
+    private function nullableText(
+        ?string $value
+    ): ?string
+    {
+        if ($value === null) {
+            return null;
+        }
+
+        $value = trim($value);
+
+        return $value !== ''
+            ? $value
+            : null;
+    }
+
+    /**
+     * @param list<NovaPoshtaSettlementDto> $settlements
+     *
+     * @return list<DeliverySettlementSyncDto>
+     */
+    public function mapSettlements(array $settlements): array
+    {
+        if (!array_is_list($settlements)) {
+            throw new InvalidArgumentException(
+                'Nova Poshta settlements must be provided as a list.'
+            );
+        }
+
+        $result = [];
+
+        foreach ($settlements as $settlement) {
+            if (!$settlement instanceof NovaPoshtaSettlementDto) {
+                throw new InvalidArgumentException(
+                    'Nova Poshta settlements list contains an invalid object.'
+                );
+            }
+
+            $result[] = $this->mapSettlement($settlement);
+        }
+
+        return $result;
     }
 
     public function mapSettlement(NovaPoshtaSettlementDto $settlement): DeliverySettlementSyncDto
@@ -139,67 +199,30 @@ final class NovaPoshtaDirectoryMapper
         );
     }
 
-    /**
-     * @param list<NovaPoshtaSettlementDto> $settlements
-     *
-     * @return list<DeliverySettlementSyncDto>
-     */
-    public function mapSettlements(array $settlements): array
+    private function mapSettlementTypeCode(?string $typeName): string
     {
-        if (!array_is_list($settlements)) {
-            throw new InvalidArgumentException(
-                'Nova Poshta settlements must be provided as a list.'
-            );
+        if ($typeName === null) {
+            return self::SETTLEMENT_TYPE_OTHER;
         }
 
-        $result = [];
+        $typeName = mb_strtolower(trim($typeName), 'UTF-8');
+        $typeName = preg_replace('/\s+/u', ' ', $typeName) ?? $typeName;
 
-        foreach ($settlements as $settlement) {
-            if (!$settlement instanceof NovaPoshtaSettlementDto) {
-                throw new InvalidArgumentException(
-                    'Nova Poshta settlements list contains an invalid object.'
-                );
-            }
+        return match ($typeName) {
+            'місто',
+            'город' => self::SETTLEMENT_TYPE_CITY,
 
-            $result[] = $this->mapSettlement($settlement);
-        }
+            'село' => self::SETTLEMENT_TYPE_VILLAGE,
 
-        return $result;
-    }
+            'селище',
+            'поселок' => self::SETTLEMENT_TYPE_SETTLEMENT,
 
-    /**
-     * Преобразует provider-specific DTO отделения
-     * в общий DTO синхронизации delivery directory.
-     */
-    public function mapPoint(
-        NovaPoshtaWarehouseDto $warehouse
-    ): DeliveryPointSyncDto {
-        $isActive = $warehouse->status === self::ACTIVE_STATUS;
+            'селище міського типу',
+            'поселок городского типа',
+            'смт' => self::SETTLEMENT_TYPE_URBAN,
 
-        $isSelectable = $isActive
-            && $warehouse->category === self::SELECTABLE_CATEGORY
-            && !$warehouse->denyToSelect;
-
-        return new DeliveryPointSyncDto(
-            providerCode: self::PROVIDER_CODE,
-            settlementExternalRef: $warehouse->settlementRef,
-            settlementDeliveryRef: $warehouse->cityRef,
-            externalRef: $warehouse->ref,
-            typeCode: $this->mapPointTypeCode($warehouse->type),
-            externalTypeRef: $warehouse->type->value,
-            number: $warehouse->number,
-            name: $warehouse->description,
-            description: null,
-            address: $warehouse->shortAddress,
-            latitude: $warehouse->latitude,
-            longitude: $warehouse->longitude,
-            sourceCategory: $warehouse->category,
-            sourceStatus: $warehouse->status,
-            isActive: $isActive,
-            isSelectable: $isSelectable,
-            metadata: $this->mapMetadata($warehouse),
-            schedules: $this->mapSchedules($warehouse->schedule),
-        );
+            default => self::SETTLEMENT_TYPE_OTHER,
+        };
     }
 
     /**
@@ -231,6 +254,172 @@ final class NovaPoshtaDirectoryMapper
     }
 
     /**
+     * Преобразует provider-specific DTO отделения
+     * в общий DTO синхронизации delivery directory.
+     */
+    public function mapPoint(
+        NovaPoshtaWarehouseDto $warehouse
+    ): DeliveryPointSyncDto
+    {
+        $isActive = $warehouse->status === self::ACTIVE_STATUS;
+
+        $isSelectable = $isActive
+            && $warehouse->category === self::SELECTABLE_CATEGORY
+            && !$warehouse->denyToSelect;
+
+        return new DeliveryPointSyncDto(
+            providerCode: self::PROVIDER_CODE,
+            settlementExternalRef: $warehouse->settlementRef,
+            settlementDeliveryRef: $warehouse->cityRef,
+            externalRef: $warehouse->ref,
+            typeCode: $this->mapPointTypeCode($warehouse->type),
+            externalTypeRef: $warehouse->type->value,
+            number: $warehouse->number,
+            name: $warehouse->description,
+            description: null,
+            address: $warehouse->shortAddress,
+            latitude: $warehouse->latitude,
+            longitude: $warehouse->longitude,
+            sourceCategory: $warehouse->category,
+            sourceStatus: $warehouse->status,
+            isActive: $isActive,
+            isSelectable: $isSelectable,
+            metadata: $this->mapMetadata($warehouse),
+            schedules: $this->mapSchedules($warehouse->schedule),
+        );
+    }
+
+    private function mapPointTypeCode(
+        NovaPoshtaWarehouseType $type
+    ): string
+    {
+        return match ($type) {
+            NovaPoshtaWarehouseType::POST_OFFICE
+            => self::POINT_TYPE_POST_OFFICE,
+
+            NovaPoshtaWarehouseType::CARGO_BRANCH
+            => self::POINT_TYPE_CARGO_BRANCH,
+        };
+    }
+
+    /**
+     * @return array<string, mixed>
+     */
+    private function mapMetadata(
+        NovaPoshtaWarehouseDto $warehouse
+    ): array
+    {
+        return [
+            'novaPoshta' => $this->removeNullValues([
+                'settlementName' => $warehouse->settlementName,
+                'areaName' => $this->nullableText($warehouse->areaName),
+                'regionName' => $warehouse->regionName,
+                'denyToSelect' => $warehouse->denyToSelect,
+
+                'totalMaxWeightAllowed'
+                => $warehouse->totalMaxWeightAllowed,
+
+                'placeMaxWeightAllowed'
+                => $warehouse->placeMaxWeightAllowed,
+
+                'sendingDimensions'
+                => $this->mapDimensions(
+                    $warehouse->sendingDimensions
+                ),
+
+                'receivingDimensions'
+                => $this->mapDimensions(
+                    $warehouse->receivingDimensions
+                ),
+
+                /*
+                 * Основной Schedule дополнительно сохраняется как raw snapshot,
+                 * хотя его нормализованная версия записывается в schedules.
+                 */
+                'schedule'
+                => $this->mapScheduleMetadata(
+                    $warehouse->schedule
+                ),
+
+                /*
+                 * Reception и Delivery не используются checkout как
+                 * публичный график работы, но сохраняются без потери данных.
+                 */
+                'receptionSchedule'
+                => $this->mapScheduleMetadata(
+                    $warehouse->receptionSchedule
+                ),
+
+                'deliverySchedule'
+                => $this->mapScheduleMetadata(
+                    $warehouse->deliverySchedule
+                ),
+            ]),
+        ];
+    }
+
+    /**
+     * @return array<string, int>|null
+     */
+    private function mapDimensions(
+        ?NovaPoshtaDimensionsDto $dimensions
+    ): ?array
+    {
+        if ($dimensions === null) {
+            return null;
+        }
+
+        return [
+            'width' => $dimensions->width,
+            'height' => $dimensions->height,
+            'length' => $dimensions->length,
+        ];
+    }
+
+    /**
+     * @return array<string, string>|null
+     */
+    private function mapScheduleMetadata(
+        ?NovaPoshtaWeeklyScheduleDto $schedule
+    ): ?array
+    {
+        if ($schedule === null) {
+            return null;
+        }
+
+        $result = [];
+
+        foreach (
+            $schedule->intervalsByWeekday()
+            as $weekday => $interval
+        ) {
+            $result[$this->weekdayName($weekday)] = $interval;
+        }
+
+        return $result !== []
+            ? $result
+            : null;
+    }
+
+    private function weekdayName(int $weekday): string
+    {
+        return match ($weekday) {
+            1 => 'monday',
+            2 => 'tuesday',
+            3 => 'wednesday',
+            4 => 'thursday',
+            5 => 'friday',
+            6 => 'saturday',
+            7 => 'sunday',
+
+            default => throw new UnexpectedValueException(sprintf(
+                'Unsupported ISO weekday "%d".',
+                $weekday
+            )),
+        };
+    }
+
+    /**
      * Преобразует недельное расписание конкретного отделения
      * в нормализованные строки delivery_point_schedule.
      *
@@ -242,7 +431,8 @@ final class NovaPoshtaDirectoryMapper
      */
     public function mapSchedules(
         ?NovaPoshtaWeeklyScheduleDto $schedule
-    ): array {
+    ): array
+    {
         if ($schedule === null) {
             return [];
         }
@@ -267,25 +457,14 @@ final class NovaPoshtaDirectoryMapper
         return $result;
     }
 
-    private function mapPointTypeCode(
-        NovaPoshtaWarehouseType $type
-    ): string {
-        return match ($type) {
-            NovaPoshtaWarehouseType::POST_OFFICE
-            => self::POINT_TYPE_POST_OFFICE,
-
-            NovaPoshtaWarehouseType::CARGO_BRANCH
-            => self::POINT_TYPE_CARGO_BRANCH,
-        };
-    }
-
     /**
      * @return list<DeliveryPointScheduleSyncDto>
      */
     private function mapWeekdayIntervals(
-        int $weekday,
+        int    $weekday,
         string $rawValue
-    ): array {
+    ): array
+    {
         $value = $this->normalizeScheduleValue($rawValue);
 
         if ($value === '') {
@@ -379,123 +558,10 @@ final class NovaPoshtaDirectoryMapper
         return $result;
     }
 
-    /**
-     * @return array<string, mixed>
-     */
-    private function mapMetadata(
-        NovaPoshtaWarehouseDto $warehouse
-    ): array {
-        return [
-            'novaPoshta' => $this->removeNullValues([
-                'settlementName' => $warehouse->settlementName,
-                'areaName' => $this->nullableText($warehouse->areaName),
-                'regionName' => $warehouse->regionName,
-                'denyToSelect' => $warehouse->denyToSelect,
-
-                'totalMaxWeightAllowed'
-                => $warehouse->totalMaxWeightAllowed,
-
-                'placeMaxWeightAllowed'
-                => $warehouse->placeMaxWeightAllowed,
-
-                'sendingDimensions'
-                => $this->mapDimensions(
-                    $warehouse->sendingDimensions
-                ),
-
-                'receivingDimensions'
-                => $this->mapDimensions(
-                    $warehouse->receivingDimensions
-                ),
-
-                /*
-                 * Основной Schedule дополнительно сохраняется как raw snapshot,
-                 * хотя его нормализованная версия записывается в schedules.
-                 */
-                'schedule'
-                => $this->mapScheduleMetadata(
-                    $warehouse->schedule
-                ),
-
-                /*
-                 * Reception и Delivery не используются checkout как
-                 * публичный график работы, но сохраняются без потери данных.
-                 */
-                'receptionSchedule'
-                => $this->mapScheduleMetadata(
-                    $warehouse->receptionSchedule
-                ),
-
-                'deliverySchedule'
-                => $this->mapScheduleMetadata(
-                    $warehouse->deliverySchedule
-                ),
-            ]),
-        ];
-    }
-
-    /**
-     * @return array<string, int>|null
-     */
-    private function mapDimensions(
-        ?NovaPoshtaDimensionsDto $dimensions
-    ): ?array {
-        if ($dimensions === null) {
-            return null;
-        }
-
-        return [
-            'width' => $dimensions->width,
-            'height' => $dimensions->height,
-            'length' => $dimensions->length,
-        ];
-    }
-
-    /**
-     * @return array<string, string>|null
-     */
-    private function mapScheduleMetadata(
-        ?NovaPoshtaWeeklyScheduleDto $schedule
-    ): ?array {
-        if ($schedule === null) {
-            return null;
-        }
-
-        $result = [];
-
-        foreach (
-            $schedule->intervalsByWeekday()
-            as $weekday => $interval
-        ) {
-            $result[$this->weekdayName($weekday)] = $interval;
-        }
-
-        return $result !== []
-            ? $result
-            : null;
-    }
-
-    private function weekdayName(int $weekday): string
-    {
-        return match ($weekday) {
-            1 => 'monday',
-            2 => 'tuesday',
-            3 => 'wednesday',
-            4 => 'thursday',
-            5 => 'friday',
-            6 => 'saturday',
-            7 => 'sunday',
-
-            default => throw new UnexpectedValueException(sprintf(
-                'Unsupported ISO weekday "%d".',
-                $weekday
-            )),
-        };
-    }
-
     private function normalizeScheduleValue(
         string $value
-    ): string {
+    ): string
+    {
         $value = trim($value);
 
         $value = str_replace(
@@ -523,63 +589,5 @@ final class NovaPoshtaDirectoryMapper
             self::CLOSED_MARKERS,
             true
         );
-    }
-
-    private function nullableText(
-        ?string $value
-    ): ?string {
-        if ($value === null) {
-            return null;
-        }
-
-        $value = trim($value);
-
-        return $value !== ''
-            ? $value
-            : null;
-    }
-
-    /**
-     * Удаляет только null.
-     *
-     * false и 0 являются значимыми provider values
-     * и должны сохраняться.
-     *
-     * @param array<string, mixed> $values
-     *
-     * @return array<string, mixed>
-     */
-    private function removeNullValues(array $values): array
-    {
-        return array_filter(
-            $values,
-            static fn (mixed $value): bool => $value !== null
-        );
-    }
-
-    private function mapSettlementTypeCode(?string $typeName): string
-    {
-        if ($typeName === null) {
-            return self::SETTLEMENT_TYPE_OTHER;
-        }
-
-        $typeName = mb_strtolower(trim($typeName), 'UTF-8');
-        $typeName = preg_replace('/\s+/u', ' ', $typeName) ?? $typeName;
-
-        return match ($typeName) {
-            'місто',
-            'город' => self::SETTLEMENT_TYPE_CITY,
-
-            'село' => self::SETTLEMENT_TYPE_VILLAGE,
-
-            'селище',
-            'поселок' => self::SETTLEMENT_TYPE_SETTLEMENT,
-
-            'селище міського типу',
-            'поселок городского типа',
-            'смт' => self::SETTLEMENT_TYPE_URBAN,
-
-            default => self::SETTLEMENT_TYPE_OTHER,
-        };
     }
 }

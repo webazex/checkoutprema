@@ -10,6 +10,7 @@ use common\services\checkout\CheckoutCartManageService;
 use common\services\checkout\CheckoutSubmitService;
 use frontend\models\CheckoutForm;
 use DomainException;
+use Throwable;
 use Yii;
 use yii\filters\VerbFilter;
 use yii\web\Controller;
@@ -82,7 +83,7 @@ final class CheckoutController extends Controller
             Yii::$app->session->setFlash('success', Yii::t('frontend', 'Cart was cleared.'));
         } catch (DomainException $e) {
             Yii::$app->session->setFlash('error', $e->getMessage());
-        } catch (\Throwable $e) {
+        } catch (Throwable $e) {
             Yii::$app->session->setFlash('error', Yii::t('frontend', 'Failed to clear cart.'));
         }
 
@@ -105,7 +106,7 @@ final class CheckoutController extends Controller
             Yii::$app->session->setFlash('success', Yii::t('frontend', 'Item was removed from cart.'));
         } catch (DomainException $e) {
             Yii::$app->session->setFlash('error', $e->getMessage());
-        } catch (\Throwable $e) {
+        } catch (Throwable $e) {
             Yii::$app->session->setFlash('error', Yii::t('frontend', 'Failed to remove item from cart.'));
         }
 
@@ -160,7 +161,7 @@ final class CheckoutController extends Controller
             Yii::$app->session->setFlash('error', $e->getMessage());
 
             return $this->redirect(['checkout/view', 'hash' => $hash]);
-        } catch (\Throwable $e) {
+        } catch (Throwable $e) {
             if ($isAjax) {
                 Yii::$app->response->statusCode = 500;
 
@@ -242,7 +243,7 @@ final class CheckoutController extends Controller
             Yii::$app->session->setFlash('error', $e->getMessage());
 
             return $this->redirect(['checkout/view', 'hash' => $hash]);
-        } catch (\Throwable $e) {
+        } catch (Throwable $e) {
             throw new ServerErrorHttpException($e->getMessage(), 0, $e);
         }
     }

@@ -77,32 +77,6 @@ class m260326_120750_backfill_payment_from_payment_log extends Migration
         }
     }
 
-    public function safeDown(): void
-    {
-        $schema = $this->db->schema->getTableSchema($this->paymentLogTable, true);
-        if ($schema === null || !isset($schema->columns['payment_id'])) {
-            return;
-        }
-
-        $legacyPaymentIds = (new Query())
-            ->select('id')
-            ->from($this->paymentTable)
-            ->where(['provider' => 'legacy'])
-            ->column($this->db);
-
-        if (empty($legacyPaymentIds)) {
-            return;
-        }
-
-        $this->update(
-            $this->paymentLogTable,
-            ['payment_id' => null],
-            ['payment_id' => $legacyPaymentIds]
-        );
-
-        $this->delete($this->paymentTable, ['id' => $legacyPaymentIds]);
-    }
-
     private function assertRequiredSchema(): void
     {
         $paymentSchema = $this->db->schema->getTableSchema($this->paymentTable, true);
@@ -158,5 +132,31 @@ class m260326_120750_backfill_payment_from_payment_log extends Migration
         $normalized = mb_strtolower($status);
 
         return $map[$normalized] ?? 'pending';
+    }
+
+    public function safeDown(): void
+    {
+        $schema = $this->db->schema->getTableSchema($this->paymentLogTable, true);
+        if ($schema === null || !isset($schema->columns['payment_id'])) {
+            return;
+        }
+
+        $legacyPaymentIds = (new Query())
+            ->select('id')
+            ->from($this->paymentTable)
+            ->where(['provider' => 'legacy'])
+            ->column($this->db);
+
+        if (empty($legacyPaymentIds)) {
+            return;
+        }
+
+        $this->update(
+            $this->paymentLogTable,
+            ['payment_id' => null],
+            ['payment_id' => $legacyPaymentIds]
+        );
+
+        $this->delete($this->paymentTable, ['id' => $legacyPaymentIds]);
     }
 }

@@ -42,6 +42,11 @@ class DeliverySyncStateModel extends BaseModel
         return '{{%delivery_sync_state}}';
     }
 
+    public static function find(): DeliverySyncStateQuery
+    {
+        return new DeliverySyncStateQuery(static::class);
+    }
+
     public function rules(): array
     {
         return array_merge(parent::rules(), [
@@ -162,10 +167,5 @@ class DeliverySyncStateModel extends BaseModel
     public function getIsFailed(): bool
     {
         return $this->status === DeliverySyncStatus::FAILED->value;
-    }
-
-    public static function find(): DeliverySyncStateQuery
-    {
-        return new DeliverySyncStateQuery(static::class);
     }
 }

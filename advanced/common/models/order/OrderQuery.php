@@ -31,19 +31,14 @@ class OrderQuery extends ActiveQuery
         return $this->andWhere(['customer_id' => $customerId]);
     }
 
-    public function status(string $status): self
-    {
-        return $this->andWhere(['status' => $status]);
-    }
-
-    public function paymentStatus(string $paymentStatus): self
-    {
-        return $this->andWhere(['payment_status' => $paymentStatus]);
-    }
-
     public function new(): self
     {
         return $this->status(OrderModel::STATUS_NEW);
+    }
+
+    public function status(string $status): self
+    {
+        return $this->andWhere(['status' => $status]);
     }
 
     public function pending(): self
@@ -64,6 +59,11 @@ class OrderQuery extends ActiveQuery
     public function paymentPending(): self
     {
         return $this->paymentStatus('pending');
+    }
+
+    public function paymentStatus(string $paymentStatus): self
+    {
+        return $this->andWhere(['payment_status' => $paymentStatus]);
     }
 
     public function paymentPaid(): self

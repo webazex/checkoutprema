@@ -42,7 +42,7 @@ final class KeycrmController extends Controller
     public function actionCleanupArchivedProducts(int $days = 7): int
     {
         /** @var KeyCrmArchivedProductCleanupService $service */
-        $service = \Yii::$container->get(KeyCrmArchivedProductCleanupService::class);
+        $service = Yii::$container->get(KeyCrmArchivedProductCleanupService::class);
 
         $stats = $service->cleanup($days > 0 ? $days : 7);
 
@@ -61,7 +61,7 @@ final class KeycrmController extends Controller
     public function actionImportCategories(int $maxPages = 0): int
     {
         /** @var KeyCrmCategorySyncService $service */
-        $service = \Yii::$container->get(KeyCrmCategorySyncService::class);
+        $service = Yii::$container->get(KeyCrmCategorySyncService::class);
 
         $stats = $service->importAllCategories(
             maxPages: $maxPages > 0 ? $maxPages : null,
@@ -77,13 +77,13 @@ final class KeycrmController extends Controller
         $this->stdout("Missing parents: {$stats['missingParents']}\n");
         $this->stdout("Errors: {$stats['errors']}\n");
 
-        return \yii\console\ExitCode::OK;
+        return ExitCode::OK;
     }
 
     public function actionLinkProductCategories(): int
     {
         /** @var KeyCrmCategorySyncService $service */
-        $service = \Yii::$container->get(KeyCrmCategorySyncService::class);
+        $service = Yii::$container->get(KeyCrmCategorySyncService::class);
 
         $stats = $service->linkProductsToCategories();
 
@@ -95,6 +95,6 @@ final class KeycrmController extends Controller
         $this->stdout("Empty external category: {$stats['emptyExternalCategory']}\n");
         $this->stdout("Errors: {$stats['errors']}\n");
 
-        return \yii\console\ExitCode::OK;
+        return ExitCode::OK;
     }
 }

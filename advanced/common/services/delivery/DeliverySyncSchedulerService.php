@@ -114,27 +114,6 @@ final readonly class DeliverySyncSchedulerService
         }
     }
 
-    private function hasActiveQueueJob(string $uniqueKey): bool
-    {
-        $payloadLike = '%' . addcslashes($uniqueKey, '%_\\') . '%';
-
-        return (bool)Yii::$app->db->createCommand(
-            <<<SQL
-SELECT EXISTS(
-    SELECT 1
-    FROM {{%queue}}
-    WHERE [[channel]] = :channel
-      AND [[done_at]] IS NULL
-      AND CAST([[job]] AS CHAR) LIKE :payloadLike
-    LIMIT 1
-)
-SQL
-        )
-            ->bindValue(':channel', self::CHANNEL)
-            ->bindValue(':payloadLike', $payloadLike)
-            ->queryScalar();
-    }
-
     private function normalizeScope(string $scope, string $scopeExternalRef): string
     {
         $scope = strtolower(trim($scope));
@@ -162,5 +141,26 @@ SQL
         }
 
         return $scopeEnum->value;
+    }
+
+    private function hasActiveQueueJob(string $uniqueKey): bool
+    {
+        $payloadLike = '%' . addcslashes($uniqueKey, '%_\\') . '%';
+
+        return (bool)Yii::$app->db->createCommand(
+            <<<SQL
+SELECT EXISTS(
+    SELECT 1
+    FROM {{%queue}}
+    WHERE [[channel]] = :channel
+      AND [[done_at]] IS NULL
+      AND CAST([[job]] AS CHAR) LIKE :payloadLike
+    LIMIT 1
+)
+SQL
+        )
+            ->bindValue(':channel', self::CHANNEL)
+            ->bindValue(':payloadLike', $payloadLike)
+            ->queryScalar();
     }
 }

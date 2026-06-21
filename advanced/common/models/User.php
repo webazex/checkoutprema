@@ -28,33 +28,13 @@ class User extends BaseModel implements IdentityInterface
     public const STATUS_DELETED = 0;
     public const STATUS_INACTIVE = 9;
     public const STATUS_ACTIVE = 10;
+
     /**
      * {@inheritdoc}
      */
     public static function tableName()
     {
         return '{{%user}}';
-    }
-
-    /**
-     * {@inheritdoc}
-     */
-    public function behaviors():array
-    {
-        return [
-            TimestampBehavior::class,
-        ];
-    }
-
-    /**
-     * {@inheritdoc}
-     */
-    public function rules():array
-    {
-        return array_merge(parent::rules(), [
-            ['status', 'default', 'value' => self::STATUS_INACTIVE],
-            ['status', 'in', 'range' => [self::STATUS_ACTIVE, self::STATUS_INACTIVE, self::STATUS_DELETED]],
-        ]);
     }
 
     /**
@@ -103,6 +83,23 @@ class User extends BaseModel implements IdentityInterface
     }
 
     /**
+     * Finds out if password reset token is valid
+     *
+     * @param string $token password reset token
+     * @return bool
+     */
+    public static function isPasswordResetTokenValid($token)
+    {
+        if (empty($token)) {
+            return false;
+        }
+
+        $timestamp = (int)substr($token, strrpos($token, '_') + 1);
+        $expire = Yii::$app->params['user.passwordResetTokenExpire'];
+        return $timestamp + $expire >= time();
+    }
+
+    /**
      * Finds user by verification email token
      *
      * @param string $token verify email token
@@ -117,20 +114,24 @@ class User extends BaseModel implements IdentityInterface
     }
 
     /**
-     * Finds out if password reset token is valid
-     *
-     * @param string $token password reset token
-     * @return bool
+     * {@inheritdoc}
      */
-    public static function isPasswordResetTokenValid($token)
+    public function behaviors(): array
     {
-        if (empty($token)) {
-            return false;
-        }
+        return [
+            TimestampBehavior::class,
+        ];
+    }
 
-        $timestamp = (int) substr($token, strrpos($token, '_') + 1);
-        $expire = Yii::$app->params['user.passwordResetTokenExpire'];
-        return $timestamp + $expire >= time();
+    /**
+     * {@inheritdoc}
+     */
+    public function rules(): array
+    {
+        return array_merge(parent::rules(), [
+            ['status', 'default', 'value' => self::STATUS_INACTIVE],
+            ['status', 'in', 'range' => [self::STATUS_ACTIVE, self::STATUS_INACTIVE, self::STATUS_DELETED]],
+        ]);
     }
 
     /**
@@ -144,17 +145,17 @@ class User extends BaseModel implements IdentityInterface
     /**
      * {@inheritdoc}
      */
-    public function getAuthKey()
+    public function validateAuthKey($authKey)
     {
-        return $this->auth_key;
+        return $this->getAuthKey() === $authKey;
     }
 
     /**
      * {@inheritdoc}
      */
-    public function validateAuthKey($authKey)
+    public function getAuthKey()
     {
-        return $this->getAuthKey() === $authKey;
+        return $this->auth_key;
     }
 
     /**

@@ -13,7 +13,8 @@ final class PublicCatalogService
 {
     public function __construct(
         private readonly PublicProductMapper $productMapper,
-    ) {
+    )
+    {
     }
 
     public function getList(int $page = 1, int $perPage = 20, bool $onlyAvailable = false): array

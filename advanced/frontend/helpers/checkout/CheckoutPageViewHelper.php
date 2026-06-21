@@ -14,21 +14,17 @@ final class CheckoutPageViewHelper
     private CheckoutFieldViewHelper $field;
 
     public function __construct(
-        private readonly array $cart,
-        private readonly string $hash,
+        private readonly array        $cart,
+        private readonly string       $hash,
         private readonly CheckoutForm $model
-    ) {
+    )
+    {
         $this->field = new CheckoutFieldViewHelper($this->model);
     }
 
     public function field(): CheckoutFieldViewHelper
     {
         return $this->field;
-    }
-
-    public function t(string $message, array $params = []): string
-    {
-        return Yii::t('frontend', $message, $params);
     }
 
     public function hasItems(): bool
@@ -43,19 +39,40 @@ final class CheckoutPageViewHelper
             : [];
     }
 
+    public function total(): string
+    {
+        return $this->formatMoney($this->totalAmount(), $this->currency());
+    }
+
+    private function formatMoney(mixed $amount, ?string $currency = null): string
+    {
+        $value = is_numeric($amount) ? (float)$amount : 0.0;
+
+        $formatted = fmod($value, 1.0) === 0.0
+            ? number_format($value, 0, '.', ' ')
+            : number_format($value, 2, '.', ' ');
+
+        $currentCurrency = $currency ?: $this->currency();
+
+        return $formatted . ' ' . ($currentCurrency === 'UAH'
+                ? $this->t('UAH')
+                : $currentCurrency
+            );
+    }
+
     public function currency(): string
     {
         return (string)($this->cart['currency'] ?? 'UAH');
     }
 
+    public function t(string $message, array $params = []): string
+    {
+        return Yii::t('frontend', $message, $params);
+    }
+
     public function totalAmount(): mixed
     {
         return $this->cart['totalAmount'] ?? 0;
-    }
-
-    public function total(): string
-    {
-        return $this->formatMoney($this->totalAmount(), $this->currency());
     }
 
     public function catalogUrl(): string
@@ -66,29 +83,6 @@ final class CheckoutPageViewHelper
     public function submitUrl(): string
     {
         return Url::to(['/checkout/submit', 'hash' => $this->hash]);
-    }
-
-    public function clearUrl(): string
-    {
-        return Url::to(['/checkout/clear', 'hash' => $this->hash]);
-    }
-
-    public function updateItemUrl(): string
-    {
-        return Url::to(['/checkout/update-item', 'hash' => $this->hash]);
-    }
-
-    public function removeItemUrl(): string
-    {
-        return Url::to(['/checkout/remove-item', 'hash' => $this->hash]);
-    }
-
-    public function csrfInput(): string
-    {
-        return Html::hiddenInput(
-            Yii::$app->request->csrfParam,
-            Yii::$app->request->getCsrfToken()
-        );
     }
 
     public function flash(string $type): string
@@ -129,6 +123,19 @@ final class CheckoutPageViewHelper
             . Html::endForm();
     }
 
+    public function clearUrl(): string
+    {
+        return Url::to(['/checkout/clear', 'hash' => $this->hash]);
+    }
+
+    public function csrfInput(): string
+    {
+        return Html::hiddenInput(
+            Yii::$app->request->csrfParam,
+            Yii::$app->request->getCsrfToken()
+        );
+    }
+
     public function renderItems(): string
     {
         $html = '';
@@ -142,76 +149,6 @@ final class CheckoutPageViewHelper
         }
 
         return $html;
-    }
-
-    public function confirmModal(): string
-    {
-        $closeButton = Html::button(
-            '×',
-            [
-                'type' => 'button',
-                'class' => 'checkout-confirm-modal__close',
-                'data-confirm-close' => true,
-                'aria-label' => $this->t('Close'),
-            ]
-        );
-
-        $cancelButton = Html::button(
-            Html::encode($this->t('Cancel')),
-            [
-                'type' => 'button',
-                'class' => 'checkout-confirm-modal__btn checkout-confirm-modal__btn--ghost',
-                'data-confirm-cancel' => true,
-            ]
-        );
-
-        $submitButton = Html::button(
-            Html::encode($this->t('Confirm')),
-            [
-                'type' => 'button',
-                'class' => 'checkout-confirm-modal__btn checkout-confirm-modal__btn--danger',
-                'data-confirm-submit' => true,
-            ]
-        );
-
-        $dialog = Html::tag(
-            'div',
-            $closeButton
-            . Html::tag('h2', '', [
-                'class' => 'checkout-confirm-modal__title',
-                'id' => 'checkoutConfirmTitle',
-            ])
-            . Html::tag('p', '', [
-                'class' => 'checkout-confirm-modal__message',
-            ])
-            . Html::tag(
-                'div',
-                $cancelButton . $submitButton,
-                [
-                    'class' => 'checkout-confirm-modal__actions',
-                ]
-            ),
-            [
-                'class' => 'checkout-confirm-modal__dialog',
-                'role' => 'dialog',
-                'aria-modal' => 'true',
-                'aria-labelledby' => 'checkoutConfirmTitle',
-            ]
-        );
-
-        return Html::tag(
-            'div',
-            Html::tag('div', '', [
-                'class' => 'checkout-confirm-modal__backdrop',
-                'data-confirm-close' => true,
-            ])
-            . $dialog,
-            [
-                'class' => 'checkout-confirm-modal',
-                'id' => 'checkoutConfirmModal',
-                'hidden' => true,
-            ]
-        );
     }
 
     private function renderItem(array $item): string
@@ -284,14 +221,15 @@ final class CheckoutPageViewHelper
     private function renderItemInfo(
         string $itemTitle,
         string $itemSku,
-        int $itemQty,
-        int $itemMaxQty,
-        bool $canDecrease,
-        bool $canIncrease,
-        int $itemId,
-        mixed $itemPrice,
+        int    $itemQty,
+        int    $itemMaxQty,
+        bool   $canDecrease,
+        bool   $canIncrease,
+        int    $itemId,
+        mixed  $itemPrice,
         string $itemCurrency
-    ): string {
+    ): string
+    {
         $title = Html::tag(
             'div',
             Html::encode($itemTitle),
@@ -363,12 +301,13 @@ final class CheckoutPageViewHelper
     }
 
     private function renderQty(
-        int $itemId,
-        int $itemQty,
-        int $itemMaxQty,
+        int  $itemId,
+        int  $itemQty,
+        int  $itemMaxQty,
         bool $canDecrease,
         bool $canIncrease
-    ): string {
+    ): string
+    {
         return Html::tag(
             'div',
             $this->qtyForm(
@@ -403,13 +342,14 @@ final class CheckoutPageViewHelper
     }
 
     private function qtyForm(
-        int $itemId,
-        int $quantity,
-        string $sign,
-        bool $enabled,
-        string $extraClass,
+        int     $itemId,
+        int     $quantity,
+        string  $sign,
+        bool    $enabled,
+        string  $extraClass,
         ?string $disabledTitle = null
-    ): string {
+    ): string
+    {
         $buttonOptions = [
             'type' => 'submit',
             'class' => 'checkout-qty__btn',
@@ -433,6 +373,11 @@ final class CheckoutPageViewHelper
             . Html::hiddenInput('quantity', (string)$quantity)
             . $button
             . Html::endForm();
+    }
+
+    public function updateItemUrl(): string
+    {
+        return Url::to(['/checkout/update-item', 'hash' => $this->hash]);
     }
 
     private function renderStockNote(int $itemMaxQty): string
@@ -497,19 +442,78 @@ final class CheckoutPageViewHelper
             . Html::endForm();
     }
 
-    private function formatMoney(mixed $amount, ?string $currency = null): string
+    public function removeItemUrl(): string
     {
-        $value = is_numeric($amount) ? (float)$amount : 0.0;
+        return Url::to(['/checkout/remove-item', 'hash' => $this->hash]);
+    }
 
-        $formatted = fmod($value, 1.0) === 0.0
-            ? number_format($value, 0, '.', ' ')
-            : number_format($value, 2, '.', ' ');
+    public function confirmModal(): string
+    {
+        $closeButton = Html::button(
+            '×',
+            [
+                'type' => 'button',
+                'class' => 'checkout-confirm-modal__close',
+                'data-confirm-close' => true,
+                'aria-label' => $this->t('Close'),
+            ]
+        );
 
-        $currentCurrency = $currency ?: $this->currency();
+        $cancelButton = Html::button(
+            Html::encode($this->t('Cancel')),
+            [
+                'type' => 'button',
+                'class' => 'checkout-confirm-modal__btn checkout-confirm-modal__btn--ghost',
+                'data-confirm-cancel' => true,
+            ]
+        );
 
-        return $formatted . ' ' . ($currentCurrency === 'UAH'
-                ? $this->t('UAH')
-                : $currentCurrency
-            );
+        $submitButton = Html::button(
+            Html::encode($this->t('Confirm')),
+            [
+                'type' => 'button',
+                'class' => 'checkout-confirm-modal__btn checkout-confirm-modal__btn--danger',
+                'data-confirm-submit' => true,
+            ]
+        );
+
+        $dialog = Html::tag(
+            'div',
+            $closeButton
+            . Html::tag('h2', '', [
+                'class' => 'checkout-confirm-modal__title',
+                'id' => 'checkoutConfirmTitle',
+            ])
+            . Html::tag('p', '', [
+                'class' => 'checkout-confirm-modal__message',
+            ])
+            . Html::tag(
+                'div',
+                $cancelButton . $submitButton,
+                [
+                    'class' => 'checkout-confirm-modal__actions',
+                ]
+            ),
+            [
+                'class' => 'checkout-confirm-modal__dialog',
+                'role' => 'dialog',
+                'aria-modal' => 'true',
+                'aria-labelledby' => 'checkoutConfirmTitle',
+            ]
+        );
+
+        return Html::tag(
+            'div',
+            Html::tag('div', '', [
+                'class' => 'checkout-confirm-modal__backdrop',
+                'data-confirm-close' => true,
+            ])
+            . $dialog,
+            [
+                'class' => 'checkout-confirm-modal',
+                'id' => 'checkoutConfirmModal',
+                'hidden' => true,
+            ]
+        );
     }
 }

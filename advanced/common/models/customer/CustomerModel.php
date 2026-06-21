@@ -33,9 +33,54 @@ class CustomerModel extends BaseModel implements IdentityInterface
         return '{{%customer}}';
     }
 
+    public static function findIdentity($id): ?IdentityInterface
+    {
+        return static::find()
+            ->active()
+            ->andWhere(['id' => (int)$id])
+            ->one();
+    }
+
     public static function find(): CustomerQuery
     {
         return new CustomerQuery(static::class);
+    }
+
+    public static function findIdentityByAccessToken($token, $type = null): ?IdentityInterface
+    {
+        return null;
+    }
+
+    /**
+     * По умолчанию ищет только активного customer.
+     * Для backend / служебных сценариев можно передать false.
+     */
+    public static function findByEmail(string $email, bool $isActiveOnly = true): ?self
+    {
+        $query = static::find()
+            ->andWhere(['email' => mb_strtolower(trim($email))]);
+
+        if ($isActiveOnly) {
+            $query->active();
+        }
+
+        return $query->one();
+    }
+
+    /**
+     * По умолчанию ищет только активного customer.
+     * Для backend / служебных сценариев можно передать false.
+     */
+    public static function findByHash(string $hash, bool $isActiveOnly = true): ?self
+    {
+        $query = static::find()
+            ->andWhere(['hash' => trim($hash)]);
+
+        if ($isActiveOnly) {
+            $query->active();
+        }
+
+        return $query->one();
     }
 
     public function rules(): array
@@ -86,51 +131,6 @@ class CustomerModel extends BaseModel implements IdentityInterface
         ];
     }
 
-    public static function findIdentity($id): ?IdentityInterface
-    {
-        return static::find()
-            ->active()
-            ->andWhere(['id' => (int)$id])
-            ->one();
-    }
-
-    public static function findIdentityByAccessToken($token, $type = null): ?IdentityInterface
-    {
-        return null;
-    }
-
-    /**
-     * По умолчанию ищет только активного customer.
-     * Для backend / служебных сценариев можно передать false.
-     */
-    public static function findByEmail(string $email, bool $isActiveOnly = true): ?self
-    {
-        $query = static::find()
-            ->andWhere(['email' => mb_strtolower(trim($email))]);
-
-        if ($isActiveOnly) {
-            $query->active();
-        }
-
-        return $query->one();
-    }
-
-    /**
-     * По умолчанию ищет только активного customer.
-     * Для backend / служебных сценариев можно передать false.
-     */
-    public static function findByHash(string $hash, bool $isActiveOnly = true): ?self
-    {
-        $query = static::find()
-            ->andWhere(['hash' => trim($hash)]);
-
-        if ($isActiveOnly) {
-            $query->active();
-        }
-
-        return $query->one();
-    }
-
     public function getId(): int
     {
         return (int)$this->id;
@@ -160,9 +160,9 @@ class CustomerModel extends BaseModel implements IdentityInterface
         $this->password_hash = Yii::$app->security->generatePasswordHash($password);
     }
 
-    public function generateAuthKey(): void
+    public function getDisplayName(): string
     {
-        $this->auth_key = Yii::$app->security->generateRandomString();
+        return $this->getFullName() ?: $this->email;
     }
 
     public function getFullName(): string
@@ -171,11 +171,6 @@ class CustomerModel extends BaseModel implements IdentityInterface
             $this->first_name,
             $this->last_name,
         ])));
-    }
-
-    public function getDisplayName(): string
-    {
-        return $this->getFullName() ?: $this->email;
     }
 
     public function isActive(): bool
@@ -218,6 +213,11 @@ class CustomerModel extends BaseModel implements IdentityInterface
         }
 
         return true;
+    }
+
+    public function generateAuthKey(): void
+    {
+        $this->auth_key = Yii::$app->security->generateRandomString();
     }
 
     protected function generateUniqueHash(int $length = 32): string

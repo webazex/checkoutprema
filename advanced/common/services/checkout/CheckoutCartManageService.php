@@ -23,6 +23,48 @@ final class CheckoutCartManageService
         });
     }
 
+    private function findActiveCartByHash(string $cartHash): CartModel
+    {
+        $cart = CartModel::find()
+            ->where([
+                'hash' => $cartHash,
+                'status' => CartModel::STATUS_ACTIVE,
+            ])
+            ->with('items.product')
+            ->one();
+
+        if (!$cart instanceof CartModel) {
+            throw new DomainException('Active checkout cart was not found.');
+        }
+
+        return $cart;
+    }
+
+    private function refreshCartTotals(CartModel $cart): void
+    {
+        $items = CartItemModel::find()
+            ->where(['cart_id' => (int)$cart->id])
+            ->all();
+
+        $itemsCount = 0;
+        $subtotalAmount = 0.0;
+
+        /** @var CartItemModel $item */
+        foreach ($items as $item) {
+            $itemsCount += (int)$item->quantity;
+            $subtotalAmount += (float)$item->subtotal;
+        }
+
+        $cart->items_count = $itemsCount;
+        $cart->subtotal_amount = $subtotalAmount;
+        $cart->total_amount = $subtotalAmount;
+        $cart->last_activity_at = time();
+
+        if (!$cart->save()) {
+            throw new DomainException('Failed to update cart totals.');
+        }
+    }
+
     public function removeItemByHashAndItemId(string $cartHash, int $itemId): void
     {
         $cart = $this->findActiveCartByHash($cartHash);
@@ -140,48 +182,6 @@ final class CheckoutCartManageService
 
             return $changes;
         });
-    }
-
-    private function findActiveCartByHash(string $cartHash): CartModel
-    {
-        $cart = CartModel::find()
-            ->where([
-                'hash' => $cartHash,
-                'status' => CartModel::STATUS_ACTIVE,
-            ])
-            ->with('items.product')
-            ->one();
-
-        if (!$cart instanceof CartModel) {
-            throw new DomainException('Active checkout cart was not found.');
-        }
-
-        return $cart;
-    }
-
-    private function refreshCartTotals(CartModel $cart): void
-    {
-        $items = CartItemModel::find()
-            ->where(['cart_id' => (int)$cart->id])
-            ->all();
-
-        $itemsCount = 0;
-        $subtotalAmount = 0.0;
-
-        /** @var CartItemModel $item */
-        foreach ($items as $item) {
-            $itemsCount += (int)$item->quantity;
-            $subtotalAmount += (float)$item->subtotal;
-        }
-
-        $cart->items_count = $itemsCount;
-        $cart->subtotal_amount = $subtotalAmount;
-        $cart->total_amount = $subtotalAmount;
-        $cart->last_activity_at = time();
-
-        if (!$cart->save()) {
-            throw new DomainException('Failed to update cart totals.');
-        }
     }
 
     public function updateItemQuantityByHashAndItemId(string $cartHash, int $itemId, int $quantity): void

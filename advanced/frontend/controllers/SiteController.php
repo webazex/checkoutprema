@@ -5,7 +5,9 @@ declare(strict_types=1);
 namespace frontend\controllers;
 
 use Yii;
+use yii\captcha\CaptchaAction;
 use yii\web\Controller;
+use yii\web\ErrorAction;
 use yii\web\NotFoundHttpException;
 use yii\web\Response;
 
@@ -18,10 +20,10 @@ final class SiteController extends Controller
     {
         return [
             'error' => [
-                'class' => \yii\web\ErrorAction::class,
+                'class' => ErrorAction::class,
             ],
             'captcha' => [
-                'class' => \yii\captcha\CaptchaAction::class,
+                'class' => CaptchaAction::class,
                 'fixedVerifyCode' => YII_ENV_TEST ? 'testme' : null,
             ],
         ];
@@ -43,6 +45,24 @@ final class SiteController extends Controller
         );
 
         return $this->render('index');
+    }
+
+    private function registerPageMeta(string $description, string $canonicalUrl): void
+    {
+        $view = $this->view;
+
+        $view->registerMetaTag(['name' => 'description', 'content' => $description], 'description');
+        $view->registerMetaTag(['name' => 'robots', 'content' => 'index, follow'], 'robots');
+        $view->registerLinkTag(['rel' => 'canonical', 'href' => $canonicalUrl], 'canonical');
+
+        $view->registerMetaTag(['property' => 'og:title', 'content' => (string)$view->title], 'og:title');
+        $view->registerMetaTag(['property' => 'og:description', 'content' => $description], 'og:description');
+        $view->registerMetaTag(['property' => 'og:url', 'content' => $canonicalUrl], 'og:url');
+        $view->registerMetaTag(['property' => 'og:type', 'content' => 'website'], 'og:type');
+
+        $view->registerMetaTag(['name' => 'twitter:card', 'content' => 'summary_large_image'], 'twitter:card');
+        $view->registerMetaTag(['name' => 'twitter:title', 'content' => (string)$view->title], 'twitter:title');
+        $view->registerMetaTag(['name' => 'twitter:description', 'content' => $description], 'twitter:description');
     }
 
     /**
@@ -107,23 +127,5 @@ final class SiteController extends Controller
         ];
 
         return $pages[$slug] ?? null;
-    }
-
-    private function registerPageMeta(string $description, string $canonicalUrl): void
-    {
-        $view = $this->view;
-
-        $view->registerMetaTag(['name' => 'description', 'content' => $description], 'description');
-        $view->registerMetaTag(['name' => 'robots', 'content' => 'index, follow'], 'robots');
-        $view->registerLinkTag(['rel' => 'canonical', 'href' => $canonicalUrl], 'canonical');
-
-        $view->registerMetaTag(['property' => 'og:title', 'content' => (string)$view->title], 'og:title');
-        $view->registerMetaTag(['property' => 'og:description', 'content' => $description], 'og:description');
-        $view->registerMetaTag(['property' => 'og:url', 'content' => $canonicalUrl], 'og:url');
-        $view->registerMetaTag(['property' => 'og:type', 'content' => 'website'], 'og:type');
-
-        $view->registerMetaTag(['name' => 'twitter:card', 'content' => 'summary_large_image'], 'twitter:card');
-        $view->registerMetaTag(['name' => 'twitter:title', 'content' => (string)$view->title], 'twitter:title');
-        $view->registerMetaTag(['name' => 'twitter:description', 'content' => $description], 'twitter:description');
     }
 }

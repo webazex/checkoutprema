@@ -36,6 +36,11 @@ final class CatalogCategoryModel extends BaseModel
         return '{{%catalog_category}}';
     }
 
+    public static function find(): CatalogCategoryQuery
+    {
+        return new CatalogCategoryQuery(static::class);
+    }
+
     public function rules(): array
     {
         return array_merge(parent::rules(), [
@@ -111,10 +116,5 @@ final class CatalogCategoryModel extends BaseModel
     public function getIsArchived(): bool
     {
         return (bool)$this->is_archived;
-    }
-
-    public static function find(): CatalogCategoryQuery
-    {
-        return new CatalogCategoryQuery(static::class);
     }
 }

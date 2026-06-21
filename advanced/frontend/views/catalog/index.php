@@ -12,8 +12,8 @@ use yii\helpers\Url;
 /** @var string $breadcrumbSchemaJson */
 
 echo $this->render('_schema', [
-    'schemaJson' => $schemaJson,
-    'breadcrumbSchemaJson' => $breadcrumbSchemaJson,
+        'schemaJson' => $schemaJson,
+        'breadcrumbSchemaJson' => $breadcrumbSchemaJson,
 ]);
 ?>
 
@@ -39,5 +39,5 @@ echo $this->render('_schema', [
             <?= $this->render('_product_card', ['product' => $product]) ?>
         <?php endforeach; ?>
     </section>
-    <?=$this->render('__cart-side-box'); ?>
+    <?= $this->render('__cart-side-box'); ?>
 </section>

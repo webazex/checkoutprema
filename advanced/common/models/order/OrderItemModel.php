@@ -1,8 +1,10 @@
 <?php
 
 namespace common\models\order;
+
 use common\models\BaseModel;
 use common\models\product\ProductModel;
+
 /**
  * @property int $id
  * @property int $order_id

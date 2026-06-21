@@ -14,7 +14,8 @@ final class KeyCrmCustomerSyncService
 {
     public function __construct(
         private readonly KeyCrmApiClient $apiClient,
-    ) {
+    )
+    {
     }
 
     public function sync(CustomerModel $customer): CustomerModel
@@ -97,30 +98,11 @@ final class KeyCrmCustomerSyncService
         return null;
     }
 
-    private function createRemoteCustomer(CustomerModel $customer): array
+    private function nullableString(mixed $value): ?string
     {
-        $payload = [
-            'full_name' => $customer->getFullName() ?: $customer->email,
-        ];
+        $value = is_string($value) ? trim($value) : null;
 
-        $email = $this->nullableString($customer->email);
-        $phone = $this->nullableString($customer->phone);
-
-        if ($email !== null) {
-            $payload['email'] = [$email];
-        }
-
-        if ($phone !== null) {
-            $payload['phone'] = [$phone];
-        }
-
-        $response = $this->apiClient->post('/buyer', $payload);
-
-        if (!is_array($response)) {
-            throw new RuntimeException('KeyCRM create customer returned invalid response.');
-        }
-
-        return $response;
+        return $value !== '' ? $value : null;
     }
 
     private function extractFirstCustomer(array $response): ?array
@@ -153,6 +135,32 @@ final class KeyCrmCustomerSyncService
         return is_array($first) ? $first : null;
     }
 
+    private function createRemoteCustomer(CustomerModel $customer): array
+    {
+        $payload = [
+            'full_name' => $customer->getFullName() ?: $customer->email,
+        ];
+
+        $email = $this->nullableString($customer->email);
+        $phone = $this->nullableString($customer->phone);
+
+        if ($email !== null) {
+            $payload['email'] = [$email];
+        }
+
+        if ($phone !== null) {
+            $payload['phone'] = [$phone];
+        }
+
+        $response = $this->apiClient->post('/buyer', $payload);
+
+        if (!is_array($response)) {
+            throw new RuntimeException('KeyCRM create customer returned invalid response.');
+        }
+
+        return $response;
+    }
+
     private function extractRemoteCustomerId(array $response): ?string
     {
         /**
@@ -170,12 +178,5 @@ final class KeyCrmCustomerSyncService
         $id = trim((string)$id);
 
         return $id !== '' ? $id : null;
-    }
-
-    private function nullableString(mixed $value): ?string
-    {
-        $value = is_string($value) ? trim($value) : null;
-
-        return $value !== '' ? $value : null;
     }
 }

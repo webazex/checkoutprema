@@ -20,12 +20,8 @@ final class WayForPayGateway implements PaymentGatewayInterface
         private readonly string $merchantAccount,
         private readonly string $merchantSecretKey,
         private readonly string $merchantDomainName,
-    ) {
-    }
-
-    public function getCode(): string
+    )
     {
-        return PaymentModel::PROVIDER_WAYFORPAY;
     }
 
     public function createPayment(PaymentCreateRequestDto $request): PaymentCreateResultDto
@@ -111,6 +107,57 @@ final class WayForPayGateway implements PaymentGatewayInterface
         );
     }
 
+    private function stringifyAmount(int|float|string $amount): string
+    {
+        if (is_string($amount)) {
+            return trim($amount);
+        }
+
+        $formatted = number_format((float)$amount, 2, '.', '');
+
+        return rtrim(rtrim($formatted, '0'), '.');
+    }
+
+    /**
+     * @param PaymentLineItemDto[] $items
+     */
+    private function buildPurchaseSignatureString(
+        string $orderReference,
+        int    $orderDate,
+        float  $amount,
+        string $currency,
+        array  $items
+    ): string
+    {
+        $parts = [
+            $this->merchantAccount,
+            $this->merchantDomainName,
+            $orderReference,
+            (string)$orderDate,
+            $this->stringifyAmount($amount),
+            $currency,
+        ];
+
+        foreach ($items as $item) {
+            $parts[] = $item->name;
+        }
+
+        foreach ($items as $item) {
+            $parts[] = (string)$item->quantity;
+        }
+
+        foreach ($items as $item) {
+            $parts[] = $this->stringifyAmount($item->price);
+        }
+
+        return implode(';', $parts);
+    }
+
+    public function getCode(): string
+    {
+        return PaymentModel::PROVIDER_WAYFORPAY;
+    }
+
     public function validateCallback(array $payload): bool
     {
         $required = [
@@ -142,6 +189,20 @@ final class WayForPayGateway implements PaymentGatewayInterface
         );
 
         return hash_equals($expectedSignature, (string)$payload['merchantSignature']);
+    }
+
+    private function buildCallbackSignatureString(array $payload): string
+    {
+        return implode(';', [
+            (string)$payload['merchantAccount'],
+            (string)$payload['orderReference'],
+            $this->stringifyAmount($payload['amount']),
+            (string)$payload['currency'],
+            (string)$payload['authCode'],
+            (string)$payload['cardPan'],
+            (string)$payload['transactionStatus'],
+            (string)$payload['reasonCode'],
+        ]);
     }
 
     public function parseCallback(array $payload): PaymentCallbackResultDto
@@ -202,81 +263,6 @@ final class WayForPayGateway implements PaymentGatewayInterface
         return true;
     }
 
-    public function buildCallbackResponse(PaymentCallbackResultDto $result): PaymentCallbackResponseDto
-    {
-        $status = $result->isValid ? 'accept' : 'decline';
-        $time = time();
-        $orderReference = (string)($result->externalOrderId ?? '');
-
-        $signatureString = implode(';', [
-            $orderReference,
-            $status,
-            $time,
-        ]);
-
-        $signature = hash_hmac('md5', $signatureString, $this->merchantSecretKey);
-
-        $body = json_encode([
-            'orderReference' => $orderReference,
-            'status' => $status,
-            'time' => $time,
-            'signature' => $signature,
-        ], JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);
-
-        return new PaymentCallbackResponseDto(
-            statusCode: 200,
-            body: $body === false ? '{}' : $body,
-        );
-    }
-
-    /**
-     * @param PaymentLineItemDto[] $items
-     */
-    private function buildPurchaseSignatureString(
-        string $orderReference,
-        int $orderDate,
-        float $amount,
-        string $currency,
-        array $items
-    ): string {
-        $parts = [
-            $this->merchantAccount,
-            $this->merchantDomainName,
-            $orderReference,
-            (string)$orderDate,
-            $this->stringifyAmount($amount),
-            $currency,
-        ];
-
-        foreach ($items as $item) {
-            $parts[] = $item->name;
-        }
-
-        foreach ($items as $item) {
-            $parts[] = (string)$item->quantity;
-        }
-
-        foreach ($items as $item) {
-            $parts[] = $this->stringifyAmount($item->price);
-        }
-
-        return implode(';', $parts);
-    }
-
-    private function buildCallbackSignatureString(array $payload): string
-    {
-        return implode(';', [
-            (string)$payload['merchantAccount'],
-            (string)$payload['orderReference'],
-            $this->stringifyAmount($payload['amount']),
-            (string)$payload['currency'],
-            (string)$payload['authCode'],
-            (string)$payload['cardPan'],
-            (string)$payload['transactionStatus'],
-            (string)$payload['reasonCode'],
-        ]);
-    }
-
     private function mapStatus(?string $externalStatus): string
     {
         return WayForPayStatusDictionary::toInternalStatus($externalStatus);
@@ -306,14 +292,30 @@ final class WayForPayGateway implements PaymentGatewayInterface
         return null;
     }
 
-    private function stringifyAmount(int|float|string $amount): string
+    public function buildCallbackResponse(PaymentCallbackResultDto $result): PaymentCallbackResponseDto
     {
-        if (is_string($amount)) {
-            return trim($amount);
-        }
+        $status = $result->isValid ? 'accept' : 'decline';
+        $time = time();
+        $orderReference = (string)($result->externalOrderId ?? '');
 
-        $formatted = number_format((float)$amount, 2, '.', '');
+        $signatureString = implode(';', [
+            $orderReference,
+            $status,
+            $time,
+        ]);
 
-        return rtrim(rtrim($formatted, '0'), '.');
+        $signature = hash_hmac('md5', $signatureString, $this->merchantSecretKey);
+
+        $body = json_encode([
+            'orderReference' => $orderReference,
+            'status' => $status,
+            'time' => $time,
+            'signature' => $signature,
+        ], JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);
+
+        return new PaymentCallbackResponseDto(
+            statusCode: 200,
+            body: $body === false ? '{}' : $body,
+        );
     }
 }

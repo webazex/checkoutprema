@@ -33,116 +33,7 @@ final class NovaPoshtaDebugController extends Controller
     {
         return $this->execute(
             'Nova Poshta raw settlements response',
-            fn (): array => $this->getApiService()->searchSettlements($query, $limit)
-        );
-    }
-
-    /**
-     * Возвращает полный сырой ответ getWarehouses
-     * для обычных почтовых отделений.
-     *
-     * Пример:
-     * php yii nova-poshta-debug/raw-post-offices <DELIVERY_CITY_REF> 1 20
-     */
-    public function actionRawPostOffices(string $deliveryCityRef, int $page = 1, int $limit = 20): int
-    {
-        return $this->execute(
-            'Nova Poshta raw post offices response',
-            fn (): array => $this->getApiService()->getPostOffices($deliveryCityRef, $page, $limit)
-        );
-    }
-
-    /**
-     * Возвращает полный сырой ответ getWarehouses
-     * для складов грузового типа.
-     *
-     * Пример:
-     * php yii nova-poshta-debug/raw-cargo-branches <DELIVERY_CITY_REF> 1 20
-     */
-    public function actionRawCargoBranches(string $deliveryCityRef, int $page = 1, int $limit = 20): int
-    {
-        return $this->execute(
-            'Nova Poshta raw cargo branches response',
-            fn (): array => $this->getApiService()->getCargoBranches($deliveryCityRef, $page, $limit)
-        );
-    }
-
-    /**
-     * Возвращает обычные почтовые отделения,
-     * преобразованные через NovaPoshtaResponseMapper.
-     *
-     * Пример:
-     * php yii nova-poshta-debug/mapped-post-offices <DELIVERY_CITY_REF> 1 20
-     */
-    public function actionMappedPostOffices(string $deliveryCityRef, int $page = 1, int $limit = 20): int
-    {
-        return $this->execute(
-            'Nova Poshta mapped post offices response',
-            function () use ($deliveryCityRef, $page, $limit): array {
-                $this->validateWarehousePagination($page, $limit);
-
-                $response = $this->getApiService()->getPostOffices(
-                    $deliveryCityRef,
-                    $page,
-                    $limit
-                );
-
-                $mappedPage = $this->getResponseMapper()->mapWarehousePage(
-                    $response,
-                    $page,
-                    $limit
-                );
-
-                return $this->warehousePageToArray($mappedPage);
-            }
-        );
-    }
-
-    /**
-     * Возвращает склады грузового типа,
-     * преобразованные через NovaPoshtaResponseMapper.
-     *
-     * Записи CategoryOfWarehouse = Fulfillment здесь
-     * намеренно не удаляются: mapper отражает ответ API.
-     *
-     * Пример:
-     * php yii nova-poshta-debug/mapped-cargo-branches <DELIVERY_CITY_REF> 1 20
-     */
-    public function actionMappedCargoBranches(string $deliveryCityRef, int $page = 1, int $limit = 20): int
-    {
-        return $this->execute(
-            'Nova Poshta mapped cargo branches response',
-            function () use ($deliveryCityRef, $page, $limit): array {
-                $this->validateWarehousePagination($page, $limit);
-
-                $response = $this->getApiService()->getCargoBranches(
-                    $deliveryCityRef,
-                    $page,
-                    $limit
-                );
-
-                $mappedPage = $this->getResponseMapper()->mapWarehousePage(
-                    $response,
-                    $page,
-                    $limit
-                );
-
-                return $this->warehousePageToArray($mappedPage);
-            }
-        );
-    }
-
-    /**
-     * Возвращает полный сырой справочник типов складов.
-     *
-     * Пример:
-     * php yii nova-poshta-debug/raw-warehouse-types
-     */
-    public function actionRawWarehouseTypes(): int
-    {
-        return $this->execute(
-            'Nova Poshta raw warehouse types response',
-            fn (): array => $this->getApiService()->getWarehouseTypes()
+            fn(): array => $this->getApiService()->searchSettlements($query, $limit)
         );
     }
 
@@ -192,6 +83,75 @@ final class NovaPoshtaDebugController extends Controller
         }
     }
 
+    private function getApiService(): NovaPoshtaApiService
+    {
+        /** @var NovaPoshtaApiService $service */
+        $service = Yii::$container->get(NovaPoshtaApiService::class);
+
+        return $service;
+    }
+
+    /**
+     * Возвращает полный сырой ответ getWarehouses
+     * для обычных почтовых отделений.
+     *
+     * Пример:
+     * php yii nova-poshta-debug/raw-post-offices <DELIVERY_CITY_REF> 1 20
+     */
+    public function actionRawPostOffices(string $deliveryCityRef, int $page = 1, int $limit = 20): int
+    {
+        return $this->execute(
+            'Nova Poshta raw post offices response',
+            fn(): array => $this->getApiService()->getPostOffices($deliveryCityRef, $page, $limit)
+        );
+    }
+
+    /**
+     * Возвращает полный сырой ответ getWarehouses
+     * для складов грузового типа.
+     *
+     * Пример:
+     * php yii nova-poshta-debug/raw-cargo-branches <DELIVERY_CITY_REF> 1 20
+     */
+    public function actionRawCargoBranches(string $deliveryCityRef, int $page = 1, int $limit = 20): int
+    {
+        return $this->execute(
+            'Nova Poshta raw cargo branches response',
+            fn(): array => $this->getApiService()->getCargoBranches($deliveryCityRef, $page, $limit)
+        );
+    }
+
+    /**
+     * Возвращает обычные почтовые отделения,
+     * преобразованные через NovaPoshtaResponseMapper.
+     *
+     * Пример:
+     * php yii nova-poshta-debug/mapped-post-offices <DELIVERY_CITY_REF> 1 20
+     */
+    public function actionMappedPostOffices(string $deliveryCityRef, int $page = 1, int $limit = 20): int
+    {
+        return $this->execute(
+            'Nova Poshta mapped post offices response',
+            function () use ($deliveryCityRef, $page, $limit): array {
+                $this->validateWarehousePagination($page, $limit);
+
+                $response = $this->getApiService()->getPostOffices(
+                    $deliveryCityRef,
+                    $page,
+                    $limit
+                );
+
+                $mappedPage = $this->getResponseMapper()->mapWarehousePage(
+                    $response,
+                    $page,
+                    $limit
+                );
+
+                return $this->warehousePageToArray($mappedPage);
+            }
+        );
+    }
+
     private function validateWarehousePagination(int $page, int $limit): void
     {
         if ($page < 1) {
@@ -208,6 +168,14 @@ final class NovaPoshtaDebugController extends Controller
         }
     }
 
+    private function getResponseMapper(): NovaPoshtaResponseMapper
+    {
+        /** @var NovaPoshtaResponseMapper $mapper */
+        $mapper = Yii::$container->get(NovaPoshtaResponseMapper::class);
+
+        return $mapper;
+    }
+
     /**
      * @return array<string, mixed>
      */
@@ -215,8 +183,7 @@ final class NovaPoshtaDebugController extends Controller
     {
         return [
             'items' => array_map(
-                fn (NovaPoshtaWarehouseDto $warehouse): array
-                => $this->warehouseToArray($warehouse),
+                fn(NovaPoshtaWarehouseDto $warehouse): array => $this->warehouseToArray($warehouse),
                 $page->items
             ),
             'apiTotalCount' => $page->apiTotalCount,
@@ -275,51 +242,52 @@ final class NovaPoshtaDebugController extends Controller
         ];
     }
 
-    private function getApiService(): NovaPoshtaApiService
+    /**
+     * Возвращает склады грузового типа,
+     * преобразованные через NovaPoshtaResponseMapper.
+     *
+     * Записи CategoryOfWarehouse = Fulfillment здесь
+     * намеренно не удаляются: mapper отражает ответ API.
+     *
+     * Пример:
+     * php yii nova-poshta-debug/mapped-cargo-branches <DELIVERY_CITY_REF> 1 20
+     */
+    public function actionMappedCargoBranches(string $deliveryCityRef, int $page = 1, int $limit = 20): int
     {
-        /** @var NovaPoshtaApiService $service */
-        $service = Yii::$container->get(NovaPoshtaApiService::class);
+        return $this->execute(
+            'Nova Poshta mapped cargo branches response',
+            function () use ($deliveryCityRef, $page, $limit): array {
+                $this->validateWarehousePagination($page, $limit);
 
-        return $service;
-    }
+                $response = $this->getApiService()->getCargoBranches(
+                    $deliveryCityRef,
+                    $page,
+                    $limit
+                );
 
-    private function getResponseMapper(): NovaPoshtaResponseMapper
-    {
-        /** @var NovaPoshtaResponseMapper $mapper */
-        $mapper = Yii::$container->get(NovaPoshtaResponseMapper::class);
+                $mappedPage = $this->getResponseMapper()->mapWarehousePage(
+                    $response,
+                    $page,
+                    $limit
+                );
 
-        return $mapper;
+                return $this->warehousePageToArray($mappedPage);
+            }
+        );
     }
 
     /**
-     * @return array<string, mixed>
+     * Возвращает полный сырой справочник типов складов.
+     *
+     * Пример:
+     * php yii nova-poshta-debug/raw-warehouse-types
      */
-    private function deliveryPointToArray(NovaPoshtaDeliveryPointDto $point): array
+    public function actionRawWarehouseTypes(): int
     {
-        return [
-            'ref' => $point->ref,
-            'number' => $point->number,
-            'type' => $point->type->name,
-            'typeRef' => $point->type->value,
-            'description' => $point->description,
-            'shortAddress' => $point->shortAddress,
-            'cityRef' => $point->cityRef,
-            'settlementRef' => $point->settlementRef,
-            'settlementName' => $point->settlementName,
-            'areaName' => $point->areaName,
-            'regionName' => $point->regionName,
-            'latitude' => $point->latitude,
-            'longitude' => $point->longitude,
-            'hasCoordinates' => $point->hasCoordinates(),
-            'totalMaxWeightAllowed' => $point->totalMaxWeightAllowed,
-            'placeMaxWeightAllowed' => $point->placeMaxWeightAllowed,
-            'sendingDimensions' => $this->dimensionsToArray(
-                $point->sendingDimensions
-            ),
-            'receivingDimensions' => $this->dimensionsToArray(
-                $point->receivingDimensions
-            ),
-        ];
+        return $this->execute(
+            'Nova Poshta raw warehouse types response',
+            fn(): array => $this->getApiService()->getWarehouseTypes()
+        );
     }
 
     /**
@@ -355,8 +323,7 @@ final class NovaPoshtaDebugController extends Controller
                     'countsByType' => $countsByType,
                     'previewLimit' => $previewLimit,
                     'items' => array_map(
-                        fn (NovaPoshtaDeliveryPointDto $point): array
-                        => $this->deliveryPointToArray($point),
+                        fn(NovaPoshtaDeliveryPointDto $point): array => $this->deliveryPointToArray($point),
                         array_slice($points, 0, $previewLimit)
                     ),
                 ];
@@ -370,5 +337,36 @@ final class NovaPoshtaDebugController extends Controller
         $service = Yii::$container->get(NovaPoshtaDeliveryService::class);
 
         return $service;
+    }
+
+    /**
+     * @return array<string, mixed>
+     */
+    private function deliveryPointToArray(NovaPoshtaDeliveryPointDto $point): array
+    {
+        return [
+            'ref' => $point->ref,
+            'number' => $point->number,
+            'type' => $point->type->name,
+            'typeRef' => $point->type->value,
+            'description' => $point->description,
+            'shortAddress' => $point->shortAddress,
+            'cityRef' => $point->cityRef,
+            'settlementRef' => $point->settlementRef,
+            'settlementName' => $point->settlementName,
+            'areaName' => $point->areaName,
+            'regionName' => $point->regionName,
+            'latitude' => $point->latitude,
+            'longitude' => $point->longitude,
+            'hasCoordinates' => $point->hasCoordinates(),
+            'totalMaxWeightAllowed' => $point->totalMaxWeightAllowed,
+            'placeMaxWeightAllowed' => $point->placeMaxWeightAllowed,
+            'sendingDimensions' => $this->dimensionsToArray(
+                $point->sendingDimensions
+            ),
+            'receivingDimensions' => $this->dimensionsToArray(
+                $point->receivingDimensions
+            ),
+        ];
     }
 }

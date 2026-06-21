@@ -17,15 +17,15 @@ $this->title = 'Новий пароль';
     </p>
 
     <?php $form = ActiveForm::begin([
-        'id' => 'customer-reset-password-form',
+            'id' => 'customer-reset-password-form',
     ]); ?>
 
     <?= $form->field($model, 'password')->passwordInput([
-        'autocomplete' => 'new-password',
+            'autocomplete' => 'new-password',
     ]) ?>
 
     <?= $form->field($model, 'password_repeat')->passwordInput([
-        'autocomplete' => 'new-password',
+            'autocomplete' => 'new-password',
     ]) ?>
 
     <div class="form-group">

@@ -7,6 +7,7 @@ namespace common\services\keycrm;
 use common\models\meta\MetaModel;
 use common\models\product\ProductModel;
 use DomainException;
+use Throwable;
 use Yii;
 use yii\helpers\Json;
 
@@ -86,7 +87,7 @@ final class KeyCrmArchivedProductCleanupService
 
                 $stats['deletedMeta'] += $deletedMeta;
                 $stats['deleted']++;
-            } catch (\Throwable $e) {
+            } catch (Throwable $e) {
                 $stats['errors']++;
                 throw $e;
             }

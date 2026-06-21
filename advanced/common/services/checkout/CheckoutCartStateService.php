@@ -12,7 +12,8 @@ final class CheckoutCartStateService
 {
     public function __construct(
         private readonly CheckoutCartMapper $cartMapper,
-    ) {
+    )
+    {
     }
 
     public function getActiveCartBySession(string $sessionKey, string $sourceType): CheckoutCartDto

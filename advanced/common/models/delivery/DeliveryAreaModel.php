@@ -30,6 +30,11 @@ class DeliveryAreaModel extends BaseModel
         return '{{%delivery_area}}';
     }
 
+    public static function find(): DeliveryAreaQuery
+    {
+        return new DeliveryAreaQuery(static::class);
+    }
+
     public function rules(): array
     {
         return array_merge(parent::rules(), [
@@ -102,10 +107,5 @@ class DeliveryAreaModel extends BaseModel
     public function getIsArchived(): bool
     {
         return $this->archived_at !== null;
-    }
-
-    public static function find(): DeliveryAreaQuery
-    {
-        return new DeliveryAreaQuery(static::class);
     }
 }

@@ -9,6 +9,24 @@ use DomainException;
 
 final class KeyCrmCategoryMapper
 {
+    /**
+     * @return KeyCrmCategoryDto[]
+     */
+    public function mapMany(array $items): array
+    {
+        $result = [];
+
+        foreach ($items as $item) {
+            if (!is_array($item)) {
+                continue;
+            }
+
+            $result[] = $this->mapOne($item);
+        }
+
+        return $result;
+    }
+
     public function mapOne(array $item): KeyCrmCategoryDto
     {
         $externalId = $this->nullableInt($item['id'] ?? null);
@@ -35,31 +53,6 @@ final class KeyCrmCategoryMapper
         );
     }
 
-    /**
-     * @return KeyCrmCategoryDto[]
-     */
-    public function mapMany(array $items): array
-    {
-        $result = [];
-
-        foreach ($items as $item) {
-            if (!is_array($item)) {
-                continue;
-            }
-
-            $result[] = $this->mapOne($item);
-        }
-
-        return $result;
-    }
-
-    private function nullableString(mixed $value): ?string
-    {
-        $value = is_string($value) ? trim($value) : null;
-
-        return $value !== '' ? $value : null;
-    }
-
     private function nullableInt(mixed $value): ?int
     {
         if ($value === null || $value === '') {
@@ -67,5 +60,12 @@ final class KeyCrmCategoryMapper
         }
 
         return (int)$value;
+    }
+
+    private function nullableString(mixed $value): ?string
+    {
+        $value = is_string($value) ? trim($value) : null;
+
+        return $value !== '' ? $value : null;
     }
 }
