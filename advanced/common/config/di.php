@@ -41,6 +41,10 @@ use common\storages\delivery\DeliveryProviderStorage;
 use common\storages\delivery\DeliverySettlementStorage;
 use common\storages\delivery\DeliverySyncStateStorage;
 use yii\di\Container;
+use common\services\delivery\DeliveryDirectoryCacheService;
+use common\services\delivery\DeliveryDirectoryReadService;
+use yii\caching\CacheInterface;
+use yii\mutex\Mutex;
 
 return [
     KeyCrmApiClient::class => static function (Container $container) {
@@ -218,4 +222,25 @@ return [
 
     DeliverySyncStatusService::class
     => DeliverySyncStatusService::class,
+
+    DeliveryDirectoryCacheService::class
+    => static function (): DeliveryDirectoryCacheService {
+        /** @var CacheInterface $cache */
+        $cache = Yii::$app->get('cache');
+
+        /** @var Mutex $mutex */
+        $mutex = Yii::$app->get('mutex');
+
+        return new DeliveryDirectoryCacheService(
+            cache: $cache,
+            mutex: $mutex,
+            dataTtl: (int)(
+                Yii::$app->params['delivery.directoryCacheTtl']
+                ?? 86400
+            )
+        );
+    },
+
+    DeliveryDirectoryReadService::class
+    => DeliveryDirectoryReadService::class,
 ];
