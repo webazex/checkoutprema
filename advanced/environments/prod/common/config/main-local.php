@@ -1,19 +1,16 @@
 <?php
 
-use yii\db\Connection;
-use yii\symfonymailer\Mailer;
-
 return [
     'components' => [
         'db' => [
-            'class' => Connection::class,
+            'class' => \yii\db\Connection::class,
             'dsn' => 'mysql:host=localhost;dbname=yii2advanced',
             'username' => 'root',
             'password' => '',
             'charset' => 'utf8',
         ],
         'mailer' => [
-            'class' => Mailer::class,
+            'class' => \yii\symfonymailer\Mailer::class,
             'viewPath' => '@common/mail',
         ],
     ],

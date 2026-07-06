@@ -1,7 +1,5 @@
 <?php
 
-use yii\gii\Module;
-
 $config = [
     'components' => [
         'request' => [
@@ -20,7 +18,7 @@ if (!YII_ENV_TEST) {
 
     $config['bootstrap'][] = 'gii';
     $config['modules']['gii'] = [
-        'class' => Module::class,
+        'class' => \yii\gii\Module::class,
     ];
 }
 
