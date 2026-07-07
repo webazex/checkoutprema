@@ -33,6 +33,7 @@ use common\services\novaposhta\NovaPoshtaDeliveryService;
 use common\services\novaposhta\NovaPoshtaRateLimiter;
 use common\services\order\OrderPostPaymentProcessor;
 use common\services\payment\PaymentService;
+use common\services\delivery\DeliveryPointSearchService;
 use common\storages\delivery\DeliveryAreaStorage;
 use common\storages\delivery\DeliveryDirectoryWriteStorage;
 use common\storages\delivery\DeliveryPointStorage;
@@ -191,6 +192,8 @@ return [
 
     DeliverySyncStateStorage::class
     => DeliverySyncStateStorage::class,
+    DeliveryPointSearchService::class
+    => DeliveryPointSearchService::class,
 
     NovaPoshtaDirectoryMapper::class
     => NovaPoshtaDirectoryMapper::class,

@@ -14,6 +14,8 @@ use common\services\delivery\DeliveryDirectoryReadService;
 use common\services\delivery\DeliverySyncSchedulerService;
 use common\services\delivery\DeliverySyncStatusService;
 use common\storages\delivery\DeliveryPointStorage;
+use common\dto\delivery\DeliveryPointSearchRequestDto;
+use common\services\delivery\DeliveryPointSearchService;
 use Yii;
 use yii\console\Controller;
 use yii\console\ExitCode;
@@ -25,6 +27,7 @@ final class DeliveryController extends Controller
     public int $limit = 500;
     public int $staleAfterSeconds = 900;
     public int $resetCache = 1;
+    public int $searchLimit = 30;
 
     public function options($actionID): array
     {
@@ -43,6 +46,10 @@ final class DeliveryController extends Controller
 
         if ($actionID === 'read-test') {
             return array_merge($options, ['resetCache']);
+        }
+
+        if ($actionID === 'search-test') {
+            return array_merge($options, ['searchLimit']);
         }
 
         return $options;
@@ -362,6 +369,77 @@ final class DeliveryController extends Controller
             : ExitCode::UNSPECIFIED_ERROR;
     }
 
+    public function actionSearchTest(
+        string $providerCode,
+        string $query
+    ): int {
+        $providerCode = strtolower(trim($providerCode));
+
+        /** @var DeliveryPointSearchService $service */
+        $service = Yii::$container->get(
+            DeliveryPointSearchService::class
+        );
+
+        $this->stdout("Delivery point search test\n");
+        $this->stdout("Provider code: {$providerCode}\n");
+        $this->stdout("Query: {$query}\n");
+        $this->stdout("Limit: {$this->searchLimit}\n\n");
+
+        $globalResults = $this->runSearchCase(
+            service: $service,
+            label: 'global DB search',
+            request: new DeliveryPointSearchRequestDto(
+                providerCode: $providerCode,
+                query: $query,
+                limit: $this->searchLimit
+            )
+        );
+
+        if ($globalResults === []) {
+            $this->stdout(
+                "\nResult: ERROR — global search returned no results.\n"
+            );
+
+            return ExitCode::UNSPECIFIED_ERROR;
+        }
+
+        $samplePoint = $globalResults[0]->point;
+
+        $areaResults = $this->runSearchCase(
+            service: $service,
+            label: 'area DB search',
+            request: new DeliveryPointSearchRequestDto(
+                providerCode: $providerCode,
+                query: $query,
+                areaRef: $samplePoint->areaExternalRef,
+                limit: $this->searchLimit
+            )
+        );
+
+        $cityResults = $this->runSearchCase(
+            service: $service,
+            label: 'city cache search',
+            request: new DeliveryPointSearchRequestDto(
+                providerCode: $providerCode,
+                query: $query,
+                areaRef: $samplePoint->areaExternalRef,
+                cityRef: $samplePoint->settlementDeliveryRef,
+                settlementRef: $samplePoint->settlementExternalRef,
+                limit: $this->searchLimit
+            )
+        );
+
+        $healthy = $areaResults !== [] && $cityResults !== [];
+
+        $this->stdout(
+            "\nResult: " . ($healthy ? 'OK' : 'ERROR') . "\n"
+        );
+
+        return $healthy
+            ? ExitCode::OK
+            : ExitCode::UNSPECIFIED_ERROR;
+    }
+
     /**
      * @param callable(): array $callback
      *
@@ -571,5 +649,49 @@ final class DeliveryController extends Controller
         }
 
         $this->stdout("\n");
+    }
+
+    /**
+     * @return list<\common\dto\delivery\DeliveryPointSearchResultDto>
+     */
+    private function runSearchCase(
+        DeliveryPointSearchService $service,
+        string $label,
+        DeliveryPointSearchRequestDto $request
+    ): array {
+        $startedAt = hrtime(true);
+        $results = $service->search($request);
+        $elapsedMilliseconds = (hrtime(true) - $startedAt) / 1_000_000;
+
+        $this->stdout($label . "\n");
+
+        $this->stdout(sprintf(
+            "  count: %d\n",
+            count($results)
+        ));
+
+        $this->stdout(sprintf(
+            "  time: %.3f ms\n",
+            $elapsedMilliseconds
+        ));
+
+        foreach (array_slice($results, 0, 5) as $index => $result) {
+            $point = $result->point;
+
+            $this->stdout(sprintf(
+                "  #%d pointId=%d number=%s type=%s settlement=%s area=%s label=%s\n",
+                $index + 1,
+                $point->id,
+                $point->number ?? 'null',
+                $point->typeCode,
+                $point->settlementName,
+                $point->areaName,
+                $result->label
+            ));
+        }
+
+        $this->stdout("\n");
+
+        return $results;
     }
 }

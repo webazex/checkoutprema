@@ -11,6 +11,7 @@ use common\models\delivery\DeliveryPointQuery;
 use common\models\delivery\DeliveryProviderModel;
 use common\contracts\delivery\DeliveryPointStorageInterface;
 use OutOfBoundsException;
+use yii\db\Expression;
 
 final readonly class DeliveryPointStorage implements DeliveryPointStorageInterface
 {
@@ -80,5 +81,63 @@ final readonly class DeliveryPointStorage implements DeliveryPointStorageInterfa
         $models = $this->baseQuery()->byProviderId($provider->id)->bySettlementId($settlementId)->availableForCheckout()->orderedByNumber()->all();
 
         return array_map(fn(DeliveryPointModel $model): DeliveryPointReadDto => $this->mapper->mapPoint($model), $models);
+    }
+
+    /**
+     * @return list<DeliveryPointReadDto>
+     */
+    public function searchSelectableByNumber(
+        string $providerCode,
+        string $numberQuery,
+        ?int $areaId,
+        int $limit
+    ): array {
+        $provider = $this->providers->getActiveByCode($providerCode);
+
+        $numberQuery = trim($numberQuery);
+
+        if ($numberQuery === '') {
+            return [];
+        }
+
+        $limit = max(1, min($limit, 30));
+
+        $query = DeliveryPointModel::find()
+            ->alias('point')
+            ->joinWith(['settlement settlement'], false)
+            ->andWhere(['point.provider_id' => $provider->id])
+            ->andWhere(['point.is_active' => true])
+            ->andWhere(['point.is_selectable' => true])
+            ->andWhere(['point.archived_at' => null])
+            ->andWhere(['settlement.archived_at' => null])
+            ->andWhere(['like', 'point.number', $numberQuery])
+            ->with(['provider', 'settlement.area', 'type', 'schedules'])
+            ->addParams([
+                ':exactNumber' => $numberQuery,
+                ':prefixNumber' => $numberQuery . '%',
+            ])
+            ->orderBy(new Expression(
+                'CASE
+                WHEN [[point]].[[number]] = :exactNumber THEN 0
+                WHEN [[point]].[[number]] LIKE :prefixNumber THEN 1
+                ELSE 2
+            END ASC,
+            [[settlement]].[[name]] ASC,
+            [[point]].[[number]] ASC,
+            [[point]].[[id]] ASC'
+            ))
+            ->limit($limit);
+
+        if ($areaId !== null) {
+            $query->andWhere(['settlement.area_id' => $areaId]);
+        }
+
+        $models = $query->all();
+
+        return array_map(
+            fn(DeliveryPointModel $model): DeliveryPointReadDto
+            => $this->mapper->mapPoint($model),
+            $models
+        );
     }
 }
